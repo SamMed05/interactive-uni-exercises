@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>ODE Type Quiz</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    window.MathJax = {
+      tex: { inlineMath: [['$', '$'], ['\\(', '\\)']] },
+      svg: { fontCache: 'global' }
+    };
+  </script>
+  <script async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js"></script>
+  <style>
+    body { font-family: Inter, ui-sans-serif, system-ui; }
+    .eq { font-family: 'Georgia', 'Times New Roman', serif; font-size: 1.25rem; }
+  </style>
+</head>
+<body class="bg-gray-50 min-h-screen flex items-center justify-center p-6">
+  <main class="w-full max-w-2xl bg-white shadow-lg rounded-xl p-6">
+    <header class="mb-4">
+      <h1 class="text-2xl font-semibold">ODE Type Quiz</h1>
+      <p class="text-sm text-gray-600">
+        Identify whether the ODE is <br>
+        <ul class="text-sm text-gray-600 list-disc pl-5">
+        <li>
+          Elementary: &nbsp;<span class="inline-math" style="white-space:nowrap;display:inline-block;">$y' = f(x)$</span>
+        </li>
+        <li>
+          Separable: &nbsp;<span class="inline-math" style="white-space:nowrap;display:inline-block;">$y' = g(x)h(y)$</span>
+        </li>
+        <li>
+          Linear: &nbsp;<span class="inline-math" style="white-space:nowrap;display:inline-block;">$y' = a(x)y(x) + f(x)$</span>
+        </li>
+      </ul>
+      </p>
+    </header>
+
+    <section aria-live="polite" class="mb-4">
+      <div id="card" class="border rounded-lg p-6 bg-gradient-to-b from-white to-gray-50">
+        <div class="flex items-center justify-between mb-4">
+          <div class="text-sm text-gray-500">Question <span id="qIndex">1</span> • Score: <span id="score">0</span>/<span id="asked">0</span></div>
+          <button id="shuffleBtn" class="text-xs px-3 py-1 border rounded hover:bg-gray-100">New random</button>
+        </div>
+
+        <div class="mb-4">
+          <div class="text-sm text-gray-500 mb-1">Equation:</div>
+          <div id="equation" class="eq font-medium">$y' = f(x)$</div>
+        </div>
+
+        <div id="controls" class="space-y-3">
+          <div class="grid grid-cols-3 gap-3">
+            <button class="choiceBtn rounded-md py-2 px-3 border" data-type="elementary">Elementary</button>
+            <button class="choiceBtn rounded-md py-2 px-3 border" data-type="separable">Separable</button>
+            <button class="choiceBtn rounded-md py-2 px-3 border" data-type="linear">Linear</button>
+          </div>
+
+          <div class="flex items-center gap-3">
+            <div id="feedback" class="text-sm"></div>
+            <button id="nextBtn" class="ml-auto text-sm px-3 py-1 border rounded hidden">Next</button>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+<script>
+(function(){
+  const eqEl = document.getElementById('equation');
+  const qIndexEl = document.getElementById('qIndex');
+  const scoreEl = document.getElementById('score');
+  const askedEl = document.getElementById('asked');
+  const feedbackEl = document.getElementById('feedback');
+  const nextBtn = document.getElementById('nextBtn');
+  const shuffleBtn = document.getElementById('shuffleBtn');
+  let state = { index: 0, score: 0, asked: 0, current: null };
+
+  function polyX(deg){
+    const terms = [];
+    for(let i=deg;i>=0;i--){
+      if(Math.random()<0.5) continue;
+      const coef = Math.floor(Math.random()*5)+1;
+      const sign = terms.length===0 ? '' : (Math.random()>0.5?' + ':' - ');
+      let term = (i===0)?coef:(coef===1?'':coef)+'x'+(i>1?'^{'+i+'}':'');
+      terms.push(sign+term);
+    }
+    return terms.join('') || '1';
+  }
+  function pickX(){ const arr=['\\sin x','\\cos x','e^x','x','\\frac{1}{x}',polyX(2)]; return arr[Math.floor(Math.random()*arr.length)]; }
+  function pickY(){ const arr=['y','y^2','e^y','\\frac{1}{y}','\\ln(y+1)','\\sqrt{y}']; return arr[Math.floor(Math.random()*arr.length)]; }
+
+  function genElementary(){ return { tex:`y' = ${pickX()}`, type:'elementary', explain:'Depends only on x.'}; }
+  function genSeparable(){ const gx=pickX(), hy=pickY(); return { tex:`y' = (${gx})(${hy})`, type:'separable', explain:'Product of functions of x and y.'}; }
+  function genLinear(){ const p=pickX(), q=pickX(); return { tex:`y' = (${p})y + (${q})`, type:'linear', explain:'Linear in y.'}; }
+
+  const gens=[genElementary,genSeparable,genLinear];
+
+  function renderMath(el){ if(window.MathJax) MathJax.typesetPromise([el]); }
+
+  function nextEquation(){
+    const g=gens[Math.floor(Math.random()*gens.length)]();
+    state.current=g; state.index++; state.asked++;
+    qIndexEl.textContent=state.index; askedEl.textContent=state.asked;
+    eqEl.innerHTML=`$${g.tex}$`;
+    feedbackEl.textContent=''; nextBtn.classList.add('hidden'); enableBtns(true);
+    renderMath(eqEl);
+  }
+
+  function enableBtns(on){ document.querySelectorAll('.choiceBtn').forEach(b=>b.disabled=!on); }
+
+  function handleChoice(type){
+    enableBtns(false);
+    const correct=(type===state.current.type);
+    if(correct){ state.score++; scoreEl.textContent=state.score; feedbackEl.innerHTML='<span class="text-green-700">Correct!</span> '+state.current.explain; }
+    else feedbackEl.innerHTML='<span class="text-red-700">Incorrect.</span> '+state.current.explain;
+    nextBtn.classList.remove('hidden'); renderMath(feedbackEl);
+  }
+
+  document.querySelectorAll('.choiceBtn').forEach(b=>b.addEventListener('click',()=>handleChoice(b.dataset.type)));
+  nextBtn.addEventListener('click',nextEquation);
+  shuffleBtn.addEventListener('click',nextEquation);
+  nextEquation();
+})();
+</script>
+</body>
+</html>

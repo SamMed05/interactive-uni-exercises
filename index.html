@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>My Pages</title>
+  <style>
+    body { font-family: sans-serif; padding: 2rem; }
+    ul { line-height: 1.8; }
+  </style>
+</head>
+<body>
+  <h1>My Pages</h1>
+  <ul id="pageList">Loading…</ul>
+  <script>
+    fetch('pages.json')
+      .then(r => r.json())
+      .then(pages => {
+        const ul = document.getElementById('pageList');
+        ul.innerHTML = '';
+        for (const page of pages) {
+          const li = document.createElement('li');
+          li.innerHTML = `<a href="${page.path}/">${page.title || page.path}</a>`;
+          ul.appendChild(li);
+        }
+      })
+      .catch(() => {
+        document.getElementById('pageList').textContent =
+          'Error loading page list.';
+      });
+  </script>
+</body>
+</html>
