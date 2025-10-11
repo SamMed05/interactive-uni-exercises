@@ -44,16 +44,16 @@
           <button id="shuffleBtn" class="text-xs px-3 py-1 border rounded hover:bg-gray-100">New random</button>
         </div>
 
-        <div class="mb-4">
-          <div class="text-sm text-gray-500 mb-1">Equation:</div>
-          <div id="equation" class="eq font-medium">$y' = f(x)$</div>
+        <div class="mb-6 flex justify-center">
+          <!-- <div</div> class="text-sm text-gray-500 mb-1">Equation:</div> -->
+          <div id="equation" class="eq font-medium text-center px-4">$y' = f(x)$</div>
         </div>
 
         <div id="controls" class="space-y-3">
-          <div class="grid grid-cols-3 gap-3">
-            <button class="choiceBtn rounded-md py-2 px-3 border" data-type="elementary">Elementary</button>
-            <button class="choiceBtn rounded-md py-2 px-3 border" data-type="separable">Separable</button>
-            <button class="choiceBtn rounded-md py-2 px-3 border" data-type="linear">Linear</button>
+          <div class="flex flex-wrap gap-3 justify-center">
+            <button type="button" class="choiceBtn flex-none min-w-[9rem] rounded-md py-3 px-4 border text-center text-sm sm:text-base leading-relaxed whitespace-normal focus:outline-none focus:ring-2 focus:ring-indigo-300 hover:bg-gray-100 active:scale-95 transition" data-type="elementary">Elementary</button>
+            <button type="button" class="choiceBtn flex-none min-w-[9rem] rounded-md py-3 px-4 border text-center text-sm sm:text-base leading-relaxed whitespace-normal focus:outline-none focus:ring-2 focus:ring-indigo-300 hover:bg-gray-100 active:scale-95 transition" data-type="separable">Separable</button>
+            <button type="button" class="choiceBtn flex-none min-w-[9rem] rounded-md py-3 px-4 border text-center text-sm sm:text-base leading-relaxed whitespace-normal focus:outline-none focus:ring-2 focus:ring-indigo-300 hover:bg-gray-100 active:scale-95 transition" data-type="linear">Linear</button>
           </div>
 
           <div class="flex items-center gap-3">
