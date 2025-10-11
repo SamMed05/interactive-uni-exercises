@@ -1,30 +1,39 @@
 name: Build index
+
 on:
+  workflow_dispatch:      # lets you run it manually
   push:
     branches: [main]
     paths:
       - 'pages/**'
       - '.github/workflows/build-index.yml'
 
+permissions:
+  contents: write   # required for committing back to the repo
+
 jobs:
   build:
     runs-on: ubuntu-latest
+
     steps:
       - uses: actions/checkout@v4
 
       - name: Generate pages.json
         run: |
           echo "[" > pages.json
-          find pages -type d -mindepth 1 -maxdepth 1 | sort | while read dir; do
-            title=$(basename "$dir" | sed 's/-/ /g' | awk '{print toupper(substr($0,1,1)) substr($0,2)}')
+          find pages -mindepth 1 -maxdepth 1 -type d | sort | while read dir; do
+            name=$(basename "$dir")
+            title=$(echo "$name" | sed 's/_/ /g' | awk '{print toupper(substr($0,1,1)) substr($0,2)}')
             echo "  {\"path\": \"$dir\", \"title\": \"$title\"}," >> pages.json
           done
           sed -i '$ s/,$//' pages.json
           echo "]" >> pages.json
+          cat pages.json
 
       - name: Commit and push
         run: |
-          git config user.name github-actions
-          git config user.email github-actions@github.com
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
           git add pages.json
-          git diff --quiet && echo "No changes" || (git commit -m "Update pages.json" && git push)
+          git diff --staged --quiet || git commit -m "Auto-generate pages.json"
+          git push
