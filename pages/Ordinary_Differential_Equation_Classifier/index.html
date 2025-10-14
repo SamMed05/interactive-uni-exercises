@@ -25,15 +25,16 @@
         Identify whether the ODE below is: <br>
         <ul class="text-sm text-gray-600 list-disc pl-5">
         <li>
-          Elementary: &nbsp;<span class="inline-math" style="white-space:nowrap;display:inline-block;">$y' = f(x)$</span>
+          Elementary: &nbsp;<span class="inline-math" style="white-space:nowrap;display:inline-block;">$y' = a(x)$</span>
         </li>
         <li>
-          Separable Variables: &nbsp;<span class="inline-math" style="white-space:nowrap;display:inline-block;">$y' = g(x)h(y)$</span>
+          Separable Variables: &nbsp;<span class="inline-math" style="white-space:nowrap;display:inline-block;">$y'a(y) = b(x) \Rightarrow \frac{dy}{dx}a(y) = b(x) \Rightarrow dy\,a(y) = dx\,b(x)$</span>
         </li>
         <li>
-          Linear: &nbsp;<span class="inline-math" style="white-space:nowrap;display:inline-block;">$y' = a(x)y + f(x)$</span>
+          Linear: &nbsp;<span class="inline-math" style="white-space:nowrap;display:inline-block;">$y' = a(x)\, y + b(x)$</span>
         </li>
       </ul>
+      <div class="mt-1 text-xs text-gray-500 py-2"><span class="inline-math" style="white-space:nowrap;display:inline-block;">$a(x) \neq 0, \; b(x) \neq 0$</span></div>
       </p>
     </header>
 
@@ -46,7 +47,7 @@
 
         <div class="mb-6 flex justify-center">
           <!-- <div</div> class="text-sm text-gray-500 mb-1">Equation:</div> -->
-          <div id="equation" class="eq font-medium text-center px-4">$y' = f(x)$</div>
+          <div id="equation" class="eq font-medium text-center px-4">$y' = a(x)$</div>
         </div>
 
         <div id="controls" class="space-y-3">
@@ -74,6 +75,7 @@
   const feedbackEl = document.getElementById('feedback');
   const nextBtn = document.getElementById('nextBtn');
   const shuffleBtn = document.getElementById('shuffleBtn');
+  const choiceBtns = Array.from(document.querySelectorAll('.choiceBtn'));
   let state = { index: 0, score: 0, asked: 0, current: null };
 
   function polyX(deg){
@@ -96,11 +98,13 @@
     return arr[Math.floor(Math.random()*arr.length)];
   }
 
-  // Add parentheses only for sums/differences (multi-term polynomials), not for simple factors like x, sin x, e^x, 1/x, y, ln(...), etc.
+  // Add parentheses only for sums/differences
   function wrapIfNeeded(tex){
     if(tex.includes(' + ') || tex.includes(' - ')) return `(${tex})`;
     return tex;
   }
+  // TeX fraction helper
+  function frac(n, d){ return `\\frac{${wrapIfNeeded(n)}}{${wrapIfNeeded(d)}}`; }
 
   // Utility for random pick from array
   function oneOf(arr){ return arr[Math.floor(Math.random()*arr.length)]; }
@@ -108,45 +112,68 @@
   // Elementary: no y present. Allow equivalent rearrangements.
   function genElementary(){
     const fx = pickX();
-    const a1 = pickX();
-    const b = pickX();
+    const A = pickX();
+    const B = pickX();
     const variants = [
-      () => ({ tex: `y' = ${wrapIfNeeded(fx)}`, explain: 'y\' depends only on x.' }),
-      () => ({ tex: `y' - ${wrapIfNeeded(fx)} = 0`, explain: 'Can be written y\' = f(x), no y present.' }),
-      () => ({ tex: `${wrapIfNeeded(a1)}\\, y' = ${wrapIfNeeded(b)}`, explain: 'Equivalent to y\' = b(x)/a(x), no y present.' })
+      () => ({
+        tex: `y' = ${wrapIfNeeded(fx)}`,
+        explain: 'Elementary: the right-hand side depends only on $x$.'
+      }),
+      () => ({
+        tex: `y' - ${wrapIfNeeded(fx)} = 0`,
+        explain: 'Elementary: rearranged form of $y\' = a(x)$; no $y$ appears.'
+      }),
+      () => ({
+        tex: `${wrapIfNeeded(A)}\\, y' = ${wrapIfNeeded(B)}`,
+        explain: `Elementary. Assume $${wrapIfNeeded(A)}\\neq 0$ and divide by $${wrapIfNeeded(A)}$: $y' = ${frac(B, A)}$. No $y$ on the right.`
+      })
     ];
     const v = oneOf(variants)();
     return { tex: v.tex, type:'elementary', explain: v.explain };
   }
 
-  // Separable: can be written M(y) y' = N(x) or y' = g(x) h(y)
+  // Separable
   function genSeparable(){
-    const gx=pickX(), hy=pickY(), my=pickY(), nx=pickX();
+    const gx = pickX(), hy = pickY(), my = pickY(), nx = pickX();
     const variants = [
-      // y' = g(x) h(y)
-      () => ({ tex:`y' = ${wrapIfNeeded(gx)}\\, ${wrapIfNeeded(hy)}`, explain:'Product of a function of x and a function of y.' }),
-      // y' = g(x)/m(y)
-      () => ({ tex:`y' = \\frac{${wrapIfNeeded(gx)}}{${wrapIfNeeded(my)}}`, explain:'Can be separated: y-terms and x-terms.' }),
-      // m(y) y' = n(x)
-      () => ({ tex:`${wrapIfNeeded(my)}\\, y' = ${wrapIfNeeded(nx)}`, explain:'Can be written M(y) y\' = N(x) (separable).' })
+      () => ({
+        tex:`y' = ${wrapIfNeeded(gx)}\\, ${wrapIfNeeded(hy)}`,
+        explain:'Separable: product of a function of $x$ and a function of $y$.'
+      }),
+      () => ({
+        tex:`y' = \\frac{${wrapIfNeeded(gx)}}{${wrapIfNeeded(my)}}`,
+        explain:`Separable. Multiply both sides by $${wrapIfNeeded(my)}$: $${wrapIfNeeded(my)}\\, y' = ${wrapIfNeeded(gx)}$.`
+      }),
+      () => ({
+        tex:`${wrapIfNeeded(my)}\\, y' = ${wrapIfNeeded(nx)}`,
+        explain:'Separable form $a(y)\\,y\' = b(x)$.'
+      })
     ];
     const v = oneOf(variants)();
     return { tex:v.tex, type:'separable', explain:v.explain };
   }
 
-  // Linear: a1(x) y' + a0(x) y = g(x) and coefficients depend only on x
+  // Linear
   function genLinear(){
-    const a1 = pickX(), a0 = pickX(), g = pickX();
+    const A1 = pickX(), A0 = pickX(), G = pickX();
     const a = pickX(), b = pickX();
     const variants = [
-      // canonical
-      () => ({ tex:`y' = ${wrapIfNeeded(a)}\\, y + ${wrapIfNeeded(b)}`, explain:'First-order linear in y: y\' = a(x) y + b(x).'}),
-      // move a(x) y to LHS
-      () => ({ tex:`y' ${Math.random()>0.5?'+':'-'} ${wrapIfNeeded(a)}\\, y = ${wrapIfNeeded(b)}`, explain:'First-order linear: y and y\' appear to the first power.'}),
-      // a1(x) y' + a0(x) y = g(x)
-      () => ({ tex:`${wrapIfNeeded(a1)}\\, y' + ${wrapIfNeeded(a0)}\\, y = ${wrapIfNeeded(g)}`, explain:'First-order linear: a1(x) y\' + a0(x) y = g(x).'}),
-      // a1(x) y' = a(x) y + b(x)
-      () => ({ tex:`${wrapIfNeeded(a1)}\\, y' = ${wrapIfNeeded(a)}\\, y + ${wrapIfNeeded(b)}`, explain:'First-order linear after dividing by a1(x).'})
+      () => ({
+        tex:`y' = ${wrapIfNeeded(a)}\\, y + ${wrapIfNeeded(b)}`,
+        explain:'Linear: already in the form $y\' = a(x)\\,y + b(x)$.'
+      }),
+      () => ({
+        tex:`y' ${Math.random()>0.5?'+':'-'} ${wrapIfNeeded(a)}\\, y = ${wrapIfNeeded(b)}`,
+        explain:'Linear: coefficients depend only on $x$; rearrange to standard form if needed.'
+      }),
+      () => ({
+        tex:`${wrapIfNeeded(A1)}\\, y' + ${wrapIfNeeded(A0)}\\, y = ${wrapIfNeeded(G)}`,
+        explain:`Linear. Assume $${wrapIfNeeded(A1)}\\neq 0$ and divide: $y' + ${frac(A0, A1)}\\, y = ${frac(G, A1)}$.`,
+      }),
+      () => ({
+        tex:`${wrapIfNeeded(A1)}\\, y' = ${wrapIfNeeded(a)}\\, y + ${wrapIfNeeded(b)}`,
+        explain:`Linear. Assume $${wrapIfNeeded(A1)}\\neq 0$ and divide: $y' = ${frac(a, A1)}\\, y + ${frac(b, A1)}$.`,
+      })
     ];
     const v = oneOf(variants)();
     return { tex:v.tex, type:'linear', explain:v.explain };
@@ -154,28 +181,66 @@
 
   const gens=[genElementary,genSeparable,genLinear];
 
-  function renderMath(el){ if(window.MathJax) MathJax.typesetPromise([el]); }
+  function renderMath(el){
+    if(window.MathJax){
+      MathJax.typesetPromise([el]).then(()=>{
+        // Force inline layout via element.style to override preflight
+        el.querySelectorAll('mjx-container[jax="SVG"]').forEach(c=>{
+          c.style.display = 'inline';
+          c.style.whiteSpace = 'nowrap';
+        });
+        el.querySelectorAll('mjx-container[jax="SVG"] > svg').forEach(svg=>{
+          svg.style.display = 'inline';
+          svg.style.verticalAlign = '-0.25em';
+        });
+      });
+    }
+  }
+
+  // Styling helpers for button feedback
+  const correctClasses = ['bg-green-100','border-green-600','text-green-800'];
+  const wrongClasses = ['bg-red-100','border-red-600','text-red-800'];
+  function resetButtons(){
+    choiceBtns.forEach(b=>{
+      b.disabled = false;
+      b.classList.remove(...correctClasses, ...wrongClasses);
+    });
+  }
 
   function nextEquation(){
     const g=gens[Math.floor(Math.random()*gens.length)]();
     state.current=g; state.index++; state.asked++;
     qIndexEl.textContent=state.index; askedEl.textContent=state.asked;
     eqEl.innerHTML=`$${g.tex}$`;
-    feedbackEl.textContent=''; nextBtn.classList.add('hidden'); enableBtns(true);
+    feedbackEl.textContent=''; nextBtn.classList.add('hidden'); resetButtons(); enableBtns(true);
     renderMath(eqEl);
   }
 
-  function enableBtns(on){ document.querySelectorAll('.choiceBtn').forEach(b=>b.disabled=!on); }
+  function enableBtns(on){ choiceBtns.forEach(b=>b.disabled=!on); }
 
   function handleChoice(type){
     enableBtns(false);
     const correct=(type===state.current.type);
-    if(correct){ state.score++; scoreEl.textContent=state.score; feedbackEl.innerHTML='<span class="text-green-700">Correct!</span> '+state.current.explain; }
-    else feedbackEl.innerHTML='<span class="text-red-700">Incorrect.</span> '+state.current.explain;
+    // Visual feedback on buttons
+    choiceBtns.forEach(b=>{
+      const isPressed = b.dataset.type === type;
+      const isCorrectBtn = b.dataset.type === state.current.type;
+      if(isPressed && correct){
+        b.classList.add(...correctClasses);
+      } else if(isPressed && !correct){
+        b.classList.add(...wrongClasses);
+      } else if(!isPressed && !correct && isCorrectBtn){
+        // Also highlight the correct answer when the user is wrong
+        b.classList.add(...correctClasses);
+      }
+    });
+
+    if(correct){ state.score++; scoreEl.textContent=state.score; feedbackEl.innerHTML='<span class="text-green-700">✅ Correct!</span> '+state.current.explain; }
+    else { feedbackEl.innerHTML='<span class="text-red-700">❌ Incorrect.</span> '+state.current.explain; }
     nextBtn.classList.remove('hidden'); renderMath(feedbackEl);
   }
 
-  document.querySelectorAll('.choiceBtn').forEach(b=>b.addEventListener('click',()=>handleChoice(b.dataset.type)));
+  choiceBtns.forEach(b=>b.addEventListener('click',()=>handleChoice(b.dataset.type)));
   nextBtn.addEventListener('click',nextEquation);
   shuffleBtn.addEventListener('click',nextEquation);
   nextEquation();
