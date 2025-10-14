@@ -87,12 +87,70 @@
     }
     return terms.join('') || '1';
   }
-  function pickX(){ const arr=['\\sin x','\\cos x','e^x','x','\\frac{1}{x}',polyX(2)]; return arr[Math.floor(Math.random()*arr.length)]; }
-  function pickY(){ const arr=['y','y^2','e^y','\\frac{1}{y}','\\ln(y+1)','\\sqrt{y}']; return arr[Math.floor(Math.random()*arr.length)]; }
+  function pickX(){
+    const arr=['\\sin x','\\cos x','e^x','x','\\frac{1}{x}',polyX(2)];
+    return arr[Math.floor(Math.random()*arr.length)];
+  }
+  function pickY(){
+    const arr=['y','y^2','e^y','\\frac{1}{y}','\\ln(y+1)','\\sqrt{y}'];
+    return arr[Math.floor(Math.random()*arr.length)];
+  }
 
-  function genElementary(){ return { tex:`y' = ${pickX()}`, type:'elementary', explain:'Depends only on x.'}; }
-  function genSeparable(){ const gx=pickX(), hy=pickY(); return { tex:`y' = (${gx})(${hy})`, type:'separable', explain:'Product of functions of x and y.'}; }
-  function genLinear(){ const p=pickX(), q=pickX(); return { tex:`y' = (${p})y + (${q})`, type:'linear', explain:'Linear in y.'}; }
+  // Add parentheses only for sums/differences (multi-term polynomials), not for simple factors like x, sin x, e^x, 1/x, y, ln(...), etc.
+  function wrapIfNeeded(tex){
+    if(tex.includes(' + ') || tex.includes(' - ')) return `(${tex})`;
+    return tex;
+  }
+
+  // Utility for random pick from array
+  function oneOf(arr){ return arr[Math.floor(Math.random()*arr.length)]; }
+
+  // Elementary: no y present. Allow equivalent rearrangements.
+  function genElementary(){
+    const fx = pickX();
+    const a1 = pickX();
+    const b = pickX();
+    const variants = [
+      () => ({ tex: `y' = ${wrapIfNeeded(fx)}`, explain: 'y\' depends only on x.' }),
+      () => ({ tex: `y' - ${wrapIfNeeded(fx)} = 0`, explain: 'Can be written y\' = f(x), no y present.' }),
+      () => ({ tex: `${wrapIfNeeded(a1)}\\, y' = ${wrapIfNeeded(b)}`, explain: 'Equivalent to y\' = b(x)/a(x), no y present.' })
+    ];
+    const v = oneOf(variants)();
+    return { tex: v.tex, type:'elementary', explain: v.explain };
+  }
+
+  // Separable: can be written M(y) y' = N(x) or y' = g(x) h(y)
+  function genSeparable(){
+    const gx=pickX(), hy=pickY(), my=pickY(), nx=pickX();
+    const variants = [
+      // y' = g(x) h(y)
+      () => ({ tex:`y' = ${wrapIfNeeded(gx)}\\, ${wrapIfNeeded(hy)}`, explain:'Product of a function of x and a function of y.' }),
+      // y' = g(x)/m(y)
+      () => ({ tex:`y' = \\frac{${wrapIfNeeded(gx)}}{${wrapIfNeeded(my)}}`, explain:'Can be separated: y-terms and x-terms.' }),
+      // m(y) y' = n(x)
+      () => ({ tex:`${wrapIfNeeded(my)}\\, y' = ${wrapIfNeeded(nx)}`, explain:'Can be written M(y) y\' = N(x) (separable).' })
+    ];
+    const v = oneOf(variants)();
+    return { tex:v.tex, type:'separable', explain:v.explain };
+  }
+
+  // Linear: a1(x) y' + a0(x) y = g(x) and coefficients depend only on x
+  function genLinear(){
+    const a1 = pickX(), a0 = pickX(), g = pickX();
+    const a = pickX(), b = pickX();
+    const variants = [
+      // canonical
+      () => ({ tex:`y' = ${wrapIfNeeded(a)}\\, y + ${wrapIfNeeded(b)}`, explain:'First-order linear in y: y\' = a(x) y + b(x).'}),
+      // move a(x) y to LHS
+      () => ({ tex:`y' ${Math.random()>0.5?'+':'-'} ${wrapIfNeeded(a)}\\, y = ${wrapIfNeeded(b)}`, explain:'First-order linear: y and y\' appear to the first power.'}),
+      // a1(x) y' + a0(x) y = g(x)
+      () => ({ tex:`${wrapIfNeeded(a1)}\\, y' + ${wrapIfNeeded(a0)}\\, y = ${wrapIfNeeded(g)}`, explain:'First-order linear: a1(x) y\' + a0(x) y = g(x).'}),
+      // a1(x) y' = a(x) y + b(x)
+      () => ({ tex:`${wrapIfNeeded(a1)}\\, y' = ${wrapIfNeeded(a)}\\, y + ${wrapIfNeeded(b)}`, explain:'First-order linear after dividing by a1(x).'})
+    ];
+    const v = oneOf(variants)();
+    return { tex:v.tex, type:'linear', explain:v.explain };
+  }
 
   const gens=[genElementary,genSeparable,genLinear];
 
