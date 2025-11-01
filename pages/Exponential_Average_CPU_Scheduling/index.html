@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Exponential Average CPU Burst Predictor</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script
+      src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"
+      async
+    ></script>
+    <style>
+      body {
+        font-family: system-ui, sans-serif;
+        background: #f6f8fa;
+        color: #222;
+        margin: 0;
+        padding: 2rem;
+        line-height: 1.5;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        flex-direction: column;
+      }
+      h2 {
+        margin-bottom: 1rem;
+        margin-top: 0rem;
+      }
+      .formula {
+        font-size: 1.2rem;
+        background: #fff;
+        padding: 0.8rem 1rem;
+        border-radius: 10px;
+        margin: auto;
+        box-shadow: 0 1px 5px rgba(0, 0, 0, 0.1);
+      }
+      .controls {
+        background: white;
+        border-radius: 12px;
+        padding: 1rem 1.5rem;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        margin-bottom: 1.5rem;
+        max-width: 720px;
+      }
+      label {
+        display: block;
+        margin: 0.5rem 0 0.2rem;
+      }
+      input[type="text"] {
+        width: 100%;
+        padding: 0.4rem;
+        font-size: 1rem;
+        border: 1px solid #ccc;
+        border-radius: 6px;
+      }
+      .slider-group {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin: 0.5rem 0;
+      }
+      input[type="range"] {
+        flex: 1;
+        margin: 0 1rem;
+      }
+      #chartContainer {
+        background: white;
+        border-radius: 12px;
+        padding: 1rem;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        max-width: 720px;
+      }
+
+      .top-container {
+        display: flex;
+        gap: 1rem; /* space between formula and controls */
+        max-width: 750px; /* same width as chart */
+        width: 100%;
+      }
+      .top-container > .formula,
+      .top-container > .controls {
+        flex: 1; /* equal width */
+      }
+    </style>
+  </head>
+  <body>
+    <h2>Exponential Average for CPU Burst Prediction</h2>
+
+    <div class="top-container">
+      <div class="formula">
+        Formula:<br />
+        $$\tau_{n+1} = \alpha \cdot x_n + (1 - \alpha) \cdot \tau_n, \quad
+        \alpha \in [0, 1]$$
+      </div>
+
+      <div class="controls">
+        <label>CPU Burst Sequence <small>(comma-separated)</small>:</label>
+        <input id="burstInput" type="text" value="6,4,6,4,13,13,13" />
+
+        <div class="slider-group">
+          <span>α: <strong id="alphaVal">0.5</strong></span>
+          <input
+            id="alphaSlider"
+            type="range"
+            min="0"
+            max="1"
+            step="0.01"
+            value="0.5"
+          />
+        </div>
+
+        <div class="slider-group">
+          <span>Initial τ₀: <strong id="tauVal">10</strong></span>
+          <input
+            id="tauSlider"
+            type="range"
+            min="0"
+            max="20"
+            step="0.5"
+            value="10"
+          />
+        </div>
+      </div>
+    </div>
+
+    <div id="chartContainer">
+      <canvas id="chart" width="720" height="450"></canvas>
+    </div>
+
+    <script>
+      const burstInput = document.getElementById("burstInput");
+      const alphaSlider = document.getElementById("alphaSlider");
+      const tauSlider = document.getElementById("tauSlider");
+      const alphaVal = document.getElementById("alphaVal");
+      const tauVal = document.getElementById("tauVal");
+      const ctx = document.getElementById("chart").getContext("2d");
+
+      let chart = new Chart(ctx, {
+        type: "line",
+        data: {
+          labels: [],
+          datasets: [
+            {
+              label: "Actual CPU Burst (ms)",
+              data: [],
+              borderColor: "#ef4444",
+              backgroundColor: "#ef444420",
+              stepped: true,
+              tension: 0,
+              pointRadius: 4,
+            },
+            {
+              label: "Predicted Average (τ)",
+              data: [],
+              borderColor: "#3b82f6",
+              backgroundColor: "#3b82f620",
+              tension: 0.3,
+              pointRadius: 4,
+            },
+          ],
+        },
+        options: {
+          responsive: true,
+          scales: {
+            x: {
+              title: {
+                display: true,
+                text: "Burst index (i)",
+                font: {
+                  size: 18,
+                  weight: "bold",
+                },
+              },
+              ticks: {
+                font: {
+                  size: 14,
+                },
+              },
+            },
+            y: {
+              title: {
+                display: true,
+                text: "Time (ms)",
+                font: {
+                  size: 18,
+                  weight: "bold",
+                },
+              },
+              ticks: {
+                font: {
+                  size: 14,
+                },
+              },
+              beginAtZero: true,
+            },
+          },
+          plugins: {
+            legend: {
+              labels: {
+                font: {
+                  size: 14,
+                },
+              },
+              position: "top",
+            },
+            tooltip: { mode: "index", intersect: false },
+          },
+        },
+      });
+
+      function computeEstimates(alpha, bursts, initial) {
+        let estimates = [initial];
+        for (let i = 0; i < bursts.length; i++) {
+          const next = alpha * bursts[i] + (1 - alpha) * estimates[i];
+          estimates.push(next);
+        }
+        return estimates;
+      }
+
+      function updateChart() {
+        const bursts = burstInput.value
+          .split(",")
+          .map((s) => parseFloat(s.trim()))
+          .filter((n) => !isNaN(n));
+        const alpha = parseFloat(alphaSlider.value);
+        const tau0 = parseFloat(tauSlider.value);
+        alphaVal.textContent = alpha.toFixed(2);
+        tauVal.textContent = tau0.toFixed(1);
+
+        const estimates = computeEstimates(alpha, bursts, tau0);
+        const labels = bursts.map((_, i) => i);
+
+        chart.data.labels = labels.concat(bursts.length);
+        chart.data.datasets[0].data = bursts.concat(null);
+        chart.data.datasets[1].data = estimates;
+        chart.update();
+      }
+
+      [burstInput, alphaSlider, tauSlider].forEach((el) => {
+        el.addEventListener("input", updateChart);
+      });
+
+      updateChart();
+    </script>
+  </body>
+</html>
