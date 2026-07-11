@@ -1,4 +1,5 @@
 [
   {"path": "pages/Exponential_Average_CPU_Scheduling", "title": "Exponential Average CPU Scheduling"},
-  {"path": "pages/Ordinary_Differential_Equation_Classifier", "title": "Ordinary Differential Equation Classifier"}
+  {"path": "pages/Ordinary_Differential_Equation_Classifier", "title": "Ordinary Differential Equation Classifier"},
+  {"path": "pages/Tower_of_Hanoi_Animation", "title": "Tower of Hanoi Animation"}
 ]
