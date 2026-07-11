@@ -39,6 +39,7 @@
     }
     
     .container {
+      position: relative;
       background: var(--card);
       border-radius: var(--radius);
       box-shadow: var(--shadow);
@@ -63,13 +64,39 @@
       text-align: center;
       margin-bottom: 1.75rem;
       line-height: 1.5;
+      padding: 0 1rem;
+    }
+    
+    .share-btn {
+      position: absolute;
+      top: 1.5rem;
+      right: 1.5rem;
+      background: none;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 0.375rem 0.625rem;
+      font-size: 0.8125rem;
+      font-weight: 500;
+      color: var(--text-muted);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 0.375rem;
+      transition: all 0.2s;
+      background-color: var(--card);
+    }
+    
+    .share-btn:hover {
+      background-color: #f1f5f9;
+      color: var(--text);
+      border-color: #cbd5e1;
     }
     
     /* Visualization Area */
     #program {
       position: relative;
       width: 610px;
-      height: 250px;
+      height: 270px;
       margin: 0 auto 1.5rem auto;
       background-color: #f8fafc;
       border-radius: 8px;
@@ -84,7 +111,7 @@
       position: absolute;
       width: 6px;
       height: 130px;
-      top: 90px;
+      top: 100px;
     }
     
     .hbar {
@@ -93,7 +120,7 @@
       position: absolute;
       width: 160px;
       height: 6px;
-      top: 220px;
+      top: 230px;
     }
     
     .towerText {
@@ -104,7 +131,7 @@
       font-weight: 600;
       text-align: center;
       width: 80px;
-      top: 232px;
+      top: 242px;
     }
     
     .disc {
@@ -122,6 +149,7 @@
       box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
       box-sizing: border-box;
       user-select: none;
+      touch-action: none; /* disables scrolling while dragging */
     }
     
     /* Control Panel */
@@ -250,49 +278,40 @@
     .footer a:hover {
       text-decoration: underline;
     }
-
-    /* Back Link to Home */
-    .back-link {
-      display: inline-block;
-      margin-bottom: 1rem;
-      font-size: 0.875rem;
-      color: var(--accent);
-      text-decoration: none;
-      font-weight: 500;
-      transition: transform 0.2s;
-    }
-
-    .back-link:hover {
-      transform: translateX(-3px);
-    }
   </style>
 </head>
 <body>
 
   <div class="container">
-    <a href="../../" class="back-link">&larr; Back to exercises</a>
+    <button id="share" class="share-btn" title="Copy shareable link to this puzzle state">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>
+        <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path>
+      </svg>
+      Share
+    </button>
     
     <h1>Tower of Hanoi</h1>
     <p class="subtitle">
-      Usage: Set the number of discs (1-8), adjust the animation speed, and click <strong>Start</strong> to watch the solution. Click <strong>Reset</strong> at any time to return to the initial state.
+      Usage: Set the number of discs (1-8), drag and drop the top discs to solve for yourself, or click <strong>Start</strong> to see the auto-solver. Click <strong>Reset</strong> to restart.
     </p>
 
     <!-- Visualization box with absolute positioning boundary -->
     <div id="program">
       <!-- Pegs (vertical bars) -->
-      <div id="v1" class="vbar" style="left: 112px;"></div>
-      <div id="v2" class="vbar" style="left: 302px;"></div>
-      <div id="v3" class="vbar" style="left: 492px;"></div>
+      <div id="v1" class="vbar" style="left: 112px; top: 100px;"></div>
+      <div id="v2" class="vbar" style="left: 302px; top: 100px;"></div>
+      <div id="v3" class="vbar" style="left: 492px; top: 100px;"></div>
 
       <!-- Bases (horizontal bars) -->
-      <div id="h1" class="hbar" style="left: 35px;"></div>
-      <div id="h2" class="hbar" style="left: 225px;"></div>
-      <div id="h3" class="hbar" style="left: 415px;"></div>
+      <div id="h1" class="hbar" style="left: 35px; top: 230px;"></div>
+      <div id="h2" class="hbar" style="left: 225px; top: 230px;"></div>
+      <div id="h3" class="hbar" style="left: 415px; top: 230px;"></div>
 
       <!-- Tower Labels -->
-      <div id="t1" class="towerText" style="left: 75px;">Tower A</div>
-      <div id="t2" class="towerText" style="left: 265px;">Tower B</div>
-      <div id="t3" class="towerText" style="left: 455px;">Tower C</div>
+      <div id="t1" class="towerText" style="left: 75px; top: 242px;">Tower A</div>
+      <div id="t2" class="towerText" style="left: 265px; top: 242px;">Tower B</div>
+      <div id="t3" class="towerText" style="left: 455px; top: 242px;">Tower C</div>
     </div>
 
     <!-- Controls panel -->
@@ -318,7 +337,7 @@
     </div>
 
     <div class="footer">
-      <a href="https://yongdanielliang.github.io/animation/animation.html" target="_blank">Animation</a> based on the visualization by <a href="https://yongdanielliang.github.io/animation/web/TowerOfHanoi.html" target="_blank" rel="noopener noreferrer">Y. Daniel Liang</a>.
+      Animation based on the exercise by <a href="https://yongdanielliang.github.io/" target="_blank" rel="noopener noreferrer">Y. Daniel Liang</a>.
     </div>
   </div>
 
@@ -344,40 +363,206 @@
       return new Promise(resolve => setTimeout(resolve, ms));
     }
 
-    function initTowers() {
-      // Clear existing dynamic discs
+    function initTowers(useCurrentState = false) {
+      // Clear existing dynamic discs in the DOM
       const programEl = document.getElementById('program');
       const existingDiscs = programEl.querySelectorAll('.disc');
       existingDiscs.forEach(el => el.remove());
       
-      towers = [[], [], []];
-      // Push discs onto Tower A in descending order of size
-      for (let i = n; i >= 1; i--) {
-        towers[0].push(i);
+      if (!useCurrentState) {
+        towers = [[], [], []];
+        // Push discs onto Tower A in descending order of size
+        for (let i = n; i >= 1; i--) {
+          towers[0].push(i);
+        }
       }
       
-      // Render discs visually
-      for (let i = 1; i <= n; i++) {
-        const discEl = document.createElement('div');
-        discEl.id = `d${i}`;
-        discEl.className = 'disc';
-        discEl.textContent = i;
-        
-        // Calculate width: smallest is 52px, largest (size 8) is 150px
-        const w = 38 + i * 14;
-        discEl.style.width = `${w}px`;
-        discEl.style.backgroundColor = colors[(i - 1) % colors.length];
-        
-        // Position on Tower 0 (A), stack index (n - i)
-        const stackIndex = n - i;
-        discEl.style.top = `${220 - (stackIndex + 1) * 20}px`;
-        discEl.style.left = `${96 - i * 7}px`;
-        
-        programEl.appendChild(discEl);
+      // Render discs visually based on the towers state
+      for (let t = 0; t < 3; t++) {
+        for (let s = 0; s < towers[t].length; s++) {
+          const d = towers[t][s]; // Disc size
+          const discEl = document.createElement('div');
+          discEl.id = `d${d}`;
+          discEl.className = 'disc';
+          discEl.textContent = d;
+          
+          const w = 38 + d * 14;
+          discEl.style.width = `${w}px`;
+          discEl.style.backgroundColor = colors[(d - 1) % colors.length];
+          
+          discEl.style.top = `${230 - (s + 1) * 20}px`;
+          discEl.style.left = `${96 + t * 190 - d * 7}px`;
+          
+          makeDraggable(discEl, d);
+          
+          programEl.appendChild(discEl);
+        }
       }
+      
+      updateDraggability();
       
       const statusEl = document.getElementById('status');
       statusEl.classList.remove('visible');
+    }
+
+    function makeDraggable(el, d) {
+      let startX = 0;
+      let startY = 0;
+      let initialLeft = 0;
+      let initialTop = 0;
+      let isDragging = false;
+      let sourceTower = -1;
+
+      // Touch & Mouse events
+      el.addEventListener('mousedown', dragStart);
+      el.addEventListener('touchstart', dragStart, { passive: false });
+
+      function dragStart(e) {
+        if (isRunning) return;
+        
+        // Find which tower this disc is currently on
+        sourceTower = towers.findIndex(t => t.includes(d));
+        // Verify it is indeed the top disc of that tower
+        if (towers[sourceTower][towers[sourceTower].length - 1] !== d) {
+          return;
+        }
+        
+        isDragging = true;
+        el.style.cursor = 'grabbing';
+        el.style.zIndex = 1000;
+        el.style.transition = 'none';
+        
+        const clientX = e.type === 'touchstart' ? e.touches[0].clientX : e.clientX;
+        const clientY = e.type === 'touchstart' ? e.touches[0].clientY : e.clientY;
+        
+        startX = clientX;
+        startY = clientY;
+        
+        initialLeft = parseFloat(el.style.left);
+        initialTop = parseFloat(el.style.top);
+        
+        if (e.type === 'touchstart') {
+          e.preventDefault();
+        }
+        
+        document.addEventListener('mousemove', dragMove);
+        document.addEventListener('touchmove', dragMove, { passive: false });
+        document.addEventListener('mouseup', dragEnd);
+        document.addEventListener('touchend', dragEnd);
+      }
+
+      function dragMove(e) {
+        if (!isDragging) return;
+        
+        const clientX = e.type === 'touchmove' ? e.touches[0].clientX : e.clientX;
+        const clientY = e.type === 'touchmove' ? e.touches[0].clientY : e.clientY;
+        
+        const dx = clientX - startX;
+        const dy = clientY - startY;
+        
+        el.style.left = `${initialLeft + dx}px`;
+        el.style.top = `${initialTop + dy}px`;
+        
+        if (e.type === 'touchmove') {
+          e.preventDefault();
+        }
+      }
+
+      function dragEnd(e) {
+        if (!isDragging) return;
+        isDragging = false;
+        
+        document.removeEventListener('mousemove', dragMove);
+        document.removeEventListener('touchmove', dragMove);
+        document.removeEventListener('mouseup', dragEnd);
+        document.removeEventListener('touchend', dragEnd);
+        
+        el.style.cursor = 'grab';
+        el.style.zIndex = '';
+        
+        const discWidth = 38 + d * 14;
+        const currentLeft = parseFloat(el.style.left);
+        const discCenter = currentLeft + discWidth / 2;
+        
+        // Find the closest tower center (115, 305, 495)
+        let targetTower = 0;
+        let minDistance = Math.abs(discCenter - 115);
+        
+        if (Math.abs(discCenter - 305) < minDistance) {
+          targetTower = 1;
+          minDistance = Math.abs(discCenter - 305);
+        }
+        if (Math.abs(discCenter - 495) < minDistance) {
+          targetTower = 2;
+        }
+        
+        // Validate the move
+        let isValid = false;
+        if (targetTower === sourceTower) {
+          isValid = false;
+        } else {
+          const targetStack = towers[targetTower];
+          if (targetStack.length === 0) {
+            isValid = true;
+          } else {
+            const topDisc = targetStack[targetStack.length - 1];
+            if (topDisc > d) {
+              isValid = true;
+            }
+          }
+        }
+        
+        if (isValid) {
+          towers[sourceTower].pop();
+          const s_to = towers[targetTower].length;
+          towers[targetTower].push(d);
+          
+          el.style.transition = 'top 0.2s ease-out, left 0.2s ease-out';
+          el.style.left = `${96 + targetTower * 190 - d * 7}px`;
+          el.style.top = `${230 - (s_to + 1) * 20}px`;
+          
+          setTimeout(() => {
+            updateDraggability();
+            checkWinCondition();
+          }, 200);
+        } else {
+          const s_from = towers[sourceTower].indexOf(d);
+          el.style.transition = 'top 0.2s ease-out, left 0.2s ease-out';
+          el.style.left = `${96 + sourceTower * 190 - d * 7}px`;
+          el.style.top = `${230 - (s_from + 1) * 20}px`;
+          
+          setTimeout(() => {
+            el.style.transition = '';
+          }, 200);
+        }
+      }
+    }
+
+    function updateDraggability() {
+      for (let t = 0; t < 3; t++) {
+        for (let s = 0; s < towers[t].length; s++) {
+          const d = towers[t][s];
+          const el = document.getElementById(`d${d}`);
+          if (!el) continue;
+          
+          const isTop = (s === towers[t].length - 1);
+          if (isTop && !isRunning) {
+            el.style.cursor = 'grab';
+            el.style.pointerEvents = 'auto';
+          } else {
+            el.style.cursor = 'default';
+            el.style.pointerEvents = 'none';
+          }
+        }
+      }
+    }
+
+    function checkWinCondition() {
+      if (towers[1].length === n || towers[2].length === n) {
+        const statusEl = document.getElementById('status');
+        statusEl.textContent = `🎉 Congratulations! You solved it!`;
+        statusEl.classList.add('visible');
+      }
     }
 
     function disableControls(disabled) {
@@ -414,17 +599,24 @@
       if (currentRunId !== runId) return;
       
       // 3. Drop down onto the target stack position
-      el.style.top = `${220 - (s_to + 1) * 20}px`;
+      el.style.top = `${230 - (s_to + 1) * 20}px`;
       await delay(stepTime);
     }
 
     async function startAnimation() {
       if (isRunning) return;
       
+      // Reset to clean initial state if starting from a custom state
+      const isInitialState = (towers[0].length === n && towers[1].length === 0 && towers[2].length === 0);
+      if (!isInitialState) {
+        initTowers(false);
+      }
+      
       currentRunId++;
       const runId = currentRunId;
       isRunning = true;
       disableControls(true);
+      updateDraggability();
       
       const queue = [];
       getMoves(n, 0, 1, 2, queue);
@@ -449,6 +641,7 @@
       if (currentRunId === runId) {
         isRunning = false;
         disableControls(false);
+        updateDraggability();
       }
     }
 
@@ -456,7 +649,7 @@
       currentRunId++; // cancels any active animation steps
       isRunning = false;
       disableControls(false);
-      initTowers();
+      initTowers(false);
     }
 
     // Initial setup on load
@@ -468,11 +661,34 @@
       // Parse URL parameters
       const urlParams = new URLSearchParams(window.location.search);
       let urlN = parseInt(urlParams.get('discs') || urlParams.get('disks') || urlParams.get('n'));
-      if (!isNaN(urlN) && urlN >= 1 && urlN <= 8) {
-        n = urlN;
-      } else {
-        n = 3; // default fallback
+      const stateStr = urlParams.get('state');
+      
+      let loadedFromState = false;
+      if (stateStr) {
+        const parts = stateStr.split('|');
+        if (parts.length === 3) {
+          try {
+            towers = parts.map(part => part ? part.split(',').map(Number) : []);
+            let totalDiscs = 0;
+            towers.forEach(t => totalDiscs += t.length);
+            if (totalDiscs >= 1 && totalDiscs <= 8) {
+              n = totalDiscs;
+              loadedFromState = true;
+            }
+          } catch (e) {
+            console.error('Failed to parse towers state from URL', e);
+          }
+        }
       }
+      
+      if (!loadedFromState) {
+        if (!isNaN(urlN) && urlN >= 1 && urlN <= 8) {
+          n = urlN;
+        } else {
+          n = 3; // default fallback
+        }
+      }
+      
       spinner.value = n;
       
       // Setup speed value
@@ -495,14 +711,41 @@
           spinner.value = n;
         } else {
           n = val;
-          initTowers();
+          initTowers(false);
         }
       });
       
       document.getElementById('start').addEventListener('click', startAnimation);
       document.getElementById('reset').addEventListener('click', resetAnimation);
       
-      initTowers();
+      // Share functionality
+      document.getElementById('share').addEventListener('click', () => {
+        const stateParam = towers.map(t => t.join(',')).join('|');
+        const shareUrl = `${window.location.origin}${window.location.pathname}?n=${n}&state=${encodeURIComponent(stateParam)}`;
+        
+        navigator.clipboard.writeText(shareUrl).then(() => {
+          const shareBtn = document.getElementById('share');
+          const originalHTML = shareBtn.innerHTML;
+          shareBtn.innerHTML = `
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="20 6 9 17 4 12"></polyline>
+            </svg>
+            Copied!
+          `;
+          shareBtn.style.borderColor = '#10b981';
+          shareBtn.style.color = '#10b981';
+          
+          setTimeout(() => {
+            shareBtn.innerHTML = originalHTML;
+            shareBtn.style.borderColor = '';
+            shareBtn.style.color = '';
+          }, 1500);
+        }).catch(err => {
+          console.error('Failed to copy share link: ', err);
+        });
+      });
+      
+      initTowers(loadedFromState);
     });
   </script>
 </body>
