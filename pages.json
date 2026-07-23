@@ -1,6 +1,6 @@
 [
   {"path": "pages/Exponential_Average_CPU_Scheduling", "title": "Exponential Average CPU Scheduling"},
+  {"path": "pages/Insertion_Sort_Visual_Comparison", "title": "Insertion Sort Visual Comparison"},
   {"path": "pages/Ordinary_Differential_Equation_Classifier", "title": "Ordinary Differential Equation Classifier"},
-  {"path": "pages/Tower_of_Hanoi_Animation", "title": "Tower of Hanoi Animation"},
-  {"path": "pages/Insertion_Sort_Visual_Comparison", "title": "Insertion Sort visual comparison"}
+  {"path": "pages/Tower_of_Hanoi_Animation", "title": "Tower of Hanoi Animation"}
 ]
