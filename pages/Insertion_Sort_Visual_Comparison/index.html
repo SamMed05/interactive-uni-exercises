@@ -39,6 +39,15 @@
     .bar-wrapper {
       will-change: transform;
     }
+    /* Pulse/bounce effect for when updating bar values */
+    @keyframes pulse-bounce {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.15); }
+      100% { transform: scale(1); }
+    }
+    .animate-pulse-bounce {
+      animation: pulse-bounce 0.35s ease-in-out;
+    }
   </style>
 
   <!-- For audio effect when swapping occurs -->
@@ -84,7 +93,7 @@
 </head>
 <body class="h-full flex flex-col bg-slate-100 text-slate-800 overflow-x-hidden">
 
-  <main class="flex-1 w-full max-w-[1300px] mx-auto px-4 md:px-16 lg:px-32 py-5 flex flex-col gap-4">
+  <main class="flex-1 w-full max-w-[1300px] mx-auto px-4 md:px-8 lg:px-16 py-5 flex flex-col gap-4">
 
     <!-- Control Section with Integrated Main Title -->
     <section class="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm">
@@ -116,7 +125,7 @@
         <div class="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-3 min-w-0">
           <div class="flex flex-col gap-1 bg-slate-50/80 p-2 rounded-xl border border-slate-100">
             <div class="flex justify-between text-xs font-medium text-slate-600">
-              <span>Array Size:</span>
+              <span>Array Size (<code>n</code>):</span>
               <span id="sizeVal" class="text-sky-600 font-bold">8</span>
             </div>
             <input type="range" id="sizeSlider" min="5" max="16" value="8" class="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-sky-600">
@@ -194,7 +203,7 @@
               <span>i = <strong id="alg1-var-i" class="text-slate-900">/</strong></span>
             </div>
             <!-- TMP Register Visual Box -->
-            <div class="flex items-center gap-2 bg-white px-3 py-1 rounded-lg border border-cyan-300 shadow-sm">
+            <div class="flex items-center gap-2 bg-white px-3 py-1 rounded-lg border-2 border-cyan-400 shadow-sm">
               <span class="text-slate-500 text-[11px] uppercase tracking-wider font-sans font-semibold">tmp =</span>
               <span id="alg1-var-tmp" class="text-cyan-700 font-bold text-sm min-w-[20px] text-center">/</span>
             </div>
@@ -304,9 +313,9 @@
 
     <!-- Overview & Memory Writes Comparison -->
     <section class="bg-white border border-slate-200 rounded-2xl p-4 sm:p-5 shadow-sm mb-4">
-      <h3 class="text-sm font-bold text-slate-900 uppercase tracking-wider mb-4 flex items-center gap-2">
+      <!-- <h3 class="text-sm font-bold text-slate-900 uppercase tracking-wider mb-4 flex items-center gap-2">
         <i class="fa-solid fa-chart-simple text-sky-600"></i> Performance Comparison Overview
-      </h3>
+      </h3> -->
 
       <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
         
@@ -314,7 +323,9 @@
         <div class="space-y-3">
           <div>
             <div class="flex justify-between text-xs font-medium mb-1">
-              <span class="text-cyan-700 font-semibold"><i class="fa-solid fa-pen-to-square"></i> Algorithm 1 (Shift): Memory Writes</span>
+              <span class="text-cyan-700 font-semibold">
+                <!-- <i class="fa-solid fa-pen-to-square"></i>  -->
+                Algo 1 (Shift): Memory Writes</span>
               <span id="meter-writes-1-val" class="font-mono font-bold text-cyan-800">0</span>
             </div>
             <div class="w-full bg-slate-100 h-3 rounded-full overflow-hidden border border-slate-200">
@@ -324,7 +335,9 @@
 
           <div>
             <div class="flex justify-between text-xs font-medium mb-1">
-              <span class="text-amber-700 font-semibold"><i class="fa-solid fa-right-left"></i> Algorithm 2 (Swap): Equivalent Writes (3 &times; Swaps)</span>
+              <span class="text-amber-700 font-semibold">
+                <!-- <i class="fa-solid fa-right-left"></i>  -->
+                Algo 2 (Swap): Equivalent Writes (3 &times; Swaps)</span>
               <span id="meter-writes-2-val" class="font-mono font-bold text-amber-800">0</span>
             </div>
             <div class="w-full bg-slate-100 h-3 rounded-full overflow-hidden border border-slate-200">
@@ -334,12 +347,14 @@
         </div>
 
         <!-- Key takeaways list -->
-        <div class="bg-slate-50 p-3.5 rounded-xl border border-slate-200 text-xs space-y-2">
-          <div class="font-semibold text-slate-800 flex items-center gap-1.5">
-            <i class="fa-solid fa-lightbulb text-amber-500"></i> Efficiency difference:
-          </div>
-          <p class="text-slate-600 leading-relaxed">
-            While the number of <strong>comparisons</strong> is identical in both approaches, Algorithm 1 performs only <span class="text-cyan-800 font-semibold">1 assignment (shift)</span> per inner loop step plus 1 final write. Algorithm 2 performs a full <span class="text-amber-800 font-semibold">swap operation (3 assignments)</span> at every single inner loop step.
+        <div class="bg-slate-50 px-3 py-2 rounded-xl border border-slate-200 text-[12px] leading-snug">
+          <p class="text-slate-600">
+            <span class="font-semibold text-slate-800 inline-flex items-center gap-1 mr-1">
+              <i class="fa-solid fa-lightbulb text-amber-500 text-xs"></i> Efficiency difference:
+            </span>
+            While <strong>comparisons</strong> are identical in both approaches, Algorithm 1 performs only 
+            <span class="text-cyan-800 font-semibold">1 assignment (shift)</span> per inner loop step plus 1 final write. Algorithm 2 performs a full 
+            <span class="text-amber-800 font-semibold">swap operation (3 assignments)</span> at every single step (e.g. <code>temp = a</code>, <code>a = b</code>, <code>b = temp</code>).
           </p>
         </div>
 
@@ -459,8 +474,8 @@
           comparisons++;
 
           if (i >= 0 && A[i].val > tmp.val) {
-            A[i + 1] = { ...A[i] };
-            A[i] = tmp; // Keeps unique IDs in every slot so FLIP animations slide smoothly
+            // Keep slot i + 1's unique ID, copy value from A[i]
+            A[i + 1] = { id: A[i + 1].id, val: A[i].val };
             writes++;
             pushStep(5, { j: j, i: i }, { shiftFrom: i, shiftTo: i + 1 }, `A[${i+1}] := A[${i}] (${A[i].val}). Shift right.`, tmp, j - 1);
 
@@ -471,7 +486,8 @@
           }
         }
 
-        A[i + 1] = { ...tmp };
+        // Keep slot i + 1's unique ID, copy value from tmp
+        A[i + 1] = { id: A[i + 1].id, val: tmp.val };
         writes++;
         pushStep(7, { j: j, i: i }, { inserted: i + 1 }, `A[${i+1}] := tmp (${tmp.val}). Inserted into sorted position.`, tmp, j);
       }
@@ -543,22 +559,22 @@
       if (stepCounter) stepCounter.innerText = `${stepIndex} / ${maxSteps - 1}`;
 
       // Alg 1 State
-      const state1 = trace1[Math.min(stepIndex, trace1.length - 1)];
-      renderAlg1UI(state1);
+      const idx1 = Math.min(stepIndex, trace1.length - 1);
+      renderAlg1UI(trace1[idx1], idx1, trace1.length - 1);
 
       // Alg 2 State
-      const state2 = trace2[Math.min(stepIndex, trace2.length - 1)];
-      renderAlg2UI(state2);
+      const idx2 = Math.min(stepIndex, trace2.length - 1);
+      renderAlg2UI(trace2[idx2], idx2, trace2.length - 1);
 
       // Render performance meters
-      updateMeters(state1, state2);
+      updateMeters(trace1[idx1], trace2[idx2]);
 
       // Disable/Enable nav buttons
       btnPrev.disabled = (stepIndex === 0);
       btnNext.disabled = (stepIndex >= maxSteps - 1);
     }
 
-    function renderAlg1UI(state) {
+    function renderAlg1UI(state, stepIdx, totalSteps) {
       // Highlight lines while preserving indentation padding
       for (let l = 1; l <= 7; l++) {
         const el = document.getElementById(`alg1-line-${l}`);
@@ -587,7 +603,7 @@
       document.getElementById('alg1-log').innerText = state.action;
       document.getElementById('alg1-stat-comp').innerText = state.comparisons;
       document.getElementById('alg1-stat-writes').innerText = state.writes;
-      document.getElementById('alg1-stat-steps').innerText = currentStep;
+      document.getElementById('alg1-stat-steps').innerText = `${stepIdx} / ${totalSteps}`;
 
       // Bars Container
       const container = document.getElementById('alg1-array-bars');
@@ -614,15 +630,22 @@
         let barColor = isSorted ? "bg-teal-100 border-teal-400 text-teal-800" : "bg-slate-200 border-slate-300 text-slate-700";
         let labelColor = isSorted ? "text-teal-700 font-semibold" : "text-slate-500";
 
+        let animClass = "";
+
         if (state.highlights.lifted === idx) {
-          barColor = "bg-cyan-100 border-cyan-400 text-cyan-900 border-dashed";
+          barColor = "bg-cyan-100 border-2 border-cyan-400 text-cyan-950 border-dashed animate-pulse [animation-duration:0.8s]";
         } else if (state.highlights.comparing === idx) {
           barColor = "bg-sky-600 border-sky-400 text-white font-bold scale-105";
-        } else if (state.highlights.shiftFrom === idx || state.highlights.shiftTo === idx) {
-          // Use same red highlight styles as Algorithm 2 (Swap)
-          barColor = "bg-rose-600 border-rose-400 text-white font-bold scale-105 z-10 shadow-md";
+        } else if (state.highlights.shiftTo === idx) {
+          // Target slot receiving the copied value
+          barColor = "bg-amber-500 border-amber-600 text-white font-bold z-10 shadow-md";
+          animClass = "animate-pulse-bounce";
+        } else if (state.highlights.shiftFrom === idx) {
+          // Source slot being copied
+          barColor = "bg-cyan-400 border-cyan-500 text-cyan-950 font-semibold";
         } else if (state.highlights.inserted === idx) {
           barColor = "bg-emerald-500 border-emerald-400 text-white font-bold scale-105";
+          animClass = "animate-pulse-bounce";
         } else if (state.highlights.active === idx) {
           barColor = "bg-cyan-200 border-cyan-500 text-cyan-900";
         }
@@ -632,7 +655,7 @@
         barWrapper.dataset.id = item.id;
         barWrapper.innerHTML = `
           <div class="text-[10px] font-mono mb-1 ${labelColor}">${val}</div>
-          <div class="w-full ${barColor} border rounded-t-md transition-colors duration-200 flex items-center justify-center text-[10px] font-mono shadow-sm" style="height: ${heightPct}%">
+          <div class="w-full ${barColor} ${animClass} border rounded-t-md transition-colors duration-200 flex items-center justify-center text-[10px] font-mono shadow-sm" style="height: ${heightPct}%">
           </div>
           <div class="text-[10px] font-mono mt-1 ${isSorted ? 'text-teal-600 font-bold' : 'text-slate-400'}">${idx}</div>
         `;
@@ -664,7 +687,7 @@
       });
     }
 
-    function renderAlg2UI(state) {
+    function renderAlg2UI(state, stepIdx, totalSteps) {
       // Highlight lines while preserving indentation padding
       for (let l = 1; l <= 5; l++) {
         const el = document.getElementById(`alg2-line-${l}`);
@@ -692,7 +715,7 @@
       document.getElementById('alg2-log').innerText = state.action;
       document.getElementById('alg2-stat-comp').innerText = state.comparisons;
       document.getElementById('alg2-stat-swaps').innerText = state.swaps;
-      document.getElementById('alg2-stat-steps').innerText = currentStep;
+      document.getElementById('alg2-stat-steps').innerText = `${stepIdx} / ${totalSteps}`;
 
       // Bars Container
       const container = document.getElementById('alg2-array-bars');
