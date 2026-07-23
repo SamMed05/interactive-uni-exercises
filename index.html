@@ -9,27 +9,101 @@
   <div class="container">
     <header>
       <h1>Interactive Exercises & Visualizations</h1>
-      <p class="muted">A set of interactive exercises and other stuff I created for exploring and visualizing Computer Science & Maths concepts at university.</p>
+      <p class="muted">
+        A set of interactive exercises and other stuff I created for exploring
+        and visualizing Computer Science & Maths concepts at university.
+      </p>
     </header>
+
+    <div class="controls">
+      <input
+        type="search"
+        id="searchInput"
+        placeholder="Search exercises..."
+        aria-label="Search exercises"
+      >
+
+      <select id="sortSelect" aria-label="Sort exercises">
+        <option value="title-asc">Title: A → Z</option>
+        <option value="title-desc">Title: Z → A</option>
+        <option value="path-asc">Path: A → Z</option>
+        <option value="path-desc">Path: Z → A</option>
+      </select>
+    </div>
+
     <ul id="pageList">Loading…</ul>
-    <!-- <div class="notice muted">If a page doesn't open, check that the folder contains an <code>index.html</code>.</div> -->
   </div>
+
   <script>
+    let allPages = [];
+
+    const pageList = document.getElementById('pageList');
+    const searchInput = document.getElementById('searchInput');
+    const sortSelect = document.getElementById('sortSelect');
+
+    function renderPages() {
+      const searchTerm = searchInput.value.toLowerCase().trim();
+      const sortOrder = sortSelect.value;
+
+      const filteredPages = allPages
+        .filter(page => {
+          const title = page.title || page.path;
+
+          return title.toLowerCase().includes(searchTerm) ||
+                 page.path.toLowerCase().includes(searchTerm);
+        })
+        .sort((a, b) => {
+          const aValue = (a.title || a.path).toLowerCase();
+          const bValue = (b.title || b.path).toLowerCase();
+
+          if (sortOrder === 'title-asc') {
+            return aValue.localeCompare(bValue);
+          }
+
+          if (sortOrder === 'title-desc') {
+            return bValue.localeCompare(aValue);
+          }
+
+          if (sortOrder === 'path-asc') {
+            return a.path.localeCompare(b.path);
+          }
+
+          if (sortOrder === 'path-desc') {
+            return b.path.localeCompare(a.path);
+          }
+        });
+
+      pageList.innerHTML = '';
+
+      if (filteredPages.length === 0) {
+        pageList.innerHTML = '<li class="empty">No matching exercises found.</li>';
+        return;
+      }
+
+      for (const page of filteredPages) {
+        const li = document.createElement('li');
+
+        li.innerHTML = `
+          <a href="${page.path}/">
+            ${page.title || page.path}
+          </a>
+        `;
+
+        pageList.appendChild(li);
+      }
+    }
+
+    searchInput.addEventListener('input', renderPages);
+    sortSelect.addEventListener('change', renderPages);
+
     fetch('pages.json')
       .then(r => r.json())
       .then(pages => {
-        const ul = document.getElementById('pageList');
-        ul.innerHTML = '';
-     // for (const page of pages) {
-        for (const page of pages.slice().reverse()) { // in reverse order
-          const li = document.createElement('li');
-          li.innerHTML = `<a href="${page.path}/">${page.title || page.path}</a>`;
-          ul.appendChild(li);
-        }
+        allPages = pages;
+        renderPages();
       })
       .catch(() => {
-        document.getElementById('pageList').textContent =
-          'Error loading page list.';
+        pageList.textContent = 'Error loading page list.';
       });
   </script>
 </body>

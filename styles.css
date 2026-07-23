@@ -125,3 +125,49 @@ header {
   color: var(--muted);
   font-size: 0.95rem;
 }
+
+.controls {
+  display: flex;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.controls input,
+.controls select {
+  padding: 0.7rem 0.8rem;
+  border: 1px solid #d6d6d6;
+  border-radius: 8px;
+  background: var(--card);
+  color: #222;
+  font: inherit;
+}
+
+.controls input {
+  flex: 1;
+  min-width: 0;
+}
+
+.controls input:focus,
+.controls select:focus {
+  outline: 3px solid rgba(43, 108, 176, 0.12);
+  border-color: var(--accent);
+}
+
+.empty {
+  padding: 1rem;
+  color: var(--muted);
+  text-align: center;
+  background: var(--card);
+  border-radius: var(--radius);
+}
+
+@media (max-width: 520px) {
+  .controls {
+    flex-direction: column;
+  }
+
+  .controls input,
+  .controls select {
+    width: 100%;
+  }
+}

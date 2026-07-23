@@ -23,7 +23,7 @@ jobs:
       - name: Generate pages.json
         run: |
           echo "[" > pages.json
-          find pages -mindepth 1 -maxdepth 1 -type d | sort | while read dir; do
+          find pages -mindepth 1 -maxdepth 1 -type d | while read dir; do
             name=$(basename "$dir")
             title=$(echo "$name" | sed 's/_/ /g' | awk '{print toupper(substr($0,1,1)) substr($0,2)}')
             echo "  {\"path\": \"$dir\", \"title\": \"$title\"}," >> pages.json
