@@ -20,7 +20,8 @@
       .then(pages => {
         const ul = document.getElementById('pageList');
         ul.innerHTML = '';
-        for (const page of pages) {
+     // for (const page of pages) {
+        for (const page of pages.slice().reverse()) { // in reverse order
           const li = document.createElement('li');
           li.innerHTML = `<a href="${page.path}/">${page.title || page.path}</a>`;
           ul.appendChild(li);

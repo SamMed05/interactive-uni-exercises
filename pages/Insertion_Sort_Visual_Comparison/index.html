@@ -1,0 +1,898 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full bg-slate-100 text-slate-800">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Insertion Sort algorithm comparison</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- FontAwesome for icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- Inter & JetBrains Mono Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+  
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+    }
+    code, pre, .font-mono {
+      font-family: 'JetBrains Mono', monospace;
+    }
+    /* Custom scrollbars */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: rgba(226, 232, 240, 0.8);
+    }
+    ::-webkit-scrollbar-thumb {
+      background: rgba(148, 163, 184, 0.8);
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: rgba(100, 116, 139, 1);
+    }
+    /* Smooth horizontal bar transition wrapper */
+    .bar-wrapper {
+      will-change: transform;
+    }
+  </style>
+
+  <!-- For audio effect when swapping occurs -->
+  <script>
+    // Web Audio Context setup
+    let audioCtx = null;
+
+    function playBeep(pitch = 440, pan = 0, duration = 0.08) {
+      // Initialize context on first trigger
+      if (!audioCtx) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      }
+      if (audioCtx.state === 'suspended') {
+        audioCtx.resume();
+      }
+
+      const now = audioCtx.currentTime;
+
+      // 1. Oscillator (Pitch)
+      const osc = audioCtx.createOscillator();
+      osc.type = 'sine'; // 'sine', 'triangle', 'square', or 'sawtooth'
+      osc.frequency.setValueAtTime(pitch, now);
+
+      // 2. Gain Node (Volume Envelope to prevent sharp clicks)
+      const gain = audioCtx.createGain();
+      gain.gain.setValueAtTime(0.15, now); // Volume level
+      gain.gain.exponentialRampToValueAtTime(0.001, now + duration);
+
+      // 3. Stereo Panner Node (Panning)
+      // -1.0 = Fully Left | 0.0 = Center | 1.0 = Fully Right
+      const panner = new StereoPannerNode(audioCtx, { pan: pan });
+
+      // Connect Nodes: Oscillator -> Gain -> Panner -> Speaker Output
+      osc.connect(gain);
+      gain.connect(panner);
+      panner.connect(audioCtx.destination);
+
+      // Play and stop sound
+      osc.start(now);
+      osc.stop(now + duration);
+    }
+  </script>
+</head>
+<body class="h-full flex flex-col bg-slate-100 text-slate-800 overflow-x-hidden">
+
+  <main class="flex-1 w-full max-w-[1300px] mx-auto px-4 md:px-16 lg:px-32 py-5 flex flex-col gap-4">
+
+    <!-- Control Section with Integrated Main Title -->
+    <section class="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm">
+      <div class="flex flex-col min-[950px]:flex-row gap-4 items-stretch min-[950px]:items-center justify-between">
+        
+        <!-- Main Title & Input Presets -->
+        <div class="flex flex-col gap-2 min-[950px]:max-w-[320px]">
+          <h1 class="text-base font-bold text-slate-900 tracking-tight flex items-center gap-2">
+            Insertion Sort algorithm comparison
+          </h1>
+          <div class="flex gap-2 items-center">
+            <select id="presetSelect" class="bg-slate-50 border border-slate-300 text-xs sm:text-sm text-slate-800 rounded-xl px-2.5 py-2 focus:ring-2 focus:ring-sky-500 focus:outline-none flex-1 min-w-0">
+              <option value="random">Random Array</option>
+              <option value="reversed">Reversed (Worst Case)</option>
+              <option value="nearlySorted">Nearly Sorted (Best Case)</option>
+              <option value="duplicates">Many Duplicates</option>
+              <option value="custom">Custom...</option>
+            </select>
+            <button id="btnNewArray" title="Regenerate Array" class="p-2.5 bg-slate-100 hover:bg-slate-200 active:bg-slate-300 text-slate-700 rounded-xl text-sm font-medium border border-slate-300 transition flex items-center justify-center shrink-0">
+              <i class="fa-solid fa-arrows-rotate text-xs"></i>
+            </button>
+          </div>
+          <div id="customInputWrapper" class="hidden mt-1">
+            <input type="text" id="customInput" value="12, 5, 8, 3, 19, 1" placeholder="e.g. 12, 5, 8, 3, 19, 1" class="w-full bg-slate-50 border border-slate-300 text-sm text-slate-800 rounded-xl px-3 py-1.5 focus:ring-2 focus:ring-sky-500 focus:outline-none">
+          </div>
+        </div>
+
+        <!-- Slider Controls (Size & Speed) -->
+        <div class="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-3 min-w-0">
+          <div class="flex flex-col gap-1 bg-slate-50/80 p-2 rounded-xl border border-slate-100">
+            <div class="flex justify-between text-xs font-medium text-slate-600">
+              <span>Array Size:</span>
+              <span id="sizeVal" class="text-sky-600 font-bold">8</span>
+            </div>
+            <input type="range" id="sizeSlider" min="5" max="16" value="8" class="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-sky-600">
+          </div>
+          <div class="flex flex-col gap-1 bg-slate-50/80 p-2 rounded-xl border border-slate-100">
+            <div class="flex justify-between text-xs font-medium text-slate-600">
+              <span>Animation Speed:</span>
+              <span id="speedVal" class="text-sky-600 font-bold">1.0x</span>
+            </div>
+            <input type="range" id="speedSlider" min="1" max="10" value="5" class="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-sky-600">
+          </div>
+        </div>
+
+        <!-- Controls Buttons -->
+        <div class="flex items-center justify-end gap-1.5 shrink-0 pt-2 min-[950px]:pt-0 border-t min-[950px]:border-t-0 border-slate-100">
+          <button id="btnPrev" title="Step Back" class="p-2.5 bg-slate-100 hover:bg-slate-200 active:bg-slate-300 text-slate-700 rounded-xl border border-slate-300 disabled:opacity-40 disabled:cursor-not-allowed transition">
+            <i class="fa-solid fa-backward-step text-xs"></i>
+          </button>
+          <button id="btnPlay" title="Play/Pause" class="px-3.5 py-2.5 bg-sky-600 hover:bg-sky-700 active:bg-sky-800 text-white font-semibold rounded-xl border border-sky-600 shadow-md shadow-sky-500/20 transition flex items-center gap-2 text-xs sm:text-sm">
+            <i class="fa-solid fa-play" id="playIcon"></i> <span id="playText">Start</span>
+          </button>
+          <button id="btnNext" title="Step Forward" class="p-2.5 bg-slate-100 hover:bg-slate-200 active:bg-slate-300 text-slate-700 rounded-xl border border-slate-300 disabled:opacity-40 disabled:cursor-not-allowed transition">
+            <i class="fa-solid fa-forward-step text-xs"></i>
+          </button>
+          <button id="btnReset" title="Reset Simulation" class="p-2.5 bg-slate-100 hover:bg-slate-200 active:bg-slate-300 text-slate-500 hover:text-rose-600 rounded-xl border border-slate-300 transition">
+            <i class="fa-solid fa-rotate-left text-xs"></i>
+          </button>
+        </div>
+
+      </div>
+
+      <!-- Timeline Scrubbing Bar -->
+      <div class="flex items-center gap-3 pt-3 mt-3 border-t border-slate-100">
+        <span class="text-xs font-semibold text-slate-600 shrink-0">Step:</span>
+        <input type="range" id="stepScrubber" min="0" max="100" value="0" class="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-sky-600">
+        <span id="stepCounter" class="text-xs font-mono font-bold text-sky-700 bg-sky-50 px-2.5 py-1 rounded-md border border-sky-200 shrink-0">0 / 0</span>
+      </div>
+
+    </section>
+
+    <!-- Side-by-Side Algorithm Display (950px+ grid) -->
+    <div class="grid grid-cols-1 min-[950px]:grid-cols-2 gap-4">
+
+      <!-- ========================================== -->
+      <!-- ALGORITHM 1: SHIFT / DISPLACEMENT          -->
+      <!-- ========================================== -->
+      <section class="bg-white border border-cyan-200 rounded-2xl p-4 sm:p-5 flex flex-col justify-between shadow-sm relative overflow-hidden">
+        <div class="absolute top-0 right-0 w-32 h-32 bg-cyan-500/5 rounded-full blur-2xl pointer-events-none"></div>
+
+        <div>
+          <!-- Header panel -->
+          <div class="flex items-center justify-between border-b border-slate-200 pb-3 mb-4">
+            <div class="flex items-center gap-2">
+              <span class="px-2.5 py-0.5 rounded-md text-xs font-bold bg-cyan-100 text-cyan-800 border border-cyan-300">InsSort v1</span>
+              <h2 class="text-base font-bold text-slate-900 tracking-wide">Shift with <code class="text-cyan-600">tmp</code></h2>
+            </div>
+            <span class="text-xs font-mono text-cyan-700 bg-cyan-50 px-2 py-0.5 rounded border border-cyan-200">1 Write/Shift</span>
+          </div>
+
+          <!-- Pseudocode visualization block -->
+          <div class="bg-slate-900 rounded-xl p-3 border border-slate-800 mb-4 font-mono text-xs text-slate-300 overflow-x-auto">
+            <div id="alg1-line-1" class="px-2 py-0.5 rounded transition-colors"><span class="text-purple-400">for</span> j := 1 <span class="text-purple-400">to</span> n - 1 <span class="text-purple-400">do</span></div>
+            <div id="alg1-line-2" class="px-2 py-0.5 rounded transition-colors pl-4">i := j - 1</div>
+            <div id="alg1-line-3" class="px-2 py-0.5 rounded transition-colors pl-4 font-semibold text-cyan-300">tmp := A[j] <span class="text-slate-500 font-normal">// lift element</span></div>
+            <div id="alg1-line-4" class="px-2 py-0.5 rounded transition-colors pl-4"><span class="text-purple-400">while</span> (i &ge; 0 <span class="text-purple-400">AND</span> A[i] &gt; tmp) <span class="text-purple-400">do</span></div>
+            <div id="alg1-line-5" class="px-2 py-0.5 rounded transition-colors pl-8 text-cyan-200">A[i+1] := A[i] <span class="text-slate-500">// shift right</span></div>
+            <div id="alg1-line-6" class="px-2 py-0.5 rounded transition-colors pl-8">i := i - 1</div>
+            <div id="alg1-line-7" class="px-2 py-0.5 rounded transition-colors pl-4 font-semibold text-cyan-300">A[i+1] := tmp <span class="text-slate-500 font-normal">// final insertion</span></div>
+          </div>
+
+          <!-- Variable state pills -->
+          <div class="flex items-center justify-between gap-2 mb-4 bg-slate-50 p-2.5 rounded-xl border border-slate-200 text-xs font-mono h-11">
+            <div class="flex items-center gap-3 text-slate-700">
+              <span>j = <strong id="alg1-var-j" class="text-slate-900">/</strong></span>
+              <span>i = <strong id="alg1-var-i" class="text-slate-900">/</strong></span>
+            </div>
+            <!-- TMP Register Visual Box -->
+            <div class="flex items-center gap-2 bg-white px-3 py-1 rounded-lg border border-cyan-300 shadow-sm">
+              <span class="text-slate-500 text-[11px] uppercase tracking-wider font-sans font-semibold">tmp =</span>
+              <span id="alg1-var-tmp" class="text-cyan-700 font-bold text-sm min-w-[20px] text-center">/</span>
+            </div>
+          </div>
+
+          <!-- Visual Bar Chart Container -->
+          <div class="bg-slate-50 border border-slate-200 rounded-xl p-4 mb-4 flex flex-col justify-end h-48 relative overflow-hidden">
+            <div id="alg1-array-bars" class="flex items-end justify-center gap-1 sm:gap-2 h-full w-full">
+              <!-- Dynamically populated bars -->
+            </div>
+          </div>
+
+          <!-- Live Step Action Log -->
+          <div id="alg1-log" class="bg-cyan-50 border border-cyan-200 text-cyan-900 text-xs font-mono p-2.5 rounded-xl min-h-[44px] flex items-center">
+            Ready to run.
+          </div>
+        </div>
+
+        <!-- Metrics Footer -->
+        <div class="mt-4 pt-3 border-t border-slate-200 grid grid-cols-3 gap-2 text-center text-xs">
+          <div class="bg-slate-50 p-2 rounded-xl border border-slate-200">
+            <div class="text-slate-500 text-[10px] uppercase tracking-wider">Comparisons</div>
+            <div id="alg1-stat-comp" class="text-base font-bold text-cyan-700">0</div>
+          </div>
+          <div class="bg-slate-50 p-2 rounded-xl border border-slate-200">
+            <div class="text-slate-500 text-[10px] uppercase tracking-wider">Array Writes</div>
+            <div id="alg1-stat-writes" class="text-base font-bold text-emerald-600">0</div>
+          </div>
+          <div class="bg-slate-50 p-2 rounded-xl border border-slate-200">
+            <div class="text-slate-500 text-[10px] uppercase tracking-wider">Total Steps</div>
+            <div id="alg1-stat-steps" class="text-base font-bold text-slate-800">0</div>
+          </div>
+        </div>
+      </section>
+
+
+      <!-- ========================================== -->
+      <!-- ALGORITHM 2: SWAP / CONTINUOUS SWAPS       -->
+      <!-- ========================================== -->
+      <section class="bg-white border border-amber-200 rounded-2xl p-4 sm:p-5 flex flex-col justify-between shadow-sm relative overflow-hidden">
+        <div class="absolute top-0 right-0 w-32 h-32 bg-amber-500/5 rounded-full blur-2xl pointer-events-none"></div>
+
+        <div>
+          <!-- Header panel -->
+          <div class="flex items-center justify-between border-b border-slate-200 pb-3 mb-4">
+            <div class="flex items-center gap-2">
+              <span class="px-2.5 py-0.5 rounded-md text-xs font-bold bg-amber-100 text-amber-800 border border-amber-300">InsSort v2</span>
+              <h2 class="text-base font-bold text-slate-900 tracking-wide">Continuous Swap</h2>
+            </div>
+            <span class="text-xs font-mono text-amber-700 bg-amber-50 px-2 py-0.5 rounded border border-amber-200">3 Writes per Swap</span>
+          </div>
+
+          <!-- Pseudocode visualization block -->
+          <div class="bg-slate-900 rounded-xl p-3 border border-slate-800 mb-4 font-mono text-xs text-slate-300 overflow-x-auto">
+            <div id="alg2-line-1" class="px-2 py-0.5 rounded transition-colors"><span class="text-purple-400">for</span> i := 1 <span class="text-purple-400">to</span> n - 1 <span class="text-purple-400">do</span></div>
+            <div id="alg2-line-2" class="px-2 py-0.5 rounded transition-colors pl-4">j := i</div>
+            <div id="alg2-line-3" class="px-2 py-0.5 rounded transition-colors pl-4"><span class="text-purple-400">while</span> (j &gt; 0 <span class="text-purple-400">AND</span> A[j] &lt; A[j-1]) <span class="text-purple-400">do</span></div>
+            <div id="alg2-line-4" class="px-2 py-0.5 rounded transition-colors pl-8 font-semibold text-amber-300">swap(A[j], A[j-1]) <span class="text-slate-500 font-normal">// swap 2 elements</span></div>
+            <div id="alg2-line-5" class="px-2 py-0.5 rounded transition-colors pl-8">j := j - 1</div>
+            <!-- Two empty lines to match height of Alg 1 pseudocode block -->
+            <div id="alg2-line-6" class="px-2 py-0.5 rounded transition-colors h-[20px]"></div>
+            <div id="alg2-line-7" class="px-2 py-0.5 rounded transition-colors h-[20px]"></div>
+          </div>
+
+          <!-- Variable state pills -->
+          <div class="flex items-center justify-between gap-2 mb-4 bg-slate-50 p-2.5 rounded-xl border border-slate-200 text-xs font-mono h-11">
+            <div class="flex items-center gap-3 text-slate-700">
+              <span>i = <strong id="alg2-var-i" class="text-slate-900">/</strong></span>
+              <span>j = <strong id="alg2-var-j" class="text-slate-900">/</strong></span>
+            </div>
+            <div class="flex items-center gap-2 text-slate-500 text-[11px] font-sans">
+              <i class="fa-solid fa-arrows-rotate text-amber-600"></i> Swaps on every comparison
+            </div>
+          </div>
+
+          <!-- Visual Bar Chart Container -->
+          <div class="bg-slate-50 border border-slate-200 rounded-xl p-4 mb-4 flex flex-col justify-end h-48 relative overflow-hidden">
+            <div id="alg2-array-bars" class="flex items-end justify-center gap-1 sm:gap-2 h-full w-full">
+              <!-- Dynamically populated bars -->
+            </div>
+          </div>
+
+          <!-- Live Step Action Log -->
+          <div id="alg2-log" class="bg-amber-50 border border-amber-200 text-amber-900 text-xs font-mono p-2.5 rounded-xl min-h-[44px] flex items-center">
+            Ready to run.
+          </div>
+        </div>
+
+        <!-- Metrics Footer -->
+        <div class="mt-4 pt-3 border-t border-slate-200 grid grid-cols-3 gap-2 text-center text-xs">
+          <div class="bg-slate-50 p-2 rounded-xl border border-slate-200">
+            <div class="text-slate-500 text-[10px] uppercase tracking-wider">Comparisons</div>
+            <div id="alg2-stat-comp" class="text-base font-bold text-amber-600">0</div>
+          </div>
+          <div class="bg-slate-50 p-2 rounded-xl border border-slate-200">
+            <div class="text-slate-500 text-[10px] uppercase tracking-wider">Swap Operations</div>
+            <div id="alg2-stat-swaps" class="text-base font-bold text-rose-600">0</div>
+          </div>
+          <div class="bg-slate-50 p-2 rounded-xl border border-slate-200">
+            <div class="text-slate-500 text-[10px] uppercase tracking-wider">Total Steps</div>
+            <div id="alg2-stat-steps" class="text-base font-bold text-slate-800">0</div>
+          </div>
+        </div>
+      </section>
+
+    </div>
+
+    <!-- Overview & Memory Writes Comparison -->
+    <section class="bg-white border border-slate-200 rounded-2xl p-4 sm:p-5 shadow-sm mb-4">
+      <h3 class="text-sm font-bold text-slate-900 uppercase tracking-wider mb-4 flex items-center gap-2">
+        <i class="fa-solid fa-chart-simple text-sky-600"></i> Performance Comparison Overview
+      </h3>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        
+        <!-- Writes vs Swaps Comparison Bar -->
+        <div class="space-y-3">
+          <div>
+            <div class="flex justify-between text-xs font-medium mb-1">
+              <span class="text-cyan-700 font-semibold"><i class="fa-solid fa-pen-to-square"></i> Algorithm 1 (Shift): Memory Writes</span>
+              <span id="meter-writes-1-val" class="font-mono font-bold text-cyan-800">0</span>
+            </div>
+            <div class="w-full bg-slate-100 h-3 rounded-full overflow-hidden border border-slate-200">
+              <div id="meter-writes-1" class="bg-cyan-500 h-full transition-all duration-300 w-0"></div>
+            </div>
+          </div>
+
+          <div>
+            <div class="flex justify-between text-xs font-medium mb-1">
+              <span class="text-amber-700 font-semibold"><i class="fa-solid fa-right-left"></i> Algorithm 2 (Swap): Equivalent Writes (3 &times; Swaps)</span>
+              <span id="meter-writes-2-val" class="font-mono font-bold text-amber-800">0</span>
+            </div>
+            <div class="w-full bg-slate-100 h-3 rounded-full overflow-hidden border border-slate-200">
+              <div id="meter-writes-2" class="bg-amber-500 h-full transition-all duration-300 w-0"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Key takeaways list -->
+        <div class="bg-slate-50 p-3.5 rounded-xl border border-slate-200 text-xs space-y-2">
+          <div class="font-semibold text-slate-800 flex items-center gap-1.5">
+            <i class="fa-solid fa-lightbulb text-amber-500"></i> Efficiency difference:
+          </div>
+          <p class="text-slate-600 leading-relaxed">
+            While the number of <strong>comparisons</strong> is identical in both approaches, Algorithm 1 performs only <span class="text-cyan-800 font-semibold">1 assignment (shift)</span> per inner loop step plus 1 final write. Algorithm 2 performs a full <span class="text-amber-800 font-semibold">swap operation (3 assignments)</span> at every single inner loop step.
+          </p>
+        </div>
+
+      </div>
+    </section>
+
+  </main>
+
+  <script>
+    
+    // Core state variables
+    let initialArray = [];
+    let trace1 = [];
+    let trace2 = [];
+    let currentStep = 0;
+    let maxSteps = 0;
+    let isPlaying = false;
+    let playInterval = null;
+    let animSpeedMs = 500;
+
+    // DOM Elements
+    const presetSelect = document.getElementById('presetSelect');
+    const customInputWrapper = document.getElementById('customInputWrapper');
+    const customInput = document.getElementById('customInput');
+    const btnNewArray = document.getElementById('btnNewArray');
+    const sizeSlider = document.getElementById('sizeSlider');
+    const sizeVal = document.getElementById('sizeVal');
+    const speedSlider = document.getElementById('speedSlider');
+    const speedVal = document.getElementById('speedVal');
+
+    const btnPlay = document.getElementById('btnPlay');
+    const playIcon = document.getElementById('playIcon');
+    const playText = document.getElementById('playText');
+    const btnPrev = document.getElementById('btnPrev');
+    const btnNext = document.getElementById('btnNext');
+    const btnReset = document.getElementById('btnReset');
+    const stepScrubber = document.getElementById('stepScrubber');
+    const stepCounter = document.getElementById('stepCounter');
+
+
+    // Generate Array based on presets (with persistent item IDs)
+    function generateInitialArray() {
+      const size = parseInt(sizeSlider.value, 10);
+      const preset = presetSelect.value;
+      let rawVals = [];
+
+      if (preset === 'random') {
+        for (let k = 0; k < size; k++) {
+          rawVals.push(Math.floor(Math.random() * 50) + 1);
+        }
+      } else if (preset === 'reversed') {
+        for (let k = size; k >= 1; k--) {
+          rawVals.push(k * 6 + 5);
+        }
+      } else if (preset === 'nearlySorted') {
+        for (let k = 1; k <= size; k++) {
+          rawVals.push(k * 6 + 5);
+        }
+        if (size > 3) {
+          let mid = Math.floor(size / 2);
+          let temp = rawVals[mid];
+          rawVals[mid] = rawVals[mid - 1];
+          rawVals[mid - 1] = temp;
+        }
+      } else if (preset === 'duplicates') {
+        const pool = [15, 30, 45, 60, 75];
+        for (let k = 0; k < size; k++) {
+          rawVals.push(pool[Math.floor(Math.random() * pool.length)]);
+        }
+      } else if (preset === 'custom') {
+        const customVals = customInput.value.split(',').map(v => parseInt(v.trim(), 10)).filter(v => !isNaN(v));
+        if (customVals.length >= 2) {
+          rawVals = customVals.slice(0, 16);
+        } else {
+          rawVals = [42, 12, 88, 25, 63, 7];
+        }
+      }
+
+      return rawVals.map((val, idx) => ({ id: `el-${idx}`, val: val }));
+    }
+
+    function buildTraceAlg1(input) {
+      let A = input.map(item => ({ ...item }));
+      let n = A.length;
+      let trace = [];
+      let comparisons = 0;
+      let writes = 0;
+
+      function pushStep(line, vars, highlightIdxs, action, tmpObj = null, sortedUpTo = 0) {
+        trace.push({
+          array: A.map(item => ({ ...item })),
+          line: line,
+          vars: { ...vars },
+          tmp: tmpObj ? { ...tmpObj } : null,
+          highlights: { ...highlightIdxs },
+          action: action,
+          comparisons: comparisons,
+          writes: writes,
+          sortedUpTo: sortedUpTo
+        });
+      }
+
+      pushStep(1, { j: '/', i: '/' }, {}, "Starting Shift algorithm.", null, 0);
+
+      for (let j = 1; j < n; j++) {
+        pushStep(1, { j: j, i: '/' }, { active: j }, `Outer for loop: j = ${j}`, null, j - 1);
+        
+        let i = j - 1;
+        pushStep(2, { j: j, i: i }, { active: j, iIdx: i }, `Set i = j - 1 (${i})`, null, j - 1);
+
+        let tmp = { ...A[j] };
+        writes++;
+        pushStep(3, { j: j, i: i }, { lifted: j }, `tmp := A[${j}] (${tmp.val})`, tmp, j - 1);
+
+        while (true) {
+          pushStep(4, { j: j, i: i }, { comparing: i, lifted: j }, `Check while condition: (i=${i} >= 0) AND (A[${i}] = ${i >= 0 ? A[i].val : 'N/A'} > tmp = ${tmp.val})`, tmp, j - 1);
+          comparisons++;
+
+          if (i >= 0 && A[i].val > tmp.val) {
+            A[i + 1] = { ...A[i] };
+            A[i] = tmp; // Keeps unique IDs in every slot so FLIP animations slide smoothly
+            writes++;
+            pushStep(5, { j: j, i: i }, { shiftFrom: i, shiftTo: i + 1 }, `A[${i+1}] := A[${i}] (${A[i].val}). Shift right.`, tmp, j - 1);
+
+            i = i - 1;
+            pushStep(6, { j: j, i: i }, { iIdx: i }, `i := i - 1 (${i})`, tmp, j - 1);
+          } else {
+            break;
+          }
+        }
+
+        A[i + 1] = { ...tmp };
+        writes++;
+        pushStep(7, { j: j, i: i }, { inserted: i + 1 }, `A[${i+1}] := tmp (${tmp.val}). Inserted into sorted position.`, tmp, j);
+      }
+
+      pushStep(7, { j: 'end', i: 'end' }, {}, "Array fully sorted!", null, n - 1);
+      return trace;
+    }
+
+    function buildTraceAlg2(input) {
+      let A = input.map(item => ({ ...item }));
+      let n = A.length;
+      let trace = [];
+      let comparisons = 0;
+      let swaps = 0;
+
+      function pushStep(line, vars, highlightIdxs, action, sortedUpTo = 0) {
+        trace.push({
+          array: A.map(item => ({ ...item })),
+          line: line,
+          vars: { ...vars },
+          highlights: { ...highlightIdxs },
+          action: action,
+          comparisons: comparisons,
+          swaps: swaps,
+          sortedUpTo: sortedUpTo
+        });
+      }
+
+      pushStep(1, { i: '/', j: '/' }, {}, "Starting Swap algorithm.", 0);
+
+      for (let i = 1; i < n; i++) {
+        pushStep(1, { i: i, j: '/' }, { activeI: i }, `Outer for loop: i = ${i}`, i - 1);
+
+        let j = i;
+        pushStep(2, { i: i, j: j }, { activeI: i, activeJ: j }, `Set j := i (${j})`, i - 1);
+
+        while (true) {
+          pushStep(3, { i: i, j: j }, { comparingA: j, comparingB: j - 1 }, `Check while condition: (j=${j} > 0) AND (A[${j}] = ${A[j].val} < A[${j-1}] = ${j > 0 ? A[j-1].val : 'N/A'})`, i - 1);
+          
+          if (j > 0) {
+            comparisons++;
+            if (A[j].val < A[j - 1].val) {
+              // Swap
+              let temp = A[j];
+              A[j] = A[j - 1];
+              A[j - 1] = temp;
+              swaps++;
+
+              pushStep(4, { i: i, j: j }, { swappedA: j, swappedB: j - 1 }, `swap(A[${j}], A[${j-1}]): Swapped ${A[j-1].val} and ${A[j].val}`, i - 1);
+
+              j = j - 1;
+              pushStep(5, { i: i, j: j }, { activeJ: j }, `j := j - 1 (${j})`, i - 1);
+            } else {
+              break;
+            }
+          } else {
+            break;
+          }
+        }
+      }
+
+      pushStep(5, { i: 'end', j: 'end' }, {}, "Array fully sorted!", n - 1);
+      return trace;
+    }
+
+    function renderStep(stepIndex) {
+      currentStep = stepIndex;
+      if (stepScrubber) stepScrubber.value = stepIndex;
+      if (stepCounter) stepCounter.innerText = `${stepIndex} / ${maxSteps - 1}`;
+
+      // Alg 1 State
+      const state1 = trace1[Math.min(stepIndex, trace1.length - 1)];
+      renderAlg1UI(state1);
+
+      // Alg 2 State
+      const state2 = trace2[Math.min(stepIndex, trace2.length - 1)];
+      renderAlg2UI(state2);
+
+      // Render performance meters
+      updateMeters(state1, state2);
+
+      // Disable/Enable nav buttons
+      btnPrev.disabled = (stepIndex === 0);
+      btnNext.disabled = (stepIndex >= maxSteps - 1);
+    }
+
+    function renderAlg1UI(state) {
+      // Highlight lines while preserving indentation padding
+      for (let l = 1; l <= 7; l++) {
+        const el = document.getElementById(`alg1-line-${l}`);
+        if (el) {
+          if (state.line === l) {
+            el.classList.add('bg-cyan-950', 'text-cyan-300', 'font-bold', 'border-l-4', 'border-cyan-400');
+            el.classList.remove('opacity-70');
+          } else {
+            el.classList.remove('bg-cyan-950', 'text-cyan-300', 'font-bold', 'border-l-4', 'border-cyan-400');
+            el.classList.add('opacity-70');
+          }
+        }
+      }
+
+      // Variables
+      document.getElementById('alg1-var-j').innerText = state.vars.j !== undefined ? state.vars.j : '/';
+      document.getElementById('alg1-var-i').innerText = state.vars.i !== undefined ? state.vars.i : '/';
+      document.getElementById('alg1-var-tmp').innerText = (state.tmp !== null && state.tmp !== undefined) ? state.tmp.val : '/';
+
+      // Sound effect: High pitch, panned LEFT (-0.8) on shift/write
+      if (isPlaying && (state.highlights.shiftFrom !== undefined || state.highlights.inserted !== undefined)) {
+        playBeep(650, -0.8, 0.08);
+      }
+
+      // Log & Stats
+      document.getElementById('alg1-log').innerText = state.action;
+      document.getElementById('alg1-stat-comp').innerText = state.comparisons;
+      document.getElementById('alg1-stat-writes').innerText = state.writes;
+      document.getElementById('alg1-stat-steps').innerText = currentStep;
+
+      // Bars Container
+      const container = document.getElementById('alg1-array-bars');
+
+      // FLIP Step 1: Measure old positions
+      const oldBars = container.querySelectorAll('.bar-wrapper');
+      const oldPosMap = new Map();
+      oldBars.forEach(bar => {
+        const id = bar.dataset.id;
+        if (id) {
+          oldPosMap.set(id, bar.getBoundingClientRect().left);
+        }
+      });
+
+      // FLIP Step 2: Render new state in DOM
+      container.innerHTML = '';
+      const maxVal = Math.max(...initialArray.map(item => item.val), 50);
+
+      state.array.forEach((item, idx) => {
+        const val = item.val;
+        const heightPct = Math.max((val / maxVal) * 100, 12);
+        const isSorted = idx <= state.sortedUpTo;
+        
+        let barColor = isSorted ? "bg-teal-100 border-teal-400 text-teal-800" : "bg-slate-200 border-slate-300 text-slate-700";
+        let labelColor = isSorted ? "text-teal-700 font-semibold" : "text-slate-500";
+
+        if (state.highlights.lifted === idx) {
+          barColor = "bg-cyan-100 border-cyan-400 text-cyan-900 border-dashed";
+        } else if (state.highlights.comparing === idx) {
+          barColor = "bg-sky-600 border-sky-400 text-white font-bold scale-105";
+        } else if (state.highlights.shiftFrom === idx || state.highlights.shiftTo === idx) {
+          // Use same red highlight styles as Algorithm 2 (Swap)
+          barColor = "bg-rose-600 border-rose-400 text-white font-bold scale-105 z-10 shadow-md";
+        } else if (state.highlights.inserted === idx) {
+          barColor = "bg-emerald-500 border-emerald-400 text-white font-bold scale-105";
+        } else if (state.highlights.active === idx) {
+          barColor = "bg-cyan-200 border-cyan-500 text-cyan-900";
+        }
+
+        const barWrapper = document.createElement('div');
+        barWrapper.className = "bar-wrapper flex-1 flex flex-col items-center h-full justify-end group";
+        barWrapper.dataset.id = item.id;
+        barWrapper.innerHTML = `
+          <div class="text-[10px] font-mono mb-1 ${labelColor}">${val}</div>
+          <div class="w-full ${barColor} border rounded-t-md transition-colors duration-200 flex items-center justify-center text-[10px] font-mono shadow-sm" style="height: ${heightPct}%">
+          </div>
+          <div class="text-[10px] font-mono mt-1 ${isSorted ? 'text-teal-600 font-bold' : 'text-slate-400'}">${idx}</div>
+        `;
+        container.appendChild(barWrapper);
+      });
+
+      // FLIP Step 3: Invert & Play smooth horizontal slide
+      const newBars = container.querySelectorAll('.bar-wrapper');
+      const animDuration = Math.min(Math.max(animSpeedMs * 0.7, 150), 400);
+
+      newBars.forEach(bar => {
+        const id = bar.dataset.id;
+        if (oldPosMap.has(id)) {
+          const oldLeft = oldPosMap.get(id);
+          const newLeft = bar.getBoundingClientRect().left;
+          const deltaX = oldLeft - newLeft;
+
+          if (Math.abs(deltaX) > 0.5) {
+            bar.style.transform = `translateX(${deltaX}px)`;
+            bar.style.transition = 'none';
+
+            // Force reflow
+            void bar.offsetWidth;
+
+            bar.style.transition = `transform ${animDuration}ms cubic-bezier(0.4, 0, 0.2, 1)`;
+            bar.style.transform = 'translateX(0px)';
+          }
+        }
+      });
+    }
+
+    function renderAlg2UI(state) {
+      // Highlight lines while preserving indentation padding
+      for (let l = 1; l <= 5; l++) {
+        const el = document.getElementById(`alg2-line-${l}`);
+        if (el) {
+          if (state.line === l) {
+            el.classList.add('bg-amber-950', 'text-amber-300', 'font-bold', 'border-l-4', 'border-amber-400');
+            el.classList.remove('opacity-70');
+          } else {
+            el.classList.remove('bg-amber-950', 'text-amber-300', 'font-bold', 'border-l-4', 'border-amber-400');
+            el.classList.add('opacity-70');
+          }
+        }
+      }
+
+      // Variables
+      document.getElementById('alg2-var-i').innerText = state.vars.i !== undefined ? state.vars.i : '/';
+      document.getElementById('alg2-var-j').innerText = state.vars.j !== undefined ? state.vars.j : '/';
+
+      // Sound effect: Low pitch, panned RIGHT (0.8) on swap
+      if (isPlaying && state.highlights.swappedA !== undefined) {
+        playBeep(320, 0.8, 0.08);
+      }
+
+      // Log & Stats
+      document.getElementById('alg2-log').innerText = state.action;
+      document.getElementById('alg2-stat-comp').innerText = state.comparisons;
+      document.getElementById('alg2-stat-swaps').innerText = state.swaps;
+      document.getElementById('alg2-stat-steps').innerText = currentStep;
+
+      // Bars Container
+      const container = document.getElementById('alg2-array-bars');
+
+      // FLIP Step 1: Measure old positions
+      const oldBars = container.querySelectorAll('.bar-wrapper');
+      const oldPosMap = new Map();
+      oldBars.forEach(bar => {
+        const id = bar.dataset.id;
+        if (id) {
+          oldPosMap.set(id, bar.getBoundingClientRect().left);
+        }
+      });
+
+      // FLIP Step 2: Render new state in DOM
+      container.innerHTML = '';
+      const maxVal = Math.max(...initialArray.map(item => item.val), 50);
+
+      state.array.forEach((item, idx) => {
+        const val = item.val;
+        const heightPct = Math.max((val / maxVal) * 100, 12);
+        const isSorted = idx <= state.sortedUpTo;
+        
+        let barColor = isSorted ? "bg-amber-100 border-amber-300 text-amber-800" : "bg-slate-200 border-slate-300 text-slate-700";
+        let labelColor = isSorted ? "text-amber-700 font-semibold" : "text-slate-500";
+
+        if (state.highlights.swappedA === idx || state.highlights.swappedB === idx) {
+          barColor = "bg-rose-600 border-rose-400 text-white font-bold scale-105 z-10 shadow-md";
+        } else if (state.highlights.comparingA === idx || state.highlights.comparingB === idx) {
+          barColor = "bg-amber-500 border-amber-400 text-slate-900 font-bold scale-105";
+        } else if (state.highlights.activeI === idx) {
+          barColor = "bg-amber-200 border-amber-500 text-amber-900";
+        }
+
+        const barWrapper = document.createElement('div');
+        barWrapper.className = "bar-wrapper flex-1 flex flex-col items-center h-full justify-end group relative";
+        barWrapper.dataset.id = item.id;
+        barWrapper.innerHTML = `
+          <div class="text-[10px] font-mono mb-1 ${labelColor}">${val}</div>
+          <div class="w-full ${barColor} border rounded-t-md transition-colors duration-200 flex items-center justify-center text-[10px] font-mono shadow-sm" style="height: ${heightPct}%">
+          </div>
+          <div class="text-[10px] font-mono mt-1 ${isSorted ? 'text-amber-600 font-bold' : 'text-slate-400'}">${idx}</div>
+        `;
+        container.appendChild(barWrapper);
+      });
+
+      // FLIP Step 3: Invert & Play smooth horizontal slide
+      const newBars = container.querySelectorAll('.bar-wrapper');
+      const animDuration = Math.min(Math.max(animSpeedMs * 0.7, 150), 400);
+
+      newBars.forEach(bar => {
+        const id = bar.dataset.id;
+        if (oldPosMap.has(id)) {
+          const oldLeft = oldPosMap.get(id);
+          const newLeft = bar.getBoundingClientRect().left;
+          const deltaX = oldLeft - newLeft;
+
+          if (Math.abs(deltaX) > 0.5) {
+            bar.style.transform = `translateX(${deltaX}px)`;
+            bar.style.transition = 'none';
+
+            // Force reflow
+            void bar.offsetWidth;
+
+            bar.style.transition = `transform ${animDuration}ms cubic-bezier(0.4, 0, 0.2, 1)`;
+            bar.style.transform = 'translateX(0px)';
+          }
+        }
+      });
+    }
+
+    function updateMeters(s1, s2) {
+      const w1 = s1 ? s1.writes : 0;
+      const w2 = s2 ? s2.swaps * 3 : 0;
+
+      const maxW = Math.max(w1, w2, 1);
+
+      document.getElementById('meter-writes-1-val').innerText = `${w1} shifts/writes`;
+      document.getElementById('meter-writes-2-val').innerText = `${w2} writes (${s2 ? s2.swaps : 0} swaps)`;
+
+      document.getElementById('meter-writes-1').style.width = `${(w1 / maxW) * 100}%`;
+      document.getElementById('meter-writes-2').style.width = `${(w2 / maxW) * 100}%`;
+    }
+
+    function initSimulation() {
+      stopPlayback();
+      initialArray = generateInitialArray();
+      
+      trace1 = buildTraceAlg1(initialArray);
+      trace2 = buildTraceAlg2(initialArray);
+
+      maxSteps = Math.max(trace1.length, trace2.length);
+      if (stepScrubber) stepScrubber.max = maxSteps - 1;
+
+      renderStep(0);
+    }
+
+    function startPlayback() {
+      if (currentStep >= maxSteps - 1) {
+        currentStep = 0;
+      }
+      isPlaying = true;
+      playIcon.className = 'fa-solid fa-pause';
+      playText.innerText = 'Pause';
+
+      playInterval = setInterval(() => {
+        if (currentStep < maxSteps - 1) {
+          renderStep(currentStep + 1);
+        } else {
+          stopPlayback();
+        }
+      }, animSpeedMs);
+    }
+
+    function stopPlayback() {
+      isPlaying = false;
+      playIcon.className = 'fa-solid fa-play';
+      playText.innerText = 'Start';
+      if (playInterval) {
+        clearInterval(playInterval);
+        playInterval = null;
+      }
+    }
+
+    // Event listeners
+    btnPlay.addEventListener('click', () => {
+      if (isPlaying) {
+        stopPlayback();
+      } else {
+        startPlayback();
+      }
+    });
+
+    btnNext.addEventListener('click', () => {
+      stopPlayback();
+      if (currentStep < maxSteps - 1) {
+        renderStep(currentStep + 1);
+      }
+    });
+
+    btnPrev.addEventListener('click', () => {
+      stopPlayback();
+      if (currentStep > 0) {
+        renderStep(currentStep - 1);
+      }
+    });
+
+    btnReset.addEventListener('click', () => {
+      stopPlayback();
+      renderStep(0);
+    });
+
+    if (stepScrubber) {
+      stepScrubber.addEventListener('input', (e) => {
+        stopPlayback();
+        renderStep(parseInt(e.target.value, 10));
+      });
+    }
+
+    presetSelect.addEventListener('change', () => {
+      if (presetSelect.value === 'custom') {
+        customInputWrapper.classList.remove('hidden');
+        customInput.focus();
+      } else {
+        customInputWrapper.classList.add('hidden');
+      }
+      initSimulation();
+    });
+
+    // Use 'input' event so the array updates live as the user types
+    customInput.addEventListener('input', () => {
+      if (presetSelect.value === 'custom') {
+        initSimulation();
+      }
+    });
+
+    customInput.addEventListener('change', initSimulation);
+
+    btnNewArray.addEventListener('click', initSimulation);
+
+    sizeSlider.addEventListener('input', (e) => {
+      sizeVal.innerText = e.target.value;
+      initSimulation();
+    });
+
+    speedSlider.addEventListener('input', (e) => {
+      const val = parseInt(e.target.value, 10);
+      animSpeedMs = 1200 - (val - 1) * 120;
+      speedVal.innerText = `${(val / 5).toFixed(1)}x`;
+
+      if (isPlaying) {
+        stopPlayback();
+        startPlayback();
+      }
+    });
+
+    // Initialize on window load
+    window.onload = function() {
+      initSimulation();
+    };
+  </script>
+</body>
+</html>
