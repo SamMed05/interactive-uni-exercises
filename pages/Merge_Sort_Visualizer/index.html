@@ -234,7 +234,7 @@
           <span class="text-[11px] code-font text-slate-500 dark:text-slate-400"><span class="code-kw">Merge</span>(A, i, k, j)</span>
         </div>
 
-        <div id="codePanel" class="code-font text-xs leading-relaxed overflow-x-auto bg-slate-100 dark:bg-slate-950 p-2 rounded-lg border border-slate-200 dark:border-slate-800/80 space-y-0.5">
+        <div id="codePanel" class="code-font text-xs leading-relaxed overflow-x-auto bg-slate-100 dark:bg-slate-950 py-[6px] px-2 rounded-lg border border-slate-200 dark:border-slate-800/80 space-y-0.5">
           <div id="code-1" class="flex items-center px-2 py-1 rounded transition text-xs text-slate-700 dark:text-slate-300">
             <span class="w-6 shrink-0 text-right pr-3 select-none text-[11px] text-slate-400 dark:text-slate-500 font-normal">1</span>
             <div>l := i</div>
@@ -251,60 +251,95 @@
             <span class="w-6 shrink-0 text-right pr-3 select-none text-[11px] text-slate-400 dark:text-slate-500 font-normal">4</span>
             <div>B[0..j-i] <span class="code-kw">new array</span></div>
           </div>
-          <div id="code-5" class="flex items-center px-2 py-1 rounded transition text-xs text-slate-700 dark:text-slate-300">
-            <span class="w-6 shrink-0 text-right pr-3 select-none text-[11px] text-slate-400 dark:text-slate-500 font-normal">5</span>
-            <div><span class="code-kw">while</span> (l ≤ k <span class="code-kw">AND</span> r ≤ j) <span class="code-kw">do</span></div>
+
+          <!-- Main Merge Loop Section (Lines 5–12) -->
+          <div class="group relative rounded-lg border border-slate-300/40 dark:border-slate-700/40 bg-slate-200/30 dark:bg-slate-800/20 hover:border-slate-400 dark:hover:border-slate-500 hover:bg-slate-200/60 dark:hover:bg-slate-800/50 transition p-1 -m-1 my-0.5">
+            <div id="code-5" class="flex items-center px-2 py-1 rounded transition text-xs text-slate-700 dark:text-slate-300">
+              <span class="w-6 shrink-0 text-right pr-3 select-none text-[11px] text-slate-400 dark:text-slate-500 font-normal">5</span>
+              <div><span class="code-kw">while</span> (l ≤ k <span class="code-kw">AND</span> r ≤ j) <span class="code-kw">do</span></div>
+            </div>
+            <div id="code-6" class="flex items-center px-2 py-1 rounded transition text-xs text-slate-700 dark:text-slate-300">
+              <span class="w-6 shrink-0 text-right pr-3 select-none text-[11px] text-slate-400 dark:text-slate-500 font-normal">6</span>
+              <div class="pl-4"><span class="code-kw">if</span> A[l] ≤ A[r] <span class="code-kw">then</span></div>
+            </div>
+            <div id="code-7" class="flex items-center px-2 py-1 rounded transition text-xs text-slate-700 dark:text-slate-300">
+              <span class="w-6 shrink-0 text-right pr-3 select-none text-[11px] text-slate-400 dark:text-slate-500 font-normal">7</span>
+              <div class="pl-8">B[t] := A[l]</div>
+            </div>
+            <div id="code-8" class="flex items-center px-2 py-1 rounded transition text-xs text-slate-700 dark:text-slate-300">
+              <span class="w-6 shrink-0 text-right pr-3 select-none text-[11px] text-slate-400 dark:text-slate-500 font-normal">8</span>
+              <div class="pl-8">l := l + 1</div>
+            </div>
+            <div id="code-9" class="flex items-center px-2 py-1 rounded transition text-xs text-slate-700 dark:text-slate-300">
+              <span class="w-6 shrink-0 text-right pr-3 select-none text-[11px] text-slate-400 dark:text-slate-500 font-normal">9</span>
+              <div class="pl-4"><span class="code-kw">else</span></div>
+            </div>
+            <div id="code-10" class="flex items-center px-2 py-1 rounded transition text-xs text-slate-700 dark:text-slate-300">
+              <span class="w-6 shrink-0 text-right pr-3 select-none text-[11px] text-slate-400 dark:text-slate-500 font-normal">10</span>
+              <div class="pl-8">B[t] := A[r]</div>
+            </div>
+            <div id="code-11" class="flex items-center px-2 py-1 rounded transition text-xs text-slate-700 dark:text-slate-300">
+              <span class="w-6 shrink-0 text-right pr-3 select-none text-[11px] text-slate-400 dark:text-slate-500 font-normal">11</span>
+              <div class="pl-8">r := r + 1</div>
+            </div>
+            <div id="code-12" class="flex items-center px-2 py-1 rounded transition text-xs text-slate-700 dark:text-slate-300">
+              <span class="w-6 shrink-0 text-right pr-3 select-none text-[11px] text-slate-400 dark:text-slate-500 font-normal">12</span>
+              <div class="pl-4">t := t + 1</div>
+            </div>
+
+            <!-- Hover Tooltip -->
+            <div class="absolute left-1/2 -top-14 -translate-x-1/2 hidden group-hover:flex flex-col items-center z-30 w-72 pointer-events-none transition-all">
+              <div class="bg-slate-900 dark:bg-slate-800 text-slate-100 text-[11px] p-2.5 rounded-lg shadow-xl border border-slate-400/50 text-center leading-snug">
+                <strong class="text-slate-200">Main Merge Loop (5–12):</strong> Compares front elements of left and right halves and places the smaller element into <code class="code-font text-sky-300">B</code>.
+              </div>
+              <div class="w-2 h-2 bg-slate-900 dark:bg-slate-800 rotate-45 -mt-1 border-r border-b border-slate-400/50"></div>
+            </div>
           </div>
-          <div id="code-6" class="flex items-center px-2 py-1 rounded transition text-xs text-slate-700 dark:text-slate-300">
-            <span class="w-6 shrink-0 text-right pr-3 select-none text-[11px] text-slate-400 dark:text-slate-500 font-normal">6</span>
-            <div class="pl-4"><span class="code-kw">if</span> A[l] ≤ A[r] <span class="code-kw">then</span></div>
+
+          <!-- Left Residuals Section (Lines 13–15) -->
+          <div class="group relative rounded-lg border border-cyan-500/20 bg-cyan-500/5 hover:border-cyan-500/50 hover:bg-cyan-500/15 transition p-1 -m-1">
+            <div id="code-13" class="flex items-center px-2 py-1 rounded transition text-xs text-slate-700 dark:text-slate-300">
+              <span class="w-6 shrink-0 text-right pr-3 select-none text-[11px] text-slate-400 dark:text-slate-500 font-normal">13</span>
+              <div><span class="code-kw">for</span> h := k <span class="code-kw">downto</span> l <span class="code-kw">do</span></div>
+            </div>
+            <div id="code-14" class="flex items-center px-2 py-1 rounded transition text-xs text-slate-700 dark:text-slate-300">
+              <span class="w-6 shrink-0 text-right pr-3 select-none text-[11px] text-slate-400 dark:text-slate-500 font-normal">14</span>
+              <div class="pl-4">A[j] := A[h]</div>
+            </div>
+            <div id="code-15" class="flex items-center px-2 py-1 rounded transition text-xs text-slate-700 dark:text-slate-300">
+              <span class="w-6 shrink-0 text-right pr-3 select-none text-[11px] text-slate-400 dark:text-slate-500 font-normal">15</span>
+              <div class="pl-4">j := j - 1</div>
+            </div>
+
+            <!-- Hover Tooltip -->
+            <div class="absolute left-1/2 -top-14 -translate-x-1/2 hidden group-hover:flex flex-col items-center z-30 w-72 pointer-events-none transition-all">
+              <div class="bg-slate-900 dark:bg-slate-800 text-slate-100 text-[11px] p-2.5 rounded-lg shadow-xl border border-cyan-500/40 text-center leading-snug">
+                <strong class="text-cyan-400">Left Residuals (13–15):</strong> Unmerged left elements (<code class="code-font text-sky-300">l ≤ k</code>) shift to the back of <code class="code-font text-sky-300">A</code> from right to left (<code class="code-font text-sky-300">k downto l</code>).
+              </div>
+              <div class="w-2 h-2 bg-slate-900 dark:bg-slate-800 rotate-45 -mt-1 border-r border-b border-cyan-500/40"></div>
+            </div>
           </div>
-          <div id="code-7" class="flex items-center px-2 py-1 rounded transition text-xs text-slate-700 dark:text-slate-300">
-            <span class="w-6 shrink-0 text-right pr-3 select-none text-[11px] text-slate-400 dark:text-slate-500 font-normal">7</span>
-            <div class="pl-8">B[t] := A[l]</div>
-          </div>
-          <div id="code-8" class="flex items-center px-2 py-1 rounded transition text-xs text-slate-700 dark:text-slate-300">
-            <span class="w-6 shrink-0 text-right pr-3 select-none text-[11px] text-slate-400 dark:text-slate-500 font-normal">8</span>
-            <div class="pl-8">l := l + 1</div>
-          </div>
-          <div id="code-9" class="flex items-center px-2 py-1 rounded transition text-xs text-slate-700 dark:text-slate-300">
-            <span class="w-6 shrink-0 text-right pr-3 select-none text-[11px] text-slate-400 dark:text-slate-500 font-normal">9</span>
-            <div class="pl-4"><span class="code-kw">else</span></div>
-          </div>
-          <div id="code-10" class="flex items-center px-2 py-1 rounded transition text-xs text-slate-700 dark:text-slate-300">
-            <span class="w-6 shrink-0 text-right pr-3 select-none text-[11px] text-slate-400 dark:text-slate-500 font-normal">10</span>
-            <div class="pl-8">B[t] := A[r]</div>
-          </div>
-          <div id="code-11" class="flex items-center px-2 py-1 rounded transition text-xs text-slate-700 dark:text-slate-300">
-            <span class="w-6 shrink-0 text-right pr-3 select-none text-[11px] text-slate-400 dark:text-slate-500 font-normal">11</span>
-            <div class="pl-8">r := r + 1</div>
-          </div>
-          <div id="code-12" class="flex items-center px-2 py-1 rounded transition text-xs text-slate-700 dark:text-slate-300">
-            <span class="w-6 shrink-0 text-right pr-3 select-none text-[11px] text-slate-400 dark:text-slate-500 font-normal">12</span>
-            <div class="pl-4">t := t + 1</div>
-          </div>
-          <div id="code-13" class="flex items-center px-2 py-1 rounded transition text-xs text-slate-700 dark:text-slate-300">
-            <span class="w-6 shrink-0 text-right pr-3 select-none text-[11px] text-slate-400 dark:text-slate-500 font-normal">13</span>
-            <div><span class="code-kw">for</span> h := k <span class="code-kw">downto</span> l <span class="code-kw">do</span></div>
-          </div>
-          <div id="code-14" class="flex items-center px-2 py-1 rounded transition text-xs text-slate-700 dark:text-slate-300">
-            <span class="w-6 shrink-0 text-right pr-3 select-none text-[11px] text-slate-400 dark:text-slate-500 font-normal">14</span>
-            <div class="pl-4">A[j] := A[h]</div>
-          </div>
-          <div id="code-15" class="flex items-center px-2 py-1 rounded transition text-xs text-slate-700 dark:text-slate-300">
-            <span class="w-6 shrink-0 text-right pr-3 select-none text-[11px] text-slate-400 dark:text-slate-500 font-normal">15</span>
-            <div class="pl-4">j := j - 1</div>
-          </div>
-          <div id="code-16" class="flex items-center px-2 py-1 rounded transition text-xs text-slate-700 dark:text-slate-300">
-            <span class="w-6 shrink-0 text-right pr-3 select-none text-[11px] text-slate-400 dark:text-slate-500 font-normal">16</span>
-            <div><span class="code-kw">for</span> h := 0 <span class="code-kw">to</span> t - 1 <span class="code-kw">do</span></div>
-          </div>
-          <div id="code-17" class="flex items-center px-2 py-1 rounded transition text-xs text-slate-700 dark:text-slate-300">
-            <span class="w-6 shrink-0 text-right pr-3 select-none text-[11px] text-slate-400 dark:text-slate-500 font-normal">17</span>
-            <div class="pl-4">A[i + h] := B[h]</div>
+
+          <!-- Final Copy Section (Lines 16–17) -->
+          <div class="group relative rounded-lg border border-pink-500/20 bg-pink-500/5 hover:border-pink-500/50 hover:bg-pink-500/15 transition p-1 -m-1 mt-1">
+            <div id="code-16" class="flex items-center px-2 py-1 rounded transition text-xs text-slate-700 dark:text-slate-300">
+              <span class="w-6 shrink-0 text-right pr-3 select-none text-[11px] text-slate-400 dark:text-slate-500 font-normal">16</span>
+              <div><span class="code-kw">for</span> h := 0 <span class="code-kw">to</span> t - 1 <span class="code-kw">do</span></div>
+            </div>
+            <div id="code-17" class="flex items-center px-2 py-1 rounded transition text-xs text-slate-700 dark:text-slate-300">
+              <span class="w-6 shrink-0 text-right pr-3 select-none text-[11px] text-slate-400 dark:text-slate-500 font-normal">17</span>
+              <div class="pl-4">A[i + h] := B[h]</div>
+            </div>
+
+            <!-- Hover Tooltip -->
+            <div class="absolute left-1/2 -top-14 -translate-x-1/2 hidden group-hover:flex flex-col items-center z-30 w-72 pointer-events-none transition-all">
+              <div class="bg-slate-900 dark:bg-slate-800 text-slate-100 text-[11px] p-2.5 rounded-lg shadow-xl border border-pink-500/40 text-center leading-snug">
+                <strong class="text-pink-400">Final Copy (16–17):</strong> Merged elements <code class="code-font text-pink-300">B[0..t-1]</code> copy into <code class="code-font text-sky-300">A[i..i+t-1]</code>.
+              </div>
+              <div class="w-2 h-2 bg-slate-900 dark:bg-slate-800 rotate-45 -mt-1 border-r border-b border-pink-500/40"></div>
+            </div>
           </div>
         </div>
-      </div>
 
       <!-- EXECUTING STATUS & ALGORITHM EXPLANATION CARD -->
       <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 flex flex-col gap-3 shadow-lg">
@@ -323,10 +358,10 @@
         </div>
 
         <!-- Collapsible Algorithm Summary -->
-        <details class="group text-[16px] text-slate-600 dark:text-slate-300">
+        <details class="group text-[13px] text-slate-600 dark:text-slate-300">
           <summary class="cursor-pointer select-none font-semibold text-slate-500 dark:text-slate-400 hover:text-sky-500 dark:hover:text-sky-400 flex items-center gap-1.5 transition">
             <i class="fa-solid fa-chevron-right group-open:rotate-90 transition-transform duration-200 text-[10px]"></i>
-            <span>Key Mechanics</span>
+            <span>Key mechanics</span>
           </summary>
           <ul class="mt-2 text-xs space-y-1.5 list-disc list-inside bg-slate-50 dark:bg-slate-950/40 p-2.5 rounded-lg border border-slate-200 dark:border-slate-800/60">
             <li><strong class="text-cyan-600 dark:text-cyan-400">Left Residuals (13–15):</strong> Unmerged left elements (<code class="code-font text-sky-600 dark:text-sky-300">l ≤ k</code>) shift to the back of <code class="code-font text-sky-600 dark:text-sky-300">A</code> from right to left (<code class="code-font text-sky-600 dark:text-sky-300">k downto l</code>).</li>
@@ -638,7 +673,8 @@
 
         // Badges above card
         const pointerBadges = document.createElement('div');
-        pointerBadges.className = "absolute -top-10 flex gap-0.5 z-10";
+        // pointerBadges.className = "absolute -top-10 flex gap-0.5 z-10";
+        pointerBadges.className = "absolute -top-6 flex gap-0.5 z-10";
         
         if (step.i === idx) pointerBadges.innerHTML += `<span class="px-1.5 py-0.5 rounded text-[9px] font-bold bg-indigo-500 text-white shadow">i</span>`;
         if (step.k === idx) pointerBadges.innerHTML += `<span class="px-1.5 py-0.5 rounded text-[9px] font-bold bg-emerald-500 text-white shadow">k</span>`;
@@ -651,7 +687,7 @@
         wrapper.appendChild(pointerBadges);
 
         // Height visual bar + Card
-        const heightPercent = Math.max(25, Math.round((val / maxVal) * 80));
+        const heightPercent = Math.round((val / maxVal) * 75);
         const card = document.createElement('div');
         
         let cardStyle = "w-10 sm:w-12 rounded-xl flex flex-col justify-between items-center p-2 border transition-all duration-300 shadow-sm ";
@@ -667,12 +703,14 @@
         }
 
         card.className = cardStyle;
-        card.style.height = `${heightPercent + 45}px`;
+        card.style.height = `${Math.max(45, heightPercent + 45)}px`;
 
         card.innerHTML = `
+          <!-- Top bar commented out
           <div class="w-full bg-slate-300/60 dark:bg-slate-800/50 rounded-lg h-1 mt-1">
             <div class="bg-current rounded-lg h-1" style="width: ${heightPercent}%"></div>
           </div>
+          -->
           <span class="code-font font-bold text-sm sm:text-base my-auto">${val}</span>
         `;
 
