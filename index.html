@@ -24,6 +24,7 @@
       >
 
       <select id="sortSelect" aria-label="Sort exercises">
+        <option value="manual">Featured Order</option>
         <option value="title-asc">Title: A → Z</option>
         <option value="title-desc">Title: Z → A</option>
         <option value="path-asc">Path: A → Z</option>
@@ -35,7 +36,16 @@
   </div>
 
   <script>
-    let allPages = [];
+    // ⬇️⬇️⬇️ Define your pages manually here, top-to-bottom ⬇️⬇️⬇️
+    let allPages = [
+      { path: "pages/Merge_Sort_Visualizer", title: "Merge Sort Visualizer" },
+      { path: "pages/Insertion_Sort_Visual_Comparison", title: "Insertion Sort Visual Comparison" },
+      { path: "pages/Tower_of_Hanoi_Animation", title: "Tower of Hanoi Animation" },
+      { path: "pages/Exponential_Average_CPU_Scheduling", title: "Exponential Average CPU Scheduling" },
+      { path: "pages/Ordinary_Differential_Equation_Classifier", title: "Ordinary Differential Equation Classifier" }
+
+      // ... add here new pages
+    ];
 
     const pageList = document.getElementById('pageList');
     const searchInput = document.getElementById('searchInput');
@@ -48,29 +58,20 @@
       const filteredPages = allPages
         .filter(page => {
           const title = page.title || page.path;
-
           return title.toLowerCase().includes(searchTerm) ||
                  page.path.toLowerCase().includes(searchTerm);
         })
         .sort((a, b) => {
+          // If "manual" sorting is active, respect array insertion order
+          if (sortOrder === 'manual') return 0;
+
           const aValue = (a.title || a.path).toLowerCase();
           const bValue = (b.title || b.path).toLowerCase();
 
-          if (sortOrder === 'title-asc') {
-            return aValue.localeCompare(bValue);
-          }
-
-          if (sortOrder === 'title-desc') {
-            return bValue.localeCompare(aValue);
-          }
-
-          if (sortOrder === 'path-asc') {
-            return a.path.localeCompare(b.path);
-          }
-
-          if (sortOrder === 'path-desc') {
-            return b.path.localeCompare(a.path);
-          }
+          if (sortOrder === 'title-asc') return aValue.localeCompare(bValue);
+          if (sortOrder === 'title-desc') return bValue.localeCompare(aValue);
+          if (sortOrder === 'path-asc') return a.path.localeCompare(b.path);
+          if (sortOrder === 'path-desc') return b.path.localeCompare(a.path);
         });
 
       pageList.innerHTML = '';
@@ -96,15 +97,8 @@
     searchInput.addEventListener('input', renderPages);
     sortSelect.addEventListener('change', renderPages);
 
-    fetch('pages.json')
-      .then(r => r.json())
-      .then(pages => {
-        allPages = pages;
-        renderPages();
-      })
-      .catch(() => {
-        pageList.textContent = 'Error loading page list.';
-      });
+    // Initial render
+    renderPages();
   </script>
 </body>
 </html>
