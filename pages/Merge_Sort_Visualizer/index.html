@@ -1,0 +1,873 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Merge Sort Algorithm Visualizer</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#f0f9ff',
+              500: '#0ea5e9',
+              600: '#0284c7',
+              900: '#0c4a6e',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <!-- FontAwesome Icons CDN -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap');
+    
+    body {
+      font-family: 'Inter', sans-serif;
+    }
+    .code-font {
+      font-family: 'Fira Code', monospace;
+    }
+    .code-kw {
+      color: rgb(192, 132, 252);
+      font-weight: 600;
+    }
+    
+    /* Custom Scrollbar */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #475569;
+      border-radius: 3px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #64748b;
+    }
+
+    /* Pulse visual enhancements */
+    @keyframes highlightPulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.05); }
+    }
+    .animate-active-node {
+      animation: highlightPulse 0.8s infinite ease-in-out;
+    }
+  </style>
+</head>
+<body class="bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 min-h-screen flex flex-col antialiased selection:bg-sky-500 selection:text-white transition-colors duration-200">
+
+  <header class="border-b border-slate-200 dark:border-slate-800 bg-white/80 dark:bg-slate-900/80 backdrop-blur sticky top-0 z-50 px-4 py-3">
+    <div class="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3">
+      <div>
+        <h1 class="text-lg font-bold text-slate-900 dark:text-white tracking-tight">
+          Merge Algorithm Visualizer
+        </h1>
+        <p class="text-xs text-slate-500 dark:text-slate-400">Step-by-step visual execution of <code class="code-font text-sky-600 dark:text-sky-300">Merge(A, i, k, j)</code></p>
+      </div>
+
+      <!-- Quick Preset Selector, Light Theme Toggle & Actions -->
+      <div class="flex items-center gap-2 w-full sm:w-auto">
+        <div class="relative flex-1 sm:w-80">
+          <select id="presetSelect" onchange="loadPreset(this.value)" class="w-full bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-xs rounded-lg px-3 py-2 text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-sky-500 cursor-pointer">
+            <option value="standard">Preset 1: Standard Merge</option>
+            <option value="leftover_left">Preset 2: Left Remaining (Shift Right)</option>
+            <option value="leftover_right">Preset 3: Right Remaining (In-place)</option>
+            <option value="interleaved">Preset 4: Interleaved Values</option>
+            <option value="subsegment">Preset 5: Sub-segment (i=1, k=2, j=4)</option>
+          </select>
+        </div>
+        <button onclick="toggleCustomModal()" class="px-3 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-medium rounded-lg border border-slate-300 dark:border-slate-700 transition flex items-center gap-1.5 whitespace-nowrap">
+          <i class="fa-solid fa-sliders text-sky-500"></i> Custom
+        </button>
+        <button onclick="randomizeData()" class="px-3 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-medium rounded-lg border border-slate-300 dark:border-slate-700 transition flex items-center gap-1.5">
+          <i class="fa-solid fa-dice text-indigo-500"></i> Random
+        </button>
+        <!-- Theme Toggle Button -->
+        <button onclick="toggleTheme()" id="themeToggleBtn" title="Toggle Light/Dark Theme" class="p-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-lg border border-slate-300 dark:border-slate-700 transition flex items-center justify-center w-9 h-9">
+          <i id="themeIcon" class="fa-solid fa-sun text-amber-400"></i>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main class="flex-1 max-w-7xl w-full mx-auto p-4 grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+    <!-- LEFT COLUMN: Visualization Canvas & Controls (7 Cols) -->
+    <section class="lg:col-span-7 flex flex-col gap-5">
+
+      <!-- MAIN VISUALIZER CONTAINER -->
+      <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 flex flex-col gap-8 shadow-xl">
+        
+        <!-- ARRAY A VISUALIZATION -->
+        <div class="flex flex-col gap-2">
+          <div class="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 font-semibold uppercase tracking-wider">
+            <span class="flex items-center gap-2">
+              <i class="fa-solid fa-layer-group text-sky-500"></i> Array A (Main Array)
+            </span>
+            <span id="rangeBadgeA" class="code-font text-slate-500 dark:text-slate-400">Range: A[i..j]</span>
+          </div>
+
+          <div id="arrayContainerA" class="min-h-[160px] bg-slate-100/70 dark:bg-slate-950/70 border border-slate-200/80 dark:border-slate-800/80 rounded-xl p-4 flex items-end justify-center gap-2 overflow-x-auto relative pt-12 pb-8">
+            <!-- Dynamic elements of A will be rendered here -->
+          </div>
+        </div>
+
+        <!-- ARRAY B VISUALIZATION (Auxiliary Array) -->
+        <div class="flex flex-col gap-2">
+          <div class="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 font-semibold uppercase tracking-wider">
+            <span class="flex items-center gap-2">
+              <i class="fa-solid fa-box text-pink-500"></i> Auxiliary Array B <span class="text-slate-400 font-normal capitalize">(0..j-i)</span>
+            </span>
+            <span id="rangeBadgeB" class="code-font text-slate-500 dark:text-slate-400">Size: -</span>
+          </div>
+
+          <div id="arrayContainerB" class="min-h-[110px] bg-slate-100/70 dark:bg-slate-950/70 border border-slate-200/80 dark:border-slate-800/80 rounded-xl p-4 flex items-center justify-center gap-2 overflow-x-auto relative">
+            <!-- Dynamic elements of B will be rendered here -->
+          </div>
+        </div>
+
+      </div>
+
+      <!-- CONTROL PANEL -->
+      <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-sm">
+        
+        <!-- Transport Buttons -->
+        <div class="flex items-center gap-2">
+          <button onclick="firstStep()" title="Reset to Start" class="w-9 h-9 flex items-center justify-center bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-lg transition border border-slate-300 dark:border-slate-700">
+            <i class="fa-solid fa-backward-step"></i>
+          </button>
+          <button onclick="prevStep()" title="Previous Step" class="w-9 h-9 flex items-center justify-center bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-lg transition border border-slate-300 dark:border-slate-700">
+            <i class="fa-solid fa-chevron-left"></i>
+          </button>
+          
+          <button id="playBtn" onclick="togglePlay()" title="Play / Pause" class="w-11 h-11 flex items-center justify-center bg-sky-500 hover:bg-sky-400 text-slate-950 font-bold rounded-lg transition shadow-lg shadow-sky-500/20">
+            <i class="fa-solid fa-play text-base"></i>
+          </button>
+
+          <button onclick="nextStep()" title="Next Step" class="w-9 h-9 flex items-center justify-center bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-lg transition border border-slate-300 dark:border-slate-700">
+            <i class="fa-solid fa-chevron-right"></i>
+          </button>
+          <button onclick="lastStep()" title="Jump to End" class="w-9 h-9 flex items-center justify-center bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-lg transition border border-slate-300 dark:border-slate-700">
+            <i class="fa-solid fa-forward-step"></i>
+          </button>
+        </div>
+
+        <!-- Step Counter & Speed Controller -->
+        <div class="flex items-center gap-4 w-full sm:w-auto justify-between sm:justify-end">
+          <div class="flex flex-col text-right">
+            <span class="text-[10px] uppercase font-bold text-slate-400 dark:text-slate-500">Progress</span>
+            <span id="stepCounter" class="code-font text-xs font-semibold text-slate-800 dark:text-slate-200">Step 0 / 0</span>
+          </div>
+
+          <div class="h-8 w-px bg-slate-200 dark:bg-slate-800 hidden sm:block"></div>
+
+          <div class="flex flex-col gap-1 w-32">
+            <div class="flex justify-between items-center text-[10px] text-slate-500 dark:text-slate-400">
+              <span class="font-bold uppercase">Speed</span>
+              <span id="speedValue" class="code-font text-sky-500 font-semibold">1.0x</span>
+            </div>
+            <input type="range" id="speedSlider" min="0.2" max="3" step="0.2" value="1" oninput="updateSpeed(this.value)" class="w-full h-1.5 bg-slate-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer accent-sky-500">
+          </div>
+        </div>
+
+      </div>
+
+      <!-- VARIABLES INSPECTOR CARD -->
+      <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-sm">
+        <h3 class="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-3 flex items-center gap-2">
+          <i class="fa-solid fa-square-poll-vertical text-indigo-500"></i> Variable Inspector
+        </h3>
+        <div class="grid grid-cols-4 sm:grid-cols-7 gap-2 text-center code-font text-xs">
+          <div class="bg-slate-50 dark:bg-slate-950 p-2 rounded-lg border border-slate-200 dark:border-slate-800/80">
+            <div class="text-[10px] font-bold text-slate-400 dark:text-slate-500">i (start)</div>
+            <div id="varI" class="text-indigo-600 dark:text-indigo-400 font-bold mt-1">-</div>
+          </div>
+          <div class="bg-slate-50 dark:bg-slate-950 p-2 rounded-lg border border-slate-200 dark:border-slate-800/80">
+            <div class="text-[10px] font-bold text-slate-400 dark:text-slate-500">k (mid)</div>
+            <div id="varK" class="text-emerald-600 dark:text-emerald-400 font-bold mt-1">-</div>
+          </div>
+          <div class="bg-slate-50 dark:bg-slate-950 p-2 rounded-lg border border-slate-200 dark:border-slate-800/80">
+            <div class="text-[10px] font-bold text-slate-400 dark:text-slate-500">j (end)</div>
+            <div id="varJ" class="text-rose-600 dark:text-rose-400 font-bold mt-1">-</div>
+          </div>
+          <div class="bg-slate-50 dark:bg-slate-950 p-2 rounded-lg border border-slate-200 dark:border-slate-800/80">
+            <div class="text-[10px] font-bold text-slate-400 dark:text-slate-500">l (left)</div>
+            <div id="varL" class="text-cyan-600 dark:text-cyan-400 font-bold mt-1">-</div>
+          </div>
+          <div class="bg-slate-50 dark:bg-slate-950 p-2 rounded-lg border border-slate-200 dark:border-slate-800/80">
+            <div class="text-[10px] font-bold text-slate-400 dark:text-slate-500">r (right)</div>
+            <div id="varR" class="text-amber-600 dark:text-amber-400 font-bold mt-1">-</div>
+          </div>
+          <div class="bg-slate-50 dark:bg-slate-950 p-2 rounded-lg border border-slate-200 dark:border-slate-800/80">
+            <div class="text-[10px] font-bold text-slate-400 dark:text-slate-500">t (aux)</div>
+            <div id="varT" class="text-pink-600 dark:text-pink-400 font-bold mt-1">-</div>
+          </div>
+          <div class="bg-slate-50 dark:bg-slate-950 p-2 rounded-lg border border-slate-200 dark:border-slate-800/80 col-span-4 sm:col-span-1">
+            <div class="text-[10px] font-bold text-slate-400 dark:text-slate-500">h (loop)</div>
+            <div id="varH" class="text-purple-600 dark:text-purple-400 font-bold mt-1">-</div>
+          </div>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- RIGHT COLUMN: Code Display & Educational Execution Status (5 Cols) -->
+    <section class="lg:col-span-5 flex flex-col gap-5">
+
+      <!-- PSEUDOCODE HIGHLIGHTER -->
+      <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 flex flex-col gap-3 shadow-lg">
+        <div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-2">
+          <span class="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-2">
+            <i class="fa-solid fa-code text-sky-500"></i> Algorithm Pseudocode
+          </span>
+          <span class="text-[11px] code-font text-slate-500 dark:text-slate-400"><span class="code-kw">Merge</span>(A, i, k, j)</span>
+        </div>
+
+        <div id="codePanel" class="code-font text-xs leading-relaxed overflow-x-auto bg-slate-100 dark:bg-slate-950 p-2 rounded-lg border border-slate-200 dark:border-slate-800/80 space-y-0.5">
+          <div id="code-1" class="flex items-center px-2 py-1 rounded transition text-xs text-slate-700 dark:text-slate-300">
+            <span class="w-6 shrink-0 text-right pr-3 select-none text-[11px] text-slate-400 dark:text-slate-500 font-normal">1</span>
+            <div>l := i</div>
+          </div>
+          <div id="code-2" class="flex items-center px-2 py-1 rounded transition text-xs text-slate-700 dark:text-slate-300">
+            <span class="w-6 shrink-0 text-right pr-3 select-none text-[11px] text-slate-400 dark:text-slate-500 font-normal">2</span>
+            <div>r := k + 1</div>
+          </div>
+          <div id="code-3" class="flex items-center px-2 py-1 rounded transition text-xs text-slate-700 dark:text-slate-300">
+            <span class="w-6 shrink-0 text-right pr-3 select-none text-[11px] text-slate-400 dark:text-slate-500 font-normal">3</span>
+            <div>t := 0</div>
+          </div>
+          <div id="code-4" class="flex items-center px-2 py-1 rounded transition text-xs text-slate-700 dark:text-slate-300">
+            <span class="w-6 shrink-0 text-right pr-3 select-none text-[11px] text-slate-400 dark:text-slate-500 font-normal">4</span>
+            <div>B[0..j-i] <span class="code-kw">new array</span></div>
+          </div>
+          <div id="code-5" class="flex items-center px-2 py-1 rounded transition text-xs text-slate-700 dark:text-slate-300">
+            <span class="w-6 shrink-0 text-right pr-3 select-none text-[11px] text-slate-400 dark:text-slate-500 font-normal">5</span>
+            <div><span class="code-kw">while</span> (l ≤ k <span class="code-kw">AND</span> r ≤ j) <span class="code-kw">do</span></div>
+          </div>
+          <div id="code-6" class="flex items-center px-2 py-1 rounded transition text-xs text-slate-700 dark:text-slate-300">
+            <span class="w-6 shrink-0 text-right pr-3 select-none text-[11px] text-slate-400 dark:text-slate-500 font-normal">6</span>
+            <div class="pl-4"><span class="code-kw">if</span> A[l] ≤ A[r] <span class="code-kw">then</span></div>
+          </div>
+          <div id="code-7" class="flex items-center px-2 py-1 rounded transition text-xs text-slate-700 dark:text-slate-300">
+            <span class="w-6 shrink-0 text-right pr-3 select-none text-[11px] text-slate-400 dark:text-slate-500 font-normal">7</span>
+            <div class="pl-8">B[t] := A[l]</div>
+          </div>
+          <div id="code-8" class="flex items-center px-2 py-1 rounded transition text-xs text-slate-700 dark:text-slate-300">
+            <span class="w-6 shrink-0 text-right pr-3 select-none text-[11px] text-slate-400 dark:text-slate-500 font-normal">8</span>
+            <div class="pl-8">l := l + 1</div>
+          </div>
+          <div id="code-9" class="flex items-center px-2 py-1 rounded transition text-xs text-slate-700 dark:text-slate-300">
+            <span class="w-6 shrink-0 text-right pr-3 select-none text-[11px] text-slate-400 dark:text-slate-500 font-normal">9</span>
+            <div class="pl-4"><span class="code-kw">else</span></div>
+          </div>
+          <div id="code-10" class="flex items-center px-2 py-1 rounded transition text-xs text-slate-700 dark:text-slate-300">
+            <span class="w-6 shrink-0 text-right pr-3 select-none text-[11px] text-slate-400 dark:text-slate-500 font-normal">10</span>
+            <div class="pl-8">B[t] := A[r]</div>
+          </div>
+          <div id="code-11" class="flex items-center px-2 py-1 rounded transition text-xs text-slate-700 dark:text-slate-300">
+            <span class="w-6 shrink-0 text-right pr-3 select-none text-[11px] text-slate-400 dark:text-slate-500 font-normal">11</span>
+            <div class="pl-8">r := r + 1</div>
+          </div>
+          <div id="code-12" class="flex items-center px-2 py-1 rounded transition text-xs text-slate-700 dark:text-slate-300">
+            <span class="w-6 shrink-0 text-right pr-3 select-none text-[11px] text-slate-400 dark:text-slate-500 font-normal">12</span>
+            <div class="pl-4">t := t + 1</div>
+          </div>
+          <div id="code-13" class="flex items-center px-2 py-1 rounded transition text-xs text-slate-700 dark:text-slate-300">
+            <span class="w-6 shrink-0 text-right pr-3 select-none text-[11px] text-slate-400 dark:text-slate-500 font-normal">13</span>
+            <div><span class="code-kw">for</span> h := k <span class="code-kw">downto</span> l <span class="code-kw">do</span></div>
+          </div>
+          <div id="code-14" class="flex items-center px-2 py-1 rounded transition text-xs text-slate-700 dark:text-slate-300">
+            <span class="w-6 shrink-0 text-right pr-3 select-none text-[11px] text-slate-400 dark:text-slate-500 font-normal">14</span>
+            <div class="pl-4">A[j] := A[h]</div>
+          </div>
+          <div id="code-15" class="flex items-center px-2 py-1 rounded transition text-xs text-slate-700 dark:text-slate-300">
+            <span class="w-6 shrink-0 text-right pr-3 select-none text-[11px] text-slate-400 dark:text-slate-500 font-normal">15</span>
+            <div class="pl-4">j := j - 1</div>
+          </div>
+          <div id="code-16" class="flex items-center px-2 py-1 rounded transition text-xs text-slate-700 dark:text-slate-300">
+            <span class="w-6 shrink-0 text-right pr-3 select-none text-[11px] text-slate-400 dark:text-slate-500 font-normal">16</span>
+            <div><span class="code-kw">for</span> h := 0 <span class="code-kw">to</span> t - 1 <span class="code-kw">do</span></div>
+          </div>
+          <div id="code-17" class="flex items-center px-2 py-1 rounded transition text-xs text-slate-700 dark:text-slate-300">
+            <span class="w-6 shrink-0 text-right pr-3 select-none text-[11px] text-slate-400 dark:text-slate-500 font-normal">17</span>
+            <div class="pl-4">A[i + h] := B[h]</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- EXECUTING STATUS & ALGORITHM EXPLANATION CARD -->
+      <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 flex flex-col gap-3 shadow-lg">
+        <div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-2">
+          <h3 class="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-2">
+            <i class="fa-solid fa-terminal text-sky-500"></i> Execution
+          </h3>
+          <div id="statusBadge" class="inline-flex items-center gap-2 px-2.5 py-1 rounded-md text-xs font-semibold bg-sky-500/10 text-sky-600 dark:text-sky-400 border border-sky-500/20">
+            <i class="fa-solid fa-circle-info"></i> Ready
+          </div>
+        </div>
+
+        <!-- Step Description -->
+        <div id="stepDescription" class="text-xs font-medium text-slate-800 dark:text-slate-200 min-h-[42px] flex items-center leading-relaxed bg-slate-50 dark:bg-slate-950/60 p-3 rounded-lg border border-slate-200 dark:border-slate-800/80">
+          Click play or step forward to start visualizing the algorithm execution line by line.
+        </div>
+
+        <!-- Algorithm Summary Points -->
+        <div class="border-t border-slate-200 dark:border-slate-800 pt-3 flex flex-col gap-2">
+          <!-- <h4 class="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
+            <i class="fa-solid fa-lightbulb text-amber-500"></i> Key Mechanics
+          </h4> -->
+          <ul class="text-xs text-slate-600 dark:text-slate-300 space-y-1.5 list-disc list-inside bg-slate-50 dark:bg-slate-950/40 p-2.5 rounded-lg border border-slate-200 dark:border-slate-800/60">
+            <li><strong class="text-cyan-600 dark:text-cyan-400">Left Residuals (13–15):</strong> Unmerged left elements (<code class="code-font text-sky-600 dark:text-sky-300">l ≤ k</code>) shift to the back of <code class="code-font text-sky-600 dark:text-sky-300">A</code> from right to left (<code class="code-font text-sky-600 dark:text-sky-300">k downto l</code>).</li>
+            <li><strong class="text-amber-600 dark:text-amber-400">Right Residuals:</strong> If right elements remain, they are already in position at the end.</li>
+            <li><strong class="text-pink-600 dark:text-pink-400">Final Copy (16–17):</strong> Merged elements <code class="code-font text-pink-600 dark:text-pink-300">B[0..t-1]</code> copy into <code class="code-font text-sky-600 dark:text-sky-300">A[i..i+t-1]</code>.</li>
+          </ul>
+        </div>
+      </div>
+
+    </section>
+
+  </main>
+
+  <!-- CUSTOM INPUT MODAL -->
+  <div id="customModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 max-w-md w-full shadow-2xl flex flex-col gap-4">
+      <div class="flex justify-between items-center border-b border-slate-200 dark:border-slate-800 pb-3">
+        <h3 class="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
+          <i class="fa-solid fa-sliders text-sky-500"></i> Configure Custom Parameters
+        </h3>
+        <button onclick="toggleCustomModal()" class="text-slate-400 hover:text-slate-600 dark:hover:text-white text-sm">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <div class="flex flex-col gap-3 text-xs">
+        <div>
+          <label class="block font-semibold text-slate-700 dark:text-slate-300 mb-1">Array A (comma-separated numbers):</label>
+          <input type="text" id="customArrayInput" value="10, 20, 30, 1, 2" class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-lg p-2.5 text-slate-800 dark:text-slate-200 code-font focus:outline-none focus:ring-2 focus:ring-sky-500">
+        </div>
+
+        <div class="grid grid-cols-3 gap-2">
+          <div>
+            <label class="block font-semibold text-slate-700 dark:text-slate-300 mb-1">Start <code class="code-font text-indigo-500">i</code>:</label>
+            <input type="number" id="customI" value="0" min="0" class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-lg p-2 text-slate-800 dark:text-slate-200 code-font focus:outline-none focus:ring-2 focus:ring-sky-500">
+          </div>
+          <div>
+            <label class="block font-semibold text-slate-700 dark:text-slate-300 mb-1">Mid <code class="code-font text-emerald-500">k</code>:</label>
+            <input type="number" id="customK" value="2" min="0" class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-lg p-2 text-slate-800 dark:text-slate-200 code-font focus:outline-none focus:ring-2 focus:ring-sky-500">
+          </div>
+          <div>
+            <label class="block font-semibold text-slate-700 dark:text-slate-300 mb-1">End <code class="code-font text-rose-500">j</code>:</label>
+            <input type="number" id="customJ" value="4" min="0" class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-lg p-2 text-slate-800 dark:text-slate-200 code-font focus:outline-none focus:ring-2 focus:ring-sky-500">
+          </div>
+        </div>
+
+        <p class="text-[11px] text-slate-500 dark:text-slate-400 italic">
+          Note: Subarrays <code class="code-font">A[i..k]</code> and <code class="code-font">A[k+1..j]</code> should ideally be pre-sorted.
+        </p>
+      </div>
+
+      <div class="flex justify-end gap-2 pt-2 border-t border-slate-200 dark:border-slate-800">
+        <button onclick="toggleCustomModal()" class="px-4 py-2 bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-medium rounded-lg transition">Cancel</button>
+        <button onclick="applyCustomData()" class="px-4 py-2 bg-sky-500 hover:bg-sky-400 text-slate-950 text-xs font-bold rounded-lg transition shadow-lg shadow-sky-500/20">Apply & Reset</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- JAVASCRIPT ENGINE -->
+  <script>
+    // Preset definitions
+    const PRESETS = {
+      standard: {
+        A: [3, 8, 12, 15, 2, 5, 9, 14],
+        i: 0, k: 3, j: 7
+      },
+      leftover_left: {
+        A: [10, 20, 30, 1, 2],
+        i: 0, k: 2, j: 4
+      },
+      leftover_right: {
+        A: [1, 2, 10, 20, 30],
+        i: 0, k: 1, j: 4
+      },
+      interleaved: {
+        A: [1, 5, 9, 2, 6, 10],
+        i: 0, k: 2, j: 5
+      },
+      subsegment: {
+        A: [99, 4, 9, 2, 8, 88],
+        i: 1, k: 2, j: 4
+      }
+    };
+
+    // State Variables
+    let currentSteps = [];
+    let currentStepIdx = 0;
+    let isPlaying = false;
+    let playTimer = null;
+    let playbackSpeed = 1.0;
+
+    /**
+     * Theme Toggle Logic
+     */
+    function toggleTheme() {
+      const html = document.documentElement;
+      const isDark = html.classList.contains('dark');
+      if (isDark) {
+        html.classList.remove('dark');
+        document.getElementById('themeIcon').className = 'fa-solid fa-moon text-indigo-600';
+      } else {
+        html.classList.add('dark');
+        document.getElementById('themeIcon').className = 'fa-solid fa-sun text-amber-400';
+      }
+      renderStep();
+    }
+
+    /**
+     * Generates all visualization states for the Merge algorithm following pseudocode line-by-line.
+     */
+    function generateMergeSteps(initialA, i_param, k_param, j_param) {
+      const steps = [];
+      let A = [...initialA];
+      let i = i_param;
+      let k = k_param;
+      let j = j_param;
+      let originalJ = j;
+      let B = new Array(j - i + 1).fill(null);
+
+      let l = null;
+      let r = null;
+      let t = null;
+      let h = null;
+
+      function pushStep(line, desc, status, activeA = [], activeB = [], extra = {}) {
+        steps.push({
+          line,
+          A: [...A],
+          B: [...B],
+          i, k, j,
+          l, r, t, h,
+          desc,
+          status,
+          activeA,
+          activeB,
+          ...extra
+        });
+      }
+
+      // Initial state
+      pushStep(1, `Initializing algorithm on range A[${i}..${j}] with mid point k = ${k}.`, 'ready');
+
+      // Line 1: l := i
+      l = i;
+      pushStep(1, `Set left pointer l := i (${l}).`, 'init', [l]);
+
+      // Line 2: r := k + 1
+      r = k + 1;
+      pushStep(2, `Set right pointer r := k + 1 (${r}).`, 'init', [r]);
+
+      // Line 3: t := 0
+      t = 0;
+      pushStep(3, `Set temporary array index t := 0.`, 'init');
+
+      // Line 4: B[0..j-i] new array
+      pushStep(4, `Allocate auxiliary array B of size ${j - i + 1} (indices 0..${j - i}).`, 'init');
+
+      // Line 5: while (l <= k AND r <= j) do
+      while (l <= k && r <= j) {
+        pushStep(5, `Evaluating while condition: l (${l}) ≤ k (${k}) [${l <= k}] AND r (${r}) ≤ j (${j}) [${r <= j}].`, 'check', [l, r]);
+
+        // Line 6: if A[l] <= A[r] then
+        pushStep(6, `Comparing A[l] (${A[l]}) with A[r] (${A[r]}).`, 'compare', [l, r]);
+
+        if (A[l] <= A[r]) {
+          // Line 7: B[t] := A[l]
+          B[t] = A[l];
+          pushStep(7, `A[l] (${A[l]}) ≤ A[r] (${A[r]}). Assigning B[t] := A[l] (B[${t}] = ${A[l]}).`, 'copy_b', [l], [t]);
+
+          // Line 8: l := l + 1
+          l = l + 1;
+          pushStep(8, `Incrementing left pointer l := l + 1 (${l}).`, 'pointer', [l]);
+        } else {
+          // Line 10: B[t] := A[r]
+          B[t] = A[r];
+          pushStep(10, `A[r] (${A[r]}) < A[l] (${A[l]}). Assigning B[t] := A[r] (B[${t}] = ${A[r]}).`, 'copy_b', [r], [t]);
+
+          // Line 11: r := r + 1
+          r = r + 1;
+          pushStep(11, `Incrementing right pointer r := r + 1 (${r}).`, 'pointer', [r]);
+        }
+
+        // Line 12: t := t + 1
+        t = t + 1;
+        pushStep(12, `Incrementing auxiliary index t := t + 1 (${t}).`, 'pointer');
+      }
+
+      // Check end of while loop
+      pushStep(5, `While loop ended (${l > k ? `l (${l}) > k (${k})` : `r (${r}) > j (${j})`}). Proceeding to remaining elements.`, 'check_end');
+
+      // Line 13: for h := k downto l do
+      pushStep(13, `Checking remaining left elements: for h := k (${k}) downto l (${l}).`, 'loop_left');
+
+      if (k >= l) {
+        for (h = k; h >= l; h--) {
+          pushStep(13, `Residual loop active for left element at h = ${h} (A[${h}] = ${A[h]}).`, 'loop_left', [h]);
+
+          // Line 14: A[j] := A[h]
+          A[j] = A[h];
+          pushStep(14, `Shifting unmerged left element A[h] (${A[h]}) to the end slot A[j] (A[${j}]).`, 'shift', [h, j]);
+
+          // Line 15: j := j - 1
+          j = j - 1;
+          pushStep(15, `Decrementing j := j - 1 (${j}).`, 'pointer');
+        }
+      } else {
+        pushStep(13, `No left elements remaining (k=${k} < l=${l}). Left residual loop skipped.`, 'loop_left');
+      }
+
+      // Line 16: for h := 0 to t - 1 do
+      pushStep(16, `Copying merged elements back from B to A: for h := 0 to t-1 (${t - 1}).`, 'loop_copy');
+
+      for (h = 0; h <= t - 1; h++) {
+        pushStep(16, `Copy-back loop active for h = ${h} (≤ ${t - 1}).`, 'loop_copy', [], [h]);
+
+        // Line 17: A[i + h] := B[h]
+        A[i + h] = B[h];
+        pushStep(17, `Copying B[${h}] (${B[h]}) back to A[i+h] (A[${i + h}]).`, 'copy_back', [i + h], [h]);
+      }
+
+      // Final complete state
+      pushStep(17, `Merge complete! Subarray segment A[${i_param}..${originalJ}] is now fully sorted.`, 'done', Array.from({length: originalJ - i_param + 1}, (_, idx) => i_param + idx));
+
+      return steps;
+    }
+
+    /**
+     * Renders a single frame based on currentStepIdx
+     */
+    function renderStep() {
+      if (!currentSteps || currentSteps.length === 0) return;
+      const step = currentSteps[currentStepIdx];
+
+      // Update Step counter & Description
+      document.getElementById('stepCounter').innerText = `Step ${currentStepIdx + 1} / ${currentSteps.length}`;
+      document.getElementById('stepDescription').innerText = step.desc;
+
+      // Update Status Badge
+      const statusBadge = document.getElementById('statusBadge');
+      statusBadge.className = "inline-flex items-center gap-2 px-2.5 py-1 rounded-md text-xs font-semibold border ";
+      
+      switch (step.status) {
+        case 'compare':
+          statusBadge.className += "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20";
+          statusBadge.innerHTML = `<i class="fa-solid fa-code-compare"></i> Comparing Elements`;
+          break;
+        case 'copy_b':
+          statusBadge.className += "bg-pink-500/10 text-pink-600 dark:text-pink-400 border-pink-500/20";
+          statusBadge.innerHTML = `<i class="fa-solid fa-arrow-down-long"></i> Placing into B`;
+          break;
+        case 'shift':
+          statusBadge.className += "bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 border-cyan-500/20";
+          statusBadge.innerHTML = `<i class="fa-solid fa-arrow-right-arrow-left"></i> Shifting Left Residual`;
+          break;
+        case 'copy_back':
+          statusBadge.className += "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20";
+          statusBadge.innerHTML = `<i class="fa-solid fa-arrow-up-long"></i> Copying Back to A`;
+          break;
+        case 'done':
+          statusBadge.className += "bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border-emerald-500/30";
+          statusBadge.innerHTML = `<i class="fa-solid fa-check-double"></i> Segment Merged`;
+          break;
+        default:
+          statusBadge.className += "bg-sky-500/10 text-sky-600 dark:text-sky-400 border-sky-500/20";
+          statusBadge.innerHTML = `<i class="fa-solid fa-microchip"></i> Executing Step`;
+      }
+
+      // Update Variables Inspector
+      document.getElementById('varI').innerText = step.i !== null ? step.i : '-';
+      document.getElementById('varK').innerText = step.k !== null ? step.k : '-';
+      document.getElementById('varJ').innerText = step.j !== null ? step.j : '-';
+      document.getElementById('varL').innerText = step.l !== null ? step.l : '-';
+      document.getElementById('varR').innerText = step.r !== null ? step.r : '-';
+      document.getElementById('varT').innerText = step.t !== null ? step.t : '-';
+      document.getElementById('varH').innerText = step.h !== null ? step.h : '-';
+
+      // Update Code Line Highlighting
+      for (let lineNum = 1; lineNum <= 17; lineNum++) {
+        const lineEl = document.getElementById(`code-${lineNum}`);
+        if (lineEl) {
+          if (lineNum === step.line) {
+            lineEl.className = "flex items-center px-2 py-1 rounded transition text-xs bg-sky-500/15 dark:bg-sky-500/20 text-sky-900 dark:text-sky-300 font-bold ring-1 ring-sky-500/30";
+          } else {
+            lineEl.className = "flex items-center px-2 py-1 rounded transition text-xs bg-transparent text-slate-700 dark:text-slate-300";
+          }
+        }
+      }
+
+      // Render Array A Cards
+      const containerA = document.getElementById('arrayContainerA');
+      containerA.innerHTML = '';
+      
+      const maxVal = Math.max(...step.A, 10);
+      const initialStep = currentSteps[0];
+      const origI = initialStep.i;
+      const origK = initialStep.k;
+      const origJ = initialStep.j;
+
+      document.getElementById('rangeBadgeA').innerText = `Range: A[${origI}..${origJ}]`;
+
+      step.A.forEach((val, idx) => {
+        const isTarget = idx >= origI && idx <= origJ;
+        const isLeftHalf = idx >= origI && idx <= origK;
+        const isRightHalf = idx > origK && idx <= origJ;
+        const isActive = step.activeA.includes(idx);
+
+        const wrapper = document.createElement('div');
+        wrapper.className = "flex flex-col items-center gap-1.5 relative group flex-shrink-0";
+
+        // Badges above card
+        const pointerBadges = document.createElement('div');
+        pointerBadges.className = "absolute -top-10 flex gap-0.5 z-10";
+        
+        if (step.i === idx) pointerBadges.innerHTML += `<span class="px-1.5 py-0.5 rounded text-[9px] font-bold bg-indigo-500 text-white shadow">i</span>`;
+        if (step.k === idx) pointerBadges.innerHTML += `<span class="px-1.5 py-0.5 rounded text-[9px] font-bold bg-emerald-500 text-white shadow">k</span>`;
+        if (step.j === idx) pointerBadges.innerHTML += `<span class="px-1.5 py-0.5 rounded text-[9px] font-bold bg-rose-500 text-white shadow">j</span>`;
+        if (step.l === idx) pointerBadges.innerHTML += `<span class="px-1.5 py-0.5 rounded text-[9px] font-bold bg-cyan-400 text-slate-950 shadow">l</span>`;
+        if (step.r === idx) pointerBadges.innerHTML += `<span class="px-1.5 py-0.5 rounded text-[9px] font-bold bg-amber-400 text-slate-950 shadow">r</span>`;
+        if (step.h === idx && step.status !== 'copy_back') pointerBadges.innerHTML += `<span class="px-1.5 py-0.5 rounded text-[9px] font-bold bg-purple-500 text-white shadow">h</span>`;
+        if (step.status === 'copy_back' && (origI + step.h) === idx) pointerBadges.innerHTML += `<span class="px-1.5 py-0.5 rounded text-[9px] font-bold bg-purple-500 text-white shadow">i+h</span>`;
+
+        wrapper.appendChild(pointerBadges);
+
+        // Height visual bar + Card
+        const heightPercent = Math.max(25, Math.round((val / maxVal) * 80));
+        const card = document.createElement('div');
+        
+        let cardStyle = "w-10 sm:w-12 rounded-xl flex flex-col justify-between items-center p-2 border transition-all duration-300 shadow-sm ";
+        
+        if (isActive) {
+          cardStyle += "bg-sky-500/30 border-sky-500 text-sky-950 dark:text-white ring-2 ring-sky-400 animate-active-node shadow-sky-500/30 ";
+        } else if (!isTarget) {
+          cardStyle += "bg-slate-200/50 dark:bg-slate-900/40 border-slate-300 dark:border-slate-800 text-slate-400 dark:text-slate-600 opacity-50 ";
+        } else if (isLeftHalf) {
+          cardStyle += "bg-cyan-100/80 dark:bg-cyan-950/40 border-cyan-300 dark:border-cyan-800/80 text-cyan-900 dark:text-cyan-200 ";
+        } else if (isRightHalf) {
+          cardStyle += "bg-amber-100/80 dark:bg-amber-950/40 border-amber-300 dark:border-amber-800/80 text-amber-900 dark:text-amber-200 ";
+        }
+
+        card.className = cardStyle;
+        card.style.height = `${heightPercent + 45}px`;
+
+        card.innerHTML = `
+          <div class="w-full bg-slate-300/60 dark:bg-slate-800/50 rounded-lg h-1 mt-1">
+            <div class="bg-current rounded-lg h-1" style="width: ${heightPercent}%"></div>
+          </div>
+          <span class="code-font font-bold text-sm sm:text-base my-auto">${val}</span>
+        `;
+
+        wrapper.appendChild(card);
+
+        // Index label
+        const idxLabel = document.createElement('span');
+        idxLabel.className = `code-font text-[10px] font-semibold ${isTarget ? 'text-slate-500 dark:text-slate-400' : 'text-slate-400 dark:text-slate-600'}`;
+        idxLabel.innerText = `[${idx}]`;
+        wrapper.appendChild(idxLabel);
+
+        containerA.appendChild(wrapper);
+      });
+
+      // Render Array B Cards
+      const containerB = document.getElementById('arrayContainerB');
+      containerB.innerHTML = '';
+
+      document.getElementById('rangeBadgeB').innerText = `Size: ${step.B.length}`;
+
+      step.B.forEach((val, idx) => {
+        const isActive = step.activeB.includes(idx);
+        const isFilled = val !== null;
+
+        const wrapper = document.createElement('div');
+        wrapper.className = "flex flex-col items-center gap-1.5 relative flex-shrink-0 pt-6";
+
+        // Badges above B
+        const pointerBadges = document.createElement('div');
+        pointerBadges.className = "absolute top-0 flex gap-0.5 z-10";
+        if (step.t === idx) pointerBadges.innerHTML += `<span class="px-1.5 py-0.5 rounded text-[9px] font-bold bg-pink-500 text-white shadow">t</span>`;
+        if (step.h === idx && step.status === 'copy_back') pointerBadges.innerHTML += `<span class="px-1.5 py-0.5 rounded text-[9px] font-bold bg-purple-500 text-white shadow">h</span>`;
+
+        wrapper.appendChild(pointerBadges);
+
+        const card = document.createElement('div');
+        let cardStyle = "w-10 sm:w-12 h-12 rounded-xl flex items-center justify-center border transition-all duration-300 shadow-sm code-font font-bold text-sm sm:text-base ";
+
+        if (isActive) {
+          cardStyle += "bg-pink-500/30 border-pink-500 text-pink-950 dark:text-pink-200 ring-2 ring-pink-400 animate-active-node ";
+        } else if (isFilled) {
+          cardStyle += "bg-pink-100/80 dark:bg-pink-950/40 border-pink-300 dark:border-pink-800/80 text-pink-900 dark:text-pink-300 ";
+        } else {
+          cardStyle += "bg-slate-100/50 dark:bg-slate-900/30 border-slate-300 dark:border-slate-800 text-slate-400 dark:text-slate-700 border-dashed ";
+        }
+
+        card.className = cardStyle;
+        card.innerText = isFilled ? val : '—';
+        wrapper.appendChild(card);
+
+        // Index label
+        const idxLabel = document.createElement('span');
+        idxLabel.className = "code-font text-[10px] font-semibold text-slate-400 dark:text-slate-500";
+        idxLabel.innerText = `B[${idx}]`;
+        wrapper.appendChild(idxLabel);
+
+        containerB.appendChild(wrapper);
+      });
+    }
+
+    function loadPreset(key) {
+      const p = PRESETS[key] || PRESETS.standard;
+      initData(p.A, p.i, p.k, p.j);
+    }
+
+    function initData(A, i, k, j) {
+      pause();
+      currentSteps = generateMergeSteps(A, i, k, j);
+      currentStepIdx = 0;
+      renderStep();
+    }
+
+    function togglePlay() {
+      if (isPlaying) {
+        pause();
+      } else {
+        play();
+      }
+    }
+
+    function play() {
+      if (currentStepIdx >= currentSteps.length - 1) {
+        currentStepIdx = 0;
+      }
+      isPlaying = true;
+      document.getElementById('playBtn').innerHTML = `<i class="fa-solid fa-pause text-base"></i>`;
+      scheduleNext();
+    }
+
+    function pause() {
+      isPlaying = false;
+      if (playTimer) clearTimeout(playTimer);
+      document.getElementById('playBtn').innerHTML = `<i class="fa-solid fa-play text-base"></i>`;
+    }
+
+    function scheduleNext() {
+      if (!isPlaying) return;
+      playTimer = setTimeout(() => {
+        if (currentStepIdx < currentSteps.length - 1) {
+          currentStepIdx++;
+          renderStep();
+          scheduleNext();
+        } else {
+          pause();
+        }
+      }, 800 / playbackSpeed);
+    }
+
+    function nextStep() {
+      pause();
+      if (currentStepIdx < currentSteps.length - 1) {
+        currentStepIdx++;
+        renderStep();
+      }
+    }
+
+    function prevStep() {
+      pause();
+      if (currentStepIdx > 0) {
+        currentStepIdx--;
+        renderStep();
+      }
+    }
+
+    function firstStep() {
+      pause();
+      currentStepIdx = 0;
+      renderStep();
+    }
+
+    function lastStep() {
+      pause();
+      currentStepIdx = currentSteps.length - 1;
+      renderStep();
+    }
+
+    function updateSpeed(val) {
+      playbackSpeed = parseFloat(val);
+      document.getElementById('speedValue').innerText = `${playbackSpeed.toFixed(1)}x`;
+    }
+
+    function toggleCustomModal() {
+      const modal = document.getElementById('customModal');
+      modal.classList.toggle('hidden');
+    }
+
+    function applyCustomData() {
+      const rawArray = document.getElementById('customArrayInput').value;
+      const iVal = parseInt(document.getElementById('customI').value, 10);
+      const kVal = parseInt(document.getElementById('customK').value, 10);
+      const jVal = parseInt(document.getElementById('customJ').value, 10);
+
+      const parsedArray = rawArray.split(',').map(n => parseInt(n.trim(), 10)).filter(n => !isNaN(n));
+
+      if (parsedArray.length === 0) {
+        return;
+      }
+
+      if (iVal < 0 || kVal < iVal || jVal < kVal || jVal >= parsedArray.length) {
+        return;
+      }
+
+      toggleCustomModal();
+      initData(parsedArray, iVal, kVal, jVal);
+    }
+
+    function randomizeData() {
+      const leftLen = 3 + Math.floor(Math.random() * 2);
+      const rightLen = 2 + Math.floor(Math.random() * 3);
+
+      let leftHalf = Array.from({length: leftLen}, () => Math.floor(Math.random() * 40) + 1).sort((a,b) => a - b);
+      let rightHalf = Array.from({length: rightLen}, () => Math.floor(Math.random() * 40) + 1).sort((a,b) => a - b);
+
+      const fullA = [...leftHalf, ...rightHalf];
+      const i = 0;
+      const k = leftLen - 1;
+      const j = fullA.length - 1;
+
+      initData(fullA, i, k, j);
+    }
+
+    // Keyboard navigation support
+    window.addEventListener('keydown', (e) => {
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return;
+      if (e.key === 'ArrowRight') nextStep();
+      if (e.key === 'ArrowLeft') prevStep();
+      if (e.key === ' ') {
+        e.preventDefault();
+        togglePlay();
+      }
+    });
+
+    // Initialize default view on load
+    window.onload = function() {
+      loadPreset('standard');
+    };
+  </script>
+</body>
+</html>
