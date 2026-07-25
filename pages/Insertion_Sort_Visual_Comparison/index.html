@@ -17,7 +17,12 @@
     body {
       font-family: 'Inter', sans-serif;
     }
-    code, pre, .font-mono {
+    /* Target all code elements, pre tags, and monospace utilities */
+    code, pre, .font-mono, [class*="font-mono"] {
+      font-family: 'JetBrains Mono', monospace !important;
+    }
+    /* Ensure pseudocode blocks inherit the font properly */
+    .bg-slate-900.font-mono, div[id^="alg"] div {
       font-family: 'JetBrains Mono', monospace;
     }
     /* Custom scrollbars */
