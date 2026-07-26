@@ -1,0 +1,913 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Stable Counting Sort - Interactive Visualizer</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Fira+Code:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: #f8fafc;
+      color: #0f172a;
+    }
+    .code-font {
+      font-family: 'Fira Code', monospace;
+    }
+    /* Smooth transitions for active SVG elements */
+    .svg-cell {
+      transition: all 0.3s ease;
+    }
+    .arrow-path {
+      stroke-dasharray: 1000;
+      stroke-dashoffset: 0;
+      animation: dash 0.5s ease-in-out forwards;
+    }
+    @keyframes dash {
+      from { stroke-dashoffset: 1000; }
+      to { stroke-dashoffset: 0; }
+    }
+    /* Custom scrollbar */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #f1f5f9;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #94a3b8;
+    }
+  </style>
+</head>
+<body class="min-h-screen pb-10">
+
+  <!-- Header -->
+  <header class="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-sm">
+    <div class="max-w-[1100px] mx-auto px-4 py-3 flex flex-wrap items-center justify-between gap-3">
+      <div>
+        <h1 class="text-xl font-extrabold text-slate-800 leading-tight tracking-tight">Stable Counting Sort</h1>
+        <p class="text-xs text-slate-500 font-medium">Interactive Algorithm Step-by-Step Visualizer</p>
+      </div>
+
+      <!-- Presets & Custom Input -->
+      <div class="flex items-center gap-2 flex-wrap">
+        <button id="btn-preset-default" class="px-3 py-1.5 text-xs font-semibold rounded-lg border border-indigo-200 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 transition">
+          Default ([5,8,3,0,8,10,7,7,3,2])
+        </button>
+        <button id="btn-preset-small" class="px-3 py-1.5 text-xs font-medium rounded-lg border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 transition">
+          Short Array ([4,2,3,4,1,2])
+        </button>
+        <button id="btn-preset-random" class="px-3 py-1.5 text-xs font-medium rounded-lg border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 transition">
+          Random Array
+        </button>
+        <button id="btn-toggle-custom" class="px-3 py-1.5 text-xs font-medium rounded-lg border border-slate-300 bg-slate-800 text-white hover:bg-slate-700 transition">
+          Custom Input
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Custom Input Drawer -->
+  <div id="custom-input-panel" class="hidden bg-slate-800 text-white border-b border-slate-700">
+    <div class="max-w-[1100px] mx-auto px-4 py-3.5">
+      <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+        <label class="text-xs font-semibold uppercase tracking-wider text-slate-300 whitespace-nowrap">
+          Array A (comma-separated, max 10 elements, values 0-10):
+        </label>
+        <input type="text" id="input-array-custom" value="5, 8, 3, 0, 8, 10, 7, 7, 3, 2" class="px-3 py-1.5 rounded bg-slate-900 border border-slate-600 text-white text-sm code-font flex-1 focus:outline-none focus:border-indigo-500">
+        <button id="btn-apply-custom" class="px-4 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white font-medium text-xs rounded transition whitespace-nowrap">
+          Apply & Start
+        </button>
+        <span id="custom-input-error" class="text-xs text-rose-400 hidden"></span>
+      </div>
+    </div>
+  </div>
+
+  <main class="max-w-[1100px] mx-auto px-4 pt-5 space-y-4">
+
+    <!-- Combined Control Panel (Controls + Speed + Slider in single compact box) -->
+    <div class="bg-white rounded-xl p-3.5 shadow-sm border border-slate-200 flex flex-col md:flex-row items-center justify-between gap-3">
+      <!-- Player Buttons -->
+      <div class="flex items-center space-x-1.5 shrink-0">
+        <button id="btn-prev" class="p-2 rounded-lg border border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100 disabled:opacity-40 transition" title="Step Back">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+        </button>
+
+        <button id="btn-play" class="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-xs flex items-center space-x-1.5 shadow-sm transition">
+          <svg id="icon-play" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+          <svg id="icon-pause" class="w-4 h-4 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+          <span id="text-play">Start</span>
+        </button>
+
+        <button id="btn-next" class="p-2 rounded-lg border border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100 disabled:opacity-40 transition" title="Step Forward">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+        </button>
+
+        <button id="btn-reset" class="p-2 rounded-lg border border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100 transition" title="Reset">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+        </button>
+      </div>
+
+      <!-- Speed Control -->
+      <div class="flex items-center space-x-1 bg-slate-100 border border-slate-200 rounded-lg p-1 shrink-0">
+        <span class="text-[11px] font-medium text-slate-500 px-1.5">Speed:</span>
+        <button data-speed="2000" class="btn-speed text-[11px] px-2 py-0.5 rounded font-semibold text-slate-600 hover:bg-white transition">0.5x</button>
+        <button data-speed="1000" class="btn-speed text-[11px] px-2 py-0.5 rounded font-semibold bg-indigo-600 text-white shadow-sm transition">1x</button>
+        <button data-speed="500" class="btn-speed text-[11px] px-2 py-0.5 rounded font-semibold text-slate-600 hover:bg-white transition">2x</button>
+        <button data-speed="250" class="btn-speed text-[11px] px-2 py-0.5 rounded font-semibold text-slate-600 hover:bg-white transition">4x</button>
+      </div>
+
+      <!-- Compact Embedded Slider Progress Bar -->
+      <div class="flex-1 w-full md:w-auto min-w-[200px] flex flex-col justify-center px-1">
+        <div class="flex items-center justify-between text-[11px] font-semibold text-slate-600 mb-1">
+          <span>Execution Progress: <span id="current-step-num" class="text-indigo-600">0</span>/<span id="total-steps-num">0</span></span>
+          <span id="step-phase-label" class="text-indigo-600 uppercase tracking-wider font-bold">Initialization</span>
+        </div>
+        <input type="range" id="step-slider" min="0" max="100" value="0" class="w-full accent-indigo-600 cursor-pointer h-1.5 bg-slate-200 rounded-lg">
+      </div>
+
+      <!-- Option Toggles -->
+      <div class="flex items-center shrink-0">
+        <label class="inline-flex items-center cursor-pointer select-none">
+          <input type="checkbox" id="toggle-tags" class="sr-only peer" checked>
+          <div class="relative w-9 h-5 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-indigo-600"></div>
+          <span class="ml-2 text-xs font-semibold text-slate-700">Stability Tags (e.g. 3₁, 3₂)</span>
+        </label>
+      </div>
+    </div>
+
+    <!-- Grid Row: SVG Visualizer (left/top) & Pseudocode (right) -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-4 items-stretch">
+
+      <!-- SVG Interactive Visualization Canvas (lg:col-span-7) -->
+      <div class="lg:col-span-7 bg-white rounded-xl p-3 md:p-4 shadow-sm border border-slate-200 flex flex-col justify-between overflow-x-auto">
+        <div id="svg-wrapper" class="w-full min-w-[500px]">
+          <svg id="interactive-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 560 410" class="w-full h-auto select-none">
+            <defs>
+              <marker id="arrow-red" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                <path d="M 0 1 L 10 5 L 0 9 z" fill="#d81b60"/>
+              </marker>
+              <marker id="arrow-green" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                <path d="M 0 1 L 10 5 L 0 9 z" fill="#2e7d32"/>
+              </marker>
+            </defs>
+
+            <!-- Canvas Background -->
+            <rect width="560" height="410" rx="10" fill="#f8fafc" stroke="#e2e8f0" stroke-width="1.5"/>
+
+            <!-- Banner Phase -->
+            <g id="layer-phase-banner">
+              <rect id="banner-rect" x="30" y="15" width="500" height="24" rx="5" fill="#e0e7ff"/>
+              <text id="banner-text" x="280" y="31" font-family="'Inter', sans-serif" font-size="12" font-weight="700" fill="#3730a3" text-anchor="middle">
+                Initialization
+              </text>
+            </g>
+
+            <!-- Array Labels -->
+            <text x="45" y="88" font-family="'Inter', sans-serif" font-size="18" font-weight="800" fill="#d81b60" text-anchor="middle">A</text>
+            <text x="45" y="180" font-family="'Inter', sans-serif" font-size="18" font-weight="800" fill="#1976d2" text-anchor="middle">C</text>
+            <text x="45" y="282" font-family="'Inter', sans-serif" font-size="18" font-weight="800" fill="#2e7d32" text-anchor="middle">B</text>
+
+            <!-- Array Layers -->
+            <g id="layer-array-A"></g>
+            <g id="layer-array-C"></g>
+            <g id="layer-array-B"></g>
+
+            <!-- Arrows & Highlights -->
+            <g id="layer-arrows"></g>
+            <g id="layer-highlights"></g>
+
+            <!-- Bottom Explanation Card -->
+            <g id="layer-bottom-info">
+              <rect id="info-rect" x="30" y="328" width="500" height="68" rx="6" fill="#fff8e1" stroke="#ffe082" stroke-width="1"/>
+              <text id="info-title" x="45" y="348" font-family="'Inter', sans-serif" font-size="13" font-weight="700" fill="#f57f17">Algorithm Initialization</text>
+              <text id="info-line1" x="45" y="367" font-family="'Inter', sans-serif" font-size="12" fill="#334155">Ready to begin counting sort on A.</text>
+              <text id="info-line2" x="45" y="383" font-family="'Inter', sans-serif" font-size="12" fill="#334155">Press "Start" or "Step Forward" to proceed.</text>
+            </g>
+          </svg>
+        </div>
+      </div>
+
+      <!-- Pseudocode Panel -->
+      <div class="lg:col-span-5 bg-slate-900 text-slate-100 rounded-xl p-4 shadow-sm border border-slate-800 flex flex-col justify-between">
+        <div>
+          <!-- <div class="border-b border-slate-800 pb-2 mb-2 flex items-center justify-between">
+            <h3 class="text-xs font-bold uppercase tracking-wider text-indigo-400">Pseudocode</h3>
+          </div> -->
+
+          <div class="code-font text-xs space-y-1 py-1 leading-relaxed">
+            <div id="code-line-1" class="px-2 py-0.5 rounded transition-colors duration-150">CountingSort(A, k)</div>
+            <div id="code-line-2" class="px-2 py-0.5 rounded transition-colors duration-150 pl-4 text-slate-300">n := length(A) <span class="text-slate-500 italic">// cardinality of A</span></div>
+            <div id="code-line-3" class="px-2 py-0.5 rounded transition-colors duration-150 pl-4 text-slate-300">create C[0..k]</div>
+            <div id="code-line-4" class="px-2 py-0.5 rounded transition-colors duration-150 pl-4 text-slate-300">create B[0..n-1] <span class="text-slate-500 italic">// output array</span></div>
+            <div id="code-line-5" class="px-2 py-0.5 rounded transition-colors duration-150 pl-4 text-indigo-300">for i := 0 to k do <span class="text-slate-500 italic">// initialize C</span></div>
+            <div id="code-line-6" class="px-2 py-0.5 rounded transition-colors duration-150 pl-8">C[i] := 0</div>
+            <div id="code-line-7" class="px-2 py-0.5 rounded transition-colors duration-150 pl-4 text-indigo-300">for j := 0 to n-1 do <span class="text-slate-500 italic">// count occurrences</span></div>
+            <div id="code-line-8" class="px-2 py-0.5 rounded transition-colors duration-150 pl-8">C[A[j]] := C[A[j]] + 1</div>
+            <div id="code-line-9" class="px-2 py-0.5 rounded transition-colors duration-150 pl-4 text-indigo-300">for i := 1 to k do <span class="text-slate-500 italic">// prefix sums</span></div>
+            <div id="code-line-10" class="px-2 py-0.5 rounded transition-colors duration-150 pl-8">C[i] := C[i] + C[i-1]</div>
+            <div id="code-line-11" class="px-2 py-0.5 rounded transition-colors duration-150 pl-4 text-indigo-300">for j := n-1 downto 0 do <span class="text-slate-500 italic">// fill B (stable)</span></div>
+            <div id="code-line-12" class="px-2 py-0.5 rounded transition-colors duration-150 pl-8">B[C[A[j]] - 1] := A[j]</div>
+            <div id="code-line-13" class="px-2 py-0.5 rounded transition-colors duration-150 pl-8">C[A[j]] := C[A[j]] - 1</div>
+            <div id="code-line-14" class="px-2 py-0.5 rounded transition-colors duration-150 pl-4 text-indigo-300">for j := 0 to n-1 do <span class="text-slate-500 italic">// copy B to A</span></div>
+            <div id="code-line-15" class="px-2 py-0.5 rounded transition-colors duration-150 pl-8">A[j] := B[j]</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Variable Inspector & Summary Box -->
+    <div class="bg-white rounded-xl p-4 shadow-sm border border-slate-200 space-y-3">
+      <div class="flex items-center justify-between border-b border-slate-100 pb-2">
+        <h3 class="text-xs font-bold uppercase tracking-wider text-slate-700">Variable Inspector</h3>
+        <span class="text-xs text-slate-400">Current Loop State</span>
+      </div>
+
+      <!-- Wide 5-column metrics grid -->
+      <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
+        <div class="bg-slate-50 p-2.5 rounded-lg border border-slate-200 flex flex-col justify-center">
+          <span class="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Index j (from right)</span>
+          <span id="var-j" class="text-lg font-bold code-font text-slate-800 leading-tight">-</span>
+        </div>
+        <div class="bg-slate-50 p-2.5 rounded-lg border border-slate-200 flex flex-col justify-center">
+          <span class="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Value A[j]</span>
+          <span id="var-val" class="text-lg font-bold code-font text-rose-600 leading-tight">-</span>
+        </div>
+        <div class="bg-slate-50 p-2.5 rounded-lg border border-slate-200 flex flex-col justify-center">
+          <span class="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Frequency C[A[j]]</span>
+          <span id="var-count" class="text-lg font-bold code-font text-sky-600 leading-tight">-</span>
+        </div>
+        <div class="bg-slate-50 p-2.5 rounded-lg border border-slate-200 flex flex-col justify-center">
+          <span class="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Target Pos B [C-1]</span>
+          <span id="var-pos" class="text-lg font-bold code-font text-emerald-600 leading-tight">-</span>
+        </div>
+        <!-- 5th Column: Hover Tooltip Card for brief Stability Explanation -->
+        <div class="bg-indigo-50/80 p-2.5 rounded-lg border border-indigo-200 flex flex-col justify-center relative group cursor-help">
+          <div class="flex items-center justify-between">
+            <span class="text-[10px] font-bold text-indigo-700 uppercase tracking-wider">Why Right-to-Left?</span>
+            <svg class="w-3.5 h-3.5 text-indigo-500" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/></svg>
+          </div>
+          <!-- <span class="text-xs font-medium text-indigo-900 mt-1 truncate">Hover for Stability Info</span> -->
+
+          <!-- Floating Tooltip -->
+          <div class="absolute bottom-full right-0 mb-2 w-72 p-3 bg-slate-900 text-slate-100 text-xs rounded-xl shadow-xl opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-50 border border-slate-700">
+            <p class="font-semibold text-amber-300 mb-1">Why loop downto 0?</p>
+            <p class="leading-relaxed text-slate-200">
+              Processing <span class="font-semibold text-indigo-300">A</span> from right to left ensures that duplicate elements are placed into <span class="font-semibold text-emerald-300">B</span> in descending slot order, preserving their original relative order (<span class="text-blue-300">stability</span>).
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <script>
+    // Global State
+    let currentArray = [5, 8, 3, 0, 8, 10, 7, 7, 3, 2];
+    let steps = [];
+    let currentStepIndex = 0;
+    let isPlaying = false;
+    let playInterval = null;
+    let speedMs = 1000;
+    let showTags = true;
+
+    // Element references
+    const svgEl = document.getElementById('interactive-svg');
+    const layerA = document.getElementById('layer-array-A');
+    const layerC = document.getElementById('layer-array-C');
+    const layerB = document.getElementById('layer-array-B');
+    const layerArrows = document.getElementById('layer-arrows');
+    const layerHighlights = document.getElementById('layer-highlights');
+
+    const bannerRect = document.getElementById('banner-rect');
+    const bannerText = document.getElementById('banner-text');
+    const infoRect = document.getElementById('info-rect');
+    const infoTitle = document.getElementById('info-title');
+    const infoLine1 = document.getElementById('info-line1');
+    const infoLine2 = document.getElementById('info-line2');
+
+    const btnPlay = document.getElementById('btn-play');
+    const textPlay = document.getElementById('text-play');
+    const iconPlay = document.getElementById('icon-play');
+    const iconPause = document.getElementById('icon-pause');
+    const btnPrev = document.getElementById('btn-prev');
+    const btnNext = document.getElementById('btn-next');
+    const btnReset = document.getElementById('btn-reset');
+    const stepSlider = document.getElementById('step-slider');
+
+    const currentStepNum = document.getElementById('current-step-num');
+    const totalStepsNum = document.getElementById('total-steps-num');
+    const stepPhaseLabel = document.getElementById('step-phase-label');
+
+    const varJ = document.getElementById('var-j');
+    const varVal = document.getElementById('var-val');
+    const varCount = document.getElementById('var-count');
+    const varPos = document.getElementById('var-pos');
+
+    // Subscript Unicode characters for tags (1 to 9)
+    const subscripts = ['₁', '₂', '₃', '₄', '₅', '₆', '₇', '₈', '₉'];
+
+    // Algorithm Step Generator
+    function generateCountingSortSteps(rawArray) {
+      const N = rawArray.length;
+      const K = Math.max(...rawArray);
+      const generatedSteps = [];
+
+      // Create tagged elements to track stability
+      const occurrenceTracker = {};
+      const itemsA = rawArray.map((val, originalIdx) => {
+        occurrenceTracker[val] = (occurrenceTracker[val] || 0) + 1;
+        const occ = occurrenceTracker[val];
+        return {
+          val: val,
+          idx: originalIdx,
+          occ: occ,
+          tag: subscripts[occ - 1] || `${occ}`
+        };
+      });
+
+      // Step Helper
+      function addStep(config) {
+        generatedSteps.push({
+          N: N,
+          K: K,
+          A: JSON.parse(JSON.stringify(config.A)),
+          C: [...config.C],
+          B: JSON.parse(JSON.stringify(config.B)),
+          activeA: config.activeA ?? null,
+          activeC: config.activeC ?? [],
+          activeB: config.activeB ?? null,
+          arrows: config.arrows || [],
+          bannerText: config.bannerText || '',
+          bannerBg: config.bannerBg || '#e0e7ff',
+          bannerTextColor: config.bannerTextColor || '#3730a3',
+          infoTitle: config.infoTitle || '',
+          infoLine1: config.infoLine1 || '',
+          infoLine2: config.infoLine2 || '',
+          infoBg: config.infoBg || '#fff8e1',
+          infoStroke: config.infoStroke || '#ffe082',
+          infoTitleColor: config.infoTitleColor || '#f57f17',
+          pseudoLine: config.pseudoLine || 1,
+          phaseLabel: config.phaseLabel || 'Initialization',
+          vars: config.vars || { j: '-', val: '-', count: '-', pos: '-' }
+        });
+      }
+
+      // 0. Init State
+      let A = [...itemsA];
+      let C = new Array(K + 1).fill(null);
+      let B = new Array(N).fill(null);
+
+      addStep({
+        A: A, C: C, B: B,
+        bannerText: `Initialization: Array A (${N} items), C empty, B empty`,
+        infoTitle: "Algorithm Initialization",
+        infoLine1: `Array A with ${N} elements, k = ${K}. Preparing auxiliary arrays C and B.`,
+        infoLine2: "Click 'Start' or 'Step Forward' to zero-initialize array C.",
+        pseudoLine: 1,
+        phaseLabel: "Initialization"
+      });
+
+      // 0.5 Zeroing out C step-by-step
+      for (let i = 0; i <= K; i++) {
+        C[i] = 0;
+        addStep({
+          A: A, C: C, B: B,
+          activeC: [i],
+          bannerText: `Zeroing C: C[${i}] := 0`,
+          bannerBg: "#e0e7ff",
+          bannerTextColor: "#3730a3",
+          infoTitle: `Initialization: Zeroing Array C (i = ${i})`,
+          infoLine1: `Setting frequency counter C[${i}] = 0.`,
+          infoLine2: `Array C will store frequency counts for values from 0 to ${K}.`,
+          infoBg: "#f1f5f9",
+          infoStroke: "#cbd5e1",
+          infoTitleColor: "#334155",
+          pseudoLine: 6,
+          phaseLabel: "Init C"
+        });
+      }
+
+      // 1. Phase 1: Occurrences Counting (Frequency)
+      for (let j = 0; j < N; j++) {
+        const val = A[j].val;
+        C[val]++;
+
+        addStep({
+          A: A, C: C, B: B,
+          activeA: j,
+          activeC: [val],
+          arrows: [{ type: 'red', from: 'A', fromIdx: j, to: 'C', toIdx: val }],
+          bannerText: `Counting: C[${val}] incremented to ${C[val]}`,
+          bannerBg: "#e0e7ff",
+          bannerTextColor: "#3730a3",
+          infoTitle: `Phase 1: Frequency Count (j = ${j})`,
+          infoLine1: `Element A[${j}] = ${val}. Increment C[${val}] to ${C[val]}.`,
+          infoLine2: `Frequency count for value ${val}: ${C[val]} occurrence(s).`,
+          infoBg: "#fff8e1",
+          infoStroke: "#ffe082",
+          infoTitleColor: "#f57f17",
+          pseudoLine: 8,
+          phaseLabel: "Phase 1: Count",
+          vars: { j: j, val: val, count: C[val], pos: '-' }
+        });
+      }
+
+      // Summary Phase 1
+      addStep({
+        A: A, C: C, B: B,
+        bannerText: "Counting Complete: C[i] contains frequency of value i in A",
+        bannerBg: "#e0e7ff",
+        bannerTextColor: "#3730a3",
+        infoTitle: "Phase 1 Complete: Frequencies Calculated",
+        infoLine1: "Each cell C[i] stores how many times value i appears in array A.",
+        infoLine2: "Example: value 3 appears twice in A (at A[2] and A[8]) → C[3] = 2.",
+        infoBg: "#fff8e1",
+        infoStroke: "#ffe082",
+        infoTitleColor: "#f57f17",
+        pseudoLine: 8,
+        phaseLabel: "Phase 1: Complete"
+      });
+
+      // 2. Phase 2: Prefix Sums
+      let prefixArrows = [];
+      for (let i = 1; i <= K; i++) {
+        C[i] = C[i] + C[i - 1];
+        prefixArrows.push({ type: 'prefix', fromIdx: i - 1, toIdx: i });
+
+        addStep({
+          A: A, C: C, B: B,
+          activeC: [i - 1, i],
+          arrows: [...prefixArrows],
+          bannerText: `Prefix Sums: C[${i}] = C[${i}] + C[${i - 1}] = ${C[i]}`,
+          bannerBg: "#e8f5e9",
+          bannerTextColor: "#1b5e20",
+          infoTitle: `Phase 2: Prefix Sums Accumulation (i = ${i})`,
+          infoLine1: `C[${i}] is now ${C[i]}.`,
+          infoLine2: `Indicates there are ${C[i]} elements in array A with value ≤ ${i}.`,
+          infoBg: "#e8f5e9",
+          infoStroke: "#a5d6a7",
+          infoTitleColor: "#1b5e20",
+          pseudoLine: 10,
+          phaseLabel: "Phase 2: Prefix Sums"
+        });
+      }
+
+      // Summary Phase 2
+      addStep({
+        A: A, C: C, B: B,
+        arrows: prefixArrows.slice(0, 3),
+        bannerText: "Prefix Sums Complete: C[i] stores count of elements ≤ i",
+        bannerBg: "#e8f5e9",
+        bannerTextColor: "#1b5e20",
+        infoTitle: "Phase 2 Complete: Cumulative Counts Calculated",
+        infoLine1: "C[i] now indicates how many items in A are less than or equal to i.",
+        infoLine2: "Example: C[3] = 4 means there are 4 items in A with value ≤ 3.",
+        infoBg: "#e8f5e9",
+        infoStroke: "#a5d6a7",
+        infoTitleColor: "#1b5e20",
+        pseudoLine: 10,
+        phaseLabel: "Phase 2: Complete"
+      });
+
+      // 3. Phase 3: Placement into B from Right to Left (Downto Loop)
+      for (let j = N - 1; j >= 0; j--) {
+        const item = A[j];
+        const val = item.val;
+        const count = C[val];
+        const targetPos = count - 1;
+
+        // Place in B
+        B[targetPos] = { ...item };
+        // Decrement C
+        C[val] = C[val] - 1;
+
+        const isStabilityDemo = (rawArray.length === 10 && rawArray[0] === 5 && j === 2);
+
+        addStep({
+          A: A, C: C, B: B,
+          activeA: j,
+          activeC: [val],
+          activeB: targetPos,
+          arrows: [
+            { type: 'red', from: 'A', fromIdx: j, to: 'C', toIdx: val },
+            { type: 'green', from: 'C', fromIdx: val, to: 'B', toIdx: targetPos }
+          ],
+          bannerText: isStabilityDemo
+            ? `Stability Demo: j = ${j} → A[${j}] = ${val}. C[${val}] = ${count} → B[${count} - 1] = B[${targetPos}] = ${val}`
+            : `Fill B: j = ${j} → A[${j}] = ${val}. C[${val}] = ${count} → B[${count} - 1] = B[${targetPos}] = ${val}`,
+          bannerBg: isStabilityDemo ? "#e3f2fd" : "#fce4ec",
+          bannerTextColor: isStabilityDemo ? "#1565c0" : "#c2185b",
+          infoTitle: isStabilityDemo ? "STABILITY DEMONSTRATION" : `Phase 3: Right-to-Left Placement (j = ${j})`,
+          infoLine1: isStabilityDemo
+            ? `Iterating backwards, A[2]=3 is placed at B[2], directly BEFORE B[3].`
+            : `1. Read A[${j}] = ${val}${showTags ? item.tag : ''}. Consult C[${val}] = ${count} (${count} items ≤ ${val}).`,
+          infoLine2: isStabilityDemo
+            ? "Relative order of identical elements (3) is preserved!"
+            : `2. Place value ${val} into B[C[${val}]-1] = B[${targetPos}]. Decrement C[${val}] to ${C[val]}.`,
+          infoBg: isStabilityDemo ? "#e3f2fd" : "#fce4ec",
+          infoStroke: isStabilityDemo ? "#90caf9" : "#f48fb1",
+          infoTitleColor: isStabilityDemo ? "#0d47a1" : "#880e4f",
+          pseudoLine: 12,
+          phaseLabel: isStabilityDemo ? "Stability Demo" : "Phase 3: Fill B",
+          vars: { j: j, val: val, count: count, pos: targetPos }
+        });
+      }
+
+      // 4. Phase 4: Copy B back to A & Complete
+      addStep({
+        A: B, C: C, B: B,
+        bannerText: "Copy B to A: Array A is now fully sorted and stable",
+        bannerBg: "#e8f5e9",
+        bannerTextColor: "#1b5e20",
+        infoTitle: "Sorting Successfully Completed!",
+        infoLine1: "Final Sorted Array: [" + B.map(x => x.val).join(", ") + "]",
+        infoLine2: "Identical elements maintained their original relative ordering.",
+        infoBg: "#e8f5e9",
+        infoStroke: "#81c784",
+        infoTitleColor: "#1b5e20",
+        pseudoLine: 15,
+        phaseLabel: "Completed",
+        isFinal: true
+      });
+
+      return generatedSteps;
+    }
+
+    // SVG Renderer
+    function renderStep(step) {
+      const N = step.N;
+      const K = step.K;
+
+      // Dynamic sizing calculation
+      const maxCount = Math.max(N, K + 1);
+      const cellW = Math.min(42, Math.floor(410 / maxCount));
+      const startX = 85;
+
+      // Update Phase Banner
+      bannerText.textContent = step.bannerText;
+      bannerRect.setAttribute('fill', step.bannerBg);
+      bannerText.setAttribute('fill', step.bannerTextColor);
+
+      // Update Info Box
+      infoRect.setAttribute('fill', step.infoBg);
+      infoRect.setAttribute('stroke', step.infoStroke);
+      infoTitle.textContent = step.infoTitle;
+      infoTitle.setAttribute('fill', step.infoTitleColor);
+      infoLine1.textContent = step.infoLine1;
+      infoLine2.textContent = step.infoLine2;
+
+      // Clear layers
+      layerA.innerHTML = '';
+      layerC.innerHTML = '';
+      layerB.innerHTML = '';
+      layerArrows.innerHTML = '';
+      layerHighlights.innerHTML = '';
+
+      // Render Array A
+      step.A.forEach((item, i) => {
+        const x = startX + i * cellW;
+        const yIdx = 55;
+        const yVal = 75;
+        const isActive = (step.activeA === i);
+
+        // Index rect
+        layerA.appendChild(createSvgRect(x, yIdx, cellW, 18, '#f1f5f9', '#cbd5e1'));
+        layerA.appendChild(createSvgText(x + cellW / 2, yIdx + 13, i, 11, '#64748b', 'Fira Code, monospace'));
+
+        // Value rect
+        const valRect = createSvgRect(x, yVal, cellW, 28, '#ffffff', isActive ? '#d81b60' : '#94a3b8', isActive ? 2 : 1);
+        layerA.appendChild(valRect);
+
+        const textVal = item.val + (showTags ? item.tag : '');
+        layerA.appendChild(createSvgText(x + cellW / 2, yVal + 19, textVal, 14, '#0f172a', 'Fira Code, monospace', 'bold'));
+
+        if (isActive) {
+          const hl = createSvgRect(x, yIdx, cellW, 48, 'none', '#d81b60', 2.5);
+          layerHighlights.appendChild(hl);
+        }
+      });
+
+      // Render Array C
+      for (let i = 0; i <= K; i++) {
+        const x = startX + i * cellW;
+        const yIdx = 148;
+        const yVal = 166;
+        const isActive = step.activeC.includes(i);
+
+        // Index rect
+        layerC.appendChild(createSvgRect(x, yIdx, cellW, 18, '#e0f2fe', '#bae6fd'));
+        layerC.appendChild(createSvgText(x + cellW / 2, yIdx + 13, i, 11, '#0369a1', 'Fira Code, monospace'));
+
+        // Value rect
+        const valRect = createSvgRect(x, yVal, cellW, 28, '#ffffff', isActive ? '#d81b60' : '#94a3b8', isActive ? 2 : 1);
+        layerC.appendChild(valRect);
+
+        const valText = (step.C[i] !== null && step.C[i] !== undefined) ? step.C[i] : '';
+        const textColor = isActive ? '#d81b60' : (step.phaseLabel.includes('Phase 2') ? '#15803d' : '#0369a1');
+        layerC.appendChild(createSvgText(x + cellW / 2, yVal + 19, valText, 14, textColor, 'Fira Code, monospace', 'bold'));
+
+        if (isActive) {
+          const hl = createSvgRect(x, yIdx, cellW, 46, 'none', '#d81b60', 2.5);
+          layerHighlights.appendChild(hl);
+        }
+      }
+
+      // Render Array B
+      for (let i = 0; i < N; i++) {
+        const x = startX + i * cellW;
+        const yIdx = 250;
+        const yVal = 268;
+        const isActive = (step.activeB === i);
+        const item = step.B[i];
+
+        // Index rect
+        layerB.appendChild(createSvgRect(x, yIdx, cellW, 18, '#dcfce7', '#86efac'));
+        layerB.appendChild(createSvgText(x + cellW / 2, yIdx + 13, i, 11, '#15803d', 'Fira Code, monospace'));
+
+        // Value rect
+        let bgFill = '#ffffff';
+        let strokeColor = '#94a3b8';
+        let textColor = '#0f172a';
+
+        if (step.isFinal) {
+          bgFill = '#bbf7d0';
+          strokeColor = '#16a34a';
+          textColor = '#14532d';
+        } else if (isActive) {
+          bgFill = step.bannerBg === '#e3f2fd' ? '#bfdbfe' : '#fbcfe8';
+          strokeColor = step.bannerBg === '#e3f2fd' ? '#2563eb' : '#db2777';
+          textColor = step.bannerBg === '#e3f2fd' ? '#1e40af' : '#831843';
+        }
+
+        const valRect = createSvgRect(x, yVal, cellW, 28, bgFill, strokeColor, isActive ? 2.5 : 1);
+        layerB.appendChild(valRect);
+
+        if (item !== null && item !== undefined) {
+          const textVal = item.val + (showTags ? item.tag : '');
+          layerB.appendChild(createSvgText(x + cellW / 2, yVal + 19, textVal, 14, textColor, 'Fira Code, monospace', 'bold'));
+        }
+
+        if (isActive) {
+          const hl = createSvgRect(x, yIdx, cellW, 46, 'none', strokeColor, 2.5);
+          layerHighlights.appendChild(hl);
+        }
+      }
+
+      // Render Arrows
+      step.arrows.forEach(arr => {
+        if (arr.type === 'red') {
+          const fromX = startX + arr.fromIdx * cellW + cellW / 2;
+          const fromY = 103; // Bottom of A
+          const toX = startX + arr.toIdx * cellW + cellW / 2;
+          const toY = 146; // Top of C
+          const pathD = buildCubicBezierPath(fromX, fromY, toX, toY);
+          layerArrows.appendChild(createSvgPath(pathD, '#d81b60', 2, 'url(#arrow-red)'));
+        } else if (arr.type === 'green') {
+          const fromX = startX + arr.fromIdx * cellW + cellW / 2;
+          const fromY = 194; // Bottom of C
+          const toX = startX + arr.toIdx * cellW + cellW / 2;
+          const toY = 248; // Top of B
+          const pathD = buildCubicBezierPath(fromX, fromY, toX, toY);
+          layerArrows.appendChild(createSvgPath(pathD, '#2e7d32', 2, 'url(#arrow-green)'));
+        } else if (arr.type === 'prefix') {
+          const fromX = startX + arr.fromIdx * cellW + cellW / 2;
+          const toX = startX + arr.toIdx * cellW + cellW / 2;
+          const pathD = `M ${fromX} 164 Q ${(fromX + toX) / 2} 150 ${toX} 164`;
+          layerArrows.appendChild(createSvgPath(pathD, '#2e7d32', 1.5, 'url(#arrow-green)'));
+        }
+      });
+
+      // Update Inspector Panel
+      varJ.textContent = step.vars.j;
+      varVal.textContent = step.vars.val;
+      varCount.textContent = step.vars.count;
+      varPos.textContent = step.vars.pos;
+
+      // Update Pseudocode Highlight
+      updatePseudocodeHighlight(step.pseudoLine);
+
+      // Update Controls State
+      currentStepNum.textContent = currentStepIndex;
+      totalStepsNum.textContent = steps.length - 1;
+      stepSlider.max = steps.length - 1;
+      stepSlider.value = currentStepIndex;
+      stepPhaseLabel.textContent = step.phaseLabel;
+
+      btnPrev.disabled = (currentStepIndex === 0);
+      btnNext.disabled = (currentStepIndex === steps.length - 1);
+    }
+
+    // Helper SVG Element Builders
+    function createSvgRect(x, y, w, h, fill, stroke, strokeWidth = 1, rx = 3) {
+      const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+      rect.setAttribute('x', x);
+      rect.setAttribute('y', y);
+      rect.setAttribute('width', w);
+      rect.setAttribute('height', h);
+      rect.setAttribute('fill', fill);
+      rect.setAttribute('stroke', stroke);
+      rect.setAttribute('stroke-width', strokeWidth);
+      if (rx > 0) rect.setAttribute('rx', rx);
+      return rect;
+    }
+
+    function createSvgText(x, y, text, fontSize, fill, fontFamily = 'sans-serif', fontWeight = 'normal') {
+      const txt = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+      txt.setAttribute('x', x);
+      txt.setAttribute('y', y);
+      txt.setAttribute('font-family', fontFamily);
+      txt.setAttribute('font-size', fontSize);
+      txt.setAttribute('fill', fill);
+      txt.setAttribute('font-weight', fontWeight);
+      txt.setAttribute('text-anchor', 'middle');
+      txt.textContent = text;
+      return txt;
+    }
+
+    function createSvgPath(d, stroke, strokeWidth, markerEnd = '') {
+      const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+      path.setAttribute('d', d);
+      path.setAttribute('fill', 'none');
+      path.setAttribute('stroke', stroke);
+      path.setAttribute('stroke-width', strokeWidth);
+      path.setAttribute('class', 'arrow-path');
+      if (markerEnd) path.setAttribute('marker-end', markerEnd);
+      return path;
+    }
+
+    function buildCubicBezierPath(x1, y1, x2, y2) {
+      const dx = Math.abs(x2 - x1);
+      const offsetY = Math.min(45, Math.max(20, dx * 0.22));
+      return `M ${x1} ${y1} C ${x1} ${y1 + offsetY}, ${x2} ${y2 - offsetY}, ${x2} ${y2}`;
+    }
+
+    function updatePseudocodeHighlight(lineNumber) {
+      for (let i = 1; i <= 15; i++) {
+        const lineEl = document.getElementById(`code-line-${i}`);
+        if (!lineEl) continue;
+
+        let baseClasses = "px-2 py-0.5 rounded transition-all duration-150 ";
+        if (i === 1) baseClasses += "pl-2";
+        else if ([6, 8, 10, 12, 13, 15].includes(i)) baseClasses += "pl-8";
+        else if ([5, 7, 9, 11, 14].includes(i)) baseClasses += "pl-4 text-indigo-300";
+        else baseClasses += "pl-4 text-slate-300";
+
+        if (i === lineNumber) {
+          lineEl.className = baseClasses + " bg-amber-500/25 text-amber-200 font-bold border-l-2 border-amber-400 translate-x-1.5";
+        } else {
+          lineEl.className = baseClasses;
+        }
+      }
+    }
+
+    // Execution Controls & Player Logic
+    function goToStep(index) {
+      if (index < 0) index = 0;
+      if (index >= steps.length) index = steps.length - 1;
+      currentStepIndex = index;
+      renderStep(steps[currentStepIndex]);
+    }
+
+    function togglePlay() {
+      if (isPlaying) pause();
+      else play();
+    }
+
+    function play() {
+      if (currentStepIndex >= steps.length - 1) {
+        currentStepIndex = 0;
+      }
+      isPlaying = true;
+      textPlay.textContent = 'Pause';
+      iconPlay.classList.add('hidden');
+      iconPause.classList.remove('hidden');
+
+      playInterval = setInterval(() => {
+        if (currentStepIndex < steps.length - 1) {
+          currentStepIndex++;
+          renderStep(steps[currentStepIndex]);
+        } else {
+          pause();
+        }
+      }, speedMs);
+    }
+
+    function pause() {
+      isPlaying = false;
+      textPlay.textContent = 'Start';
+      iconPlay.classList.remove('hidden');
+      iconPause.classList.add('hidden');
+      if (playInterval) clearInterval(playInterval);
+    }
+
+    function loadArray(newArray) {
+      pause();
+      currentArray = [...newArray];
+      steps = generateCountingSortSteps(currentArray);
+      goToStep(0);
+    }
+
+    // Event Listeners
+    btnPlay.addEventListener('click', togglePlay);
+    btnPrev.addEventListener('click', () => { pause(); goToStep(currentStepIndex - 1); });
+    btnNext.addEventListener('click', () => { pause(); goToStep(currentStepIndex + 1); });
+    btnReset.addEventListener('click', () => { pause(); goToStep(0); });
+
+    stepSlider.addEventListener('input', (e) => {
+      pause();
+      goToStep(parseInt(e.target.value, 10));
+    });
+
+    document.querySelectorAll('.btn-speed').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.btn-speed').forEach(b => {
+          b.classList.remove('bg-indigo-600', 'text-white', 'shadow-sm');
+          b.classList.add('text-slate-600');
+        });
+        btn.classList.add('bg-indigo-600', 'text-white', 'shadow-sm');
+        btn.classList.remove('text-slate-600');
+
+        speedMs = parseInt(btn.getAttribute('data-speed'), 10);
+        if (isPlaying) {
+          pause();
+          play();
+        }
+      });
+    });
+
+    document.getElementById('toggle-tags').addEventListener('change', (e) => {
+      showTags = e.target.checked;
+      renderStep(steps[currentStepIndex]);
+    });
+
+    // Preset Buttons
+    document.getElementById('btn-preset-default').addEventListener('click', () => {
+      loadArray([5, 8, 3, 0, 8, 10, 7, 7, 3, 2]);
+    });
+
+    document.getElementById('btn-preset-small').addEventListener('click', () => {
+      loadArray([4, 2, 3, 4, 1, 2]);
+    });
+
+    document.getElementById('btn-preset-random').addEventListener('click', () => {
+      const len = Math.floor(Math.random() * 4) + 6;
+      const randArr = [];
+      for (let i = 0; i < len; i++) {
+        randArr.push(Math.floor(Math.random() * 10));
+      }
+      loadArray(randArr);
+    });
+
+    // Custom Input Drawer Toggle
+    const customPanel = document.getElementById('custom-input-panel');
+    const customError = document.getElementById('custom-input-error');
+    document.getElementById('btn-toggle-custom').addEventListener('click', () => {
+      customPanel.classList.toggle('hidden');
+    });
+
+    document.getElementById('btn-apply-custom').addEventListener('click', () => {
+      const valStr = document.getElementById('input-array-custom').value;
+      customError.classList.add('hidden');
+
+      try {
+        const parsed = valStr.split(',')
+          .map(s => s.trim())
+          .filter(s => s.length > 0)
+          .map(s => parseInt(s, 10));
+
+        if (parsed.length === 0 || parsed.some(isNaN)) {
+          throw new Error('Please enter valid integers separated by commas.');
+        }
+        if (parsed.length > 11) {
+          throw new Error('Maximum 11 elements for optimal rendering.');
+        }
+        if (parsed.some(n => n < 0 || n > 12)) {
+          throw new Error('Values must be between 0 and 12.');
+        }
+
+        loadArray(parsed);
+        customPanel.classList.add('hidden');
+      } catch (err) {
+        customError.textContent = err.message;
+        customError.classList.remove('hidden');
+      }
+    });
+
+    // Initialize App
+    window.onload = function() {
+      loadArray(currentArray);
+    };
+  </script>
+</body>
+</html>
