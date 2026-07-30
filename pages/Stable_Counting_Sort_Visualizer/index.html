@@ -488,10 +488,31 @@
 
         // Place in B
         B[targetPos] = { ...item };
-        // Decrement C
-        C[val] = C[val] - 1;
+        addStep({
+          A: A, C: C, B: B,
+          activeA: j,
+          activeC: [val],
+          activeB: targetPos,
+          arrows: [
+            { type: 'red', from: 'A', fromIdx: j, to: 'C', toIdx: val },
+            { type: 'green', from: 'C', fromIdx: val, to: 'B', toIdx: targetPos }
+          ],
+          bannerText: `Fill B: j = ${j} → A[${j}] = ${val}. C[${val}] = ${count} → B[${count} - 1] = B[${targetPos}] = ${val}`,
+          bannerBg: "#fce4ec",
+          bannerTextColor: "#c2185b",
+          infoTitle: `Phase 3: Right-to-Left Placement (j = ${j})`,
+          infoLine1: `1. Read A[${j}] = ${val}${showTags ? item.tag : ''}. Consult C[${val}] = ${count} (${count} items ≤ ${val}).`,
+          infoLine2: `2. Place value ${val} into B[C[${val}]-1] = B[${targetPos}].`,
+          infoBg: "#fce4ec",
+          infoStroke: "#f48fb1",
+          infoTitleColor: "#880e4f",
+          pseudoLine: 12,
+          phaseLabel: "Phase 3: Fill B",
+          vars: { j: j, val: val, count: count, pos: targetPos }
+        });
 
-        const isStabilityDemo = (rawArray.length === 10 && rawArray[0] === 5 && j === 2);
+        // Decrement C in its own step so the stable placement is shown first.
+        C[val] = C[val] - 1;
 
         addStep({
           A: A, C: C, B: B,
@@ -502,24 +523,18 @@
             { type: 'red', from: 'A', fromIdx: j, to: 'C', toIdx: val },
             { type: 'green', from: 'C', fromIdx: val, to: 'B', toIdx: targetPos }
           ],
-          bannerText: isStabilityDemo
-            ? `Stability Demo: j = ${j} → A[${j}] = ${val}. C[${val}] = ${count} → B[${count} - 1] = B[${targetPos}] = ${val}`
-            : `Fill B: j = ${j} → A[${j}] = ${val}. C[${val}] = ${count} → B[${count} - 1] = B[${targetPos}] = ${val}`,
-          bannerBg: isStabilityDemo ? "#e3f2fd" : "#fce4ec",
-          bannerTextColor: isStabilityDemo ? "#1565c0" : "#c2185b",
-          infoTitle: isStabilityDemo ? "STABILITY DEMONSTRATION" : `Phase 3: Right-to-Left Placement (j = ${j})`,
-          infoLine1: isStabilityDemo
-            ? `Iterating backwards, A[2]=3 is placed at B[2], directly BEFORE B[3].`
-            : `1. Read A[${j}] = ${val}${showTags ? item.tag : ''}. Consult C[${val}] = ${count} (${count} items ≤ ${val}).`,
-          infoLine2: isStabilityDemo
-            ? "Relative order of identical elements (3) is preserved!"
-            : `2. Place value ${val} into B[C[${val}]-1] = B[${targetPos}]. Decrement C[${val}] to ${C[val]}.`,
-          infoBg: isStabilityDemo ? "#e3f2fd" : "#fce4ec",
-          infoStroke: isStabilityDemo ? "#90caf9" : "#f48fb1",
-          infoTitleColor: isStabilityDemo ? "#0d47a1" : "#880e4f",
-          pseudoLine: 12,
-          phaseLabel: isStabilityDemo ? "Stability Demo" : "Phase 3: Fill B",
-          vars: { j: j, val: val, count: count, pos: targetPos }
+          bannerText: `Decrement C: C[${val}] := C[${val}] - 1 = ${C[val]}`,
+          bannerBg: "#fff7ed",
+          bannerTextColor: "#c2410c",
+          infoTitle: `Phase 3: Update Frequency Counter (j = ${j})`,
+          infoLine1: `C[${val}] is decremented after placing A[${j}] = ${val}${showTags ? item.tag : ''}.`,
+          infoLine2: `This shifts the next duplicate into the previous free slot and preserves stability.`,
+          infoBg: "#fff7ed",
+          infoStroke: "#fdba74",
+          infoTitleColor: "#9a3412",
+          pseudoLine: 13,
+          phaseLabel: "Phase 3: Decrement C",
+          vars: { j: j, val: val, count: C[val], pos: targetPos }
         });
       }
 
