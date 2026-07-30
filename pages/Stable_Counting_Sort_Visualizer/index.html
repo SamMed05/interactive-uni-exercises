@@ -348,6 +348,7 @@
           activeC: config.activeC ?? [],
           activeB: config.activeB ?? null,
           arrows: config.arrows || [],
+          prefixArrow: config.prefixArrow || null,
           bannerText: config.bannerText || '',
           bannerBg: config.bannerBg || '#e0e7ff',
           bannerTextColor: config.bannerTextColor || '#3730a3',
@@ -440,15 +441,14 @@
       });
 
       // 2. Phase 2: Prefix Sums
-      let prefixArrows = [];
       for (let i = 1; i <= K; i++) {
+        const previousValue = C[i];
         C[i] = C[i] + C[i - 1];
-        prefixArrows.push({ type: 'prefix', fromIdx: i - 1, toIdx: i });
 
         addStep({
           A: A, C: C, B: B,
           activeC: [i - 1, i],
-          arrows: [...prefixArrows],
+          prefixArrow: { fromIdx: i - 1, toIdx: i, value: previousValue },
           bannerText: `Prefix Sums: C[${i}] = C[${i}] + C[${i - 1}] = ${C[i]}`,
           bannerBg: "#e8f5e9",
           bannerTextColor: "#1b5e20",
@@ -466,7 +466,6 @@
       // Summary Phase 2
       addStep({
         A: A, C: C, B: B,
-        arrows: prefixArrows.slice(0, 3),
         bannerText: "Prefix Sums Complete: C[i] stores count of elements ≤ i",
         bannerBg: "#e8f5e9",
         bannerTextColor: "#1b5e20",
@@ -665,6 +664,17 @@
       }
 
       // Render Arrows
+      if (step.prefixArrow) {
+        const fromX = startX + step.prefixArrow.fromIdx * cellW + cellW / 2;
+        const toX = startX + step.prefixArrow.toIdx * cellW + cellW / 2;
+        const pathD = `M ${fromX} 164 Q ${(fromX + toX) / 2} 150 ${toX} 164`;
+        layerArrows.appendChild(createSvgPath(pathD, '#2e7d32', 1.75, 'url(#arrow-green)'));
+
+        const labelX = (fromX + toX) / 2;
+        layerArrows.appendChild(createSvgText(labelX, 143, '+', 14, '#16a34a', 'Inter, sans-serif', '800'));
+        layerArrows.appendChild(createSvgText(labelX, 132, step.prefixArrow.value, 10, '#166534', 'Fira Code, monospace', '700'));
+      }
+
       step.arrows.forEach(arr => {
         if (arr.type === 'red') {
           const fromX = startX + arr.fromIdx * cellW + cellW / 2;
@@ -680,11 +690,6 @@
           const toY = 248; // Top of B
           const pathD = buildCubicBezierPath(fromX, fromY, toX, toY);
           layerArrows.appendChild(createSvgPath(pathD, '#2e7d32', 2, 'url(#arrow-green)'));
-        } else if (arr.type === 'prefix') {
-          const fromX = startX + arr.fromIdx * cellW + cellW / 2;
-          const toX = startX + arr.toIdx * cellW + cellW / 2;
-          const pathD = `M ${fromX} 164 Q ${(fromX + toX) / 2} 150 ${toX} 164`;
-          layerArrows.appendChild(createSvgPath(pathD, '#2e7d32', 1.5, 'url(#arrow-green)'));
         }
       });
 
