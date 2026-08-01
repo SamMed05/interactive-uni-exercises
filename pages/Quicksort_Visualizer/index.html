@@ -81,8 +81,8 @@
     <header class="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 sticky top-0 z-30 shadow-sm pointer-events-auto">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-14 flex items-center justify-between">
             <div>
-                <h1 class="font-bold text-lg leading-tight tracking-tight text-slate-900 dark:text-white">Quicksort Visualizer</h1>
-                <p class="text-[11px] text-slate-500 dark:text-slate-400 font-medium">Interactive Algorithm Visualizer • Lomuto &amp; Hoare Schemes</p>
+                <h1 class="font-bold text-lg leading-tight tracking-tight text-slate-900 dark:text-white">Quicksort Algorithm Visualizer</h1>
+                <p class="text-[11px] text-slate-500 dark:text-slate-400 font-medium">Lomuto &amp; Hoare partition schemes</p>
             </div>
 
             <!-- Header Action Controls -->
@@ -367,7 +367,7 @@
 
 <div id="code-line-6" class="flex items-center px-2 py-0.5 rounded transition-colors border-t border-slate-800 pt-2"><span class="w-6 text-slate-500 select-none text-right pr-2">6</span><span><span class="text-purple-400">LomutoPartition</span>(A, p, r):</span></div>
 <div id="code-line-7" class="flex items-center px-2 py-0.5 rounded transition-colors"><span class="w-6 text-slate-500 select-none text-right pr-2">7</span><span class="pl-4">piv := A[r]</span><span class="text-slate-500 text-[11px] ml-auto">// select pivot</span></div>
-<div id="code-line-8" class="flex items-center px-2 py-0.5 rounded transition-colors"><span class="w-6 text-slate-500 select-none text-right pr-2">8</span><span class="pl-4">i := p - 1</span><span class="text-slate-500 text-[11px] ml-auto">// last index of &le; piv</span></div>
+<div id="code-line-8" class="flex items-center px-2 py-0.5 rounded transition-colors"><span class="w-6 text-slate-500 select-none text-right pr-2">8</span><span class="pl-4">i := p - 1</span><span class="text-slate-500 text-[11px] ml-auto">// index of last element &le; piv</span></div>
 <div id="code-line-9" class="flex items-center px-2 py-0.5 rounded transition-colors"><span class="w-6 text-slate-500 select-none text-right pr-2">9</span><span class="pl-4"><span class="text-pink-400">for</span> j := p <span class="text-pink-400">to</span> r - 1 <span class="text-pink-400">do</span>:</span><span class="text-slate-500 text-[11px] ml-auto">// scan array</span></div>
 <div id="code-line-10" class="flex items-center px-2 py-0.5 rounded transition-colors"><span class="w-6 text-slate-500 select-none text-right pr-2">10</span><span class="pl-8"><span class="text-pink-400">if</span> A[j] &le; piv <span class="text-pink-400">then</span>:</span></div>
 <div id="code-line-11" class="flex items-center px-2 py-0.5 rounded transition-colors"><span class="w-6 text-slate-500 select-none text-right pr-2">11</span><span class="pl-12">i := i + 1</span></div>
@@ -857,7 +857,7 @@
                     if (currentScheme === 'lomuto') {
                         if (k === step.pivotIdx) {
                             cell.className += ' bg-indigo-500/20 text-indigo-700 dark:text-indigo-300';
-                            cell.innerText = 'Pivot piv';
+                            cell.innerText = 'piv';
                         } else if (i !== null && k >= p && k <= i) {
                             cell.className += ' bg-amber-500/20 text-amber-800 dark:text-amber-300';
                             cell.innerText = '≤ piv';
@@ -871,7 +871,7 @@
                     } else { // Hoare
                         if (k === step.pivotIdx) {
                             cell.className += ' bg-indigo-500/20 text-indigo-700 dark:text-indigo-300';
-                            cell.innerText = 'Pivot piv';
+                            cell.innerText = 'piv';
                         } else if (i !== null && k <= i) {
                             cell.className += ' bg-amber-500/20 text-amber-800 dark:text-amber-300';
                             cell.innerText = '≤ piv';
@@ -1011,6 +1011,9 @@
         function initVisualization(arr) {
             pause();
             initialArray = [...arr];
+
+            // Update the URL parameter to reflect current state
+            updateURLWithArray(initialArray);
 
             if (currentScheme === 'lomuto') {
                 steps = generateLomutoSteps(initialArray);
@@ -1161,6 +1164,34 @@
             }
         }
 
+        /**
+         * Reads array values from URL query parameters (e.g., ?arr=7,2,1,6,8,5 or ?array=7,2,1)
+         */
+        function getArrayFromURL() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const rawParam = urlParams.get('arr') || urlParams.get('array');
+
+            if (!rawParam) return null;
+
+            // Split string by commas or spaces, parse to numbers, filter valid range
+            const parsed = rawParam
+                .split(/[\s,]+/)
+                .map(x => parseInt(x.trim(), 10))
+                .filter(x => !isNaN(x) && x >= 0 && x <= 99);
+
+            return parsed.length >= 3 && parsed.length <= 16 ? parsed : null;
+        }
+
+        // optional
+        /**
+         * Updates the browser's URL query parameter without reloading the page
+         */
+        function updateURLWithArray(arr) {
+            const url = new URL(window.location.href);
+            url.searchParams.set('arr', arr.join(','));
+            window.history.replaceState({}, '', url);
+        }
+
         document.addEventListener('DOMContentLoaded', () => {
             
             // Playback controls
@@ -1230,6 +1261,17 @@
                     customInput.blur();
                 }
             });
+
+            // Check for custom array passed in URL query parameter
+            const urlArray = getArrayFromURL();
+
+            if (urlArray) {
+                document.getElementById('customInput').value = urlArray.join(', ');
+                initVisualization(urlArray);
+            } else {
+                // Fallback to default random load
+                loadPreset('random');
+            }           
 
             // Light/Dark Theme Toggle
             const btnThemeToggle = document.getElementById('btnThemeToggle');
