@@ -1,0 +1,1281 @@
+<!DOCTYPE html>
+<html lang="en" class="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quicksort Algorithm Visualizer</title>
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['Fira Code', 'Monaco', 'monospace']
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- MathJax 3 for rendering LaTeX math formulas -->
+    <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js" id="MathJax-script" async></script>
+
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            user-select: none;
+        }
+
+        /* Smooth transition for array bar heights and colors */
+        .bar-transition {
+            transition: height 0.3s cubic-bezier(0.4, 0, 0.2, 1), 
+                        background-color 0.25s ease, 
+                        border-color 0.25s ease,
+                        box-shadow 0.25s ease;
+        }
+
+        /* Active pseudocode line highlight */
+        .code-active-line {
+            background-color: rgba(59, 130, 246, 0.18);
+            border-left: 4px solid #3b82f6;
+            font-weight: 600;
+        }
+
+        .dark .code-active-line {
+            background-color: rgba(96, 165, 250, 0.22);
+            border-left: 4px solid #60a5fa;
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 9999px;
+        }
+        .dark ::-webkit-scrollbar-thumb {
+            background: #475569;
+        }
+
+        /* Range Slider Styling */
+        input[type=range] {
+            accent-color: #0284c7;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 dark:bg-slate-950 dark:text-slate-100 min-h-screen flex flex-col transition-colors duration-200">
+
+    <!-- Navigation Header -->
+    <header class="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 sticky top-0 z-30 shadow-sm pointer-events-auto">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-14 flex items-center justify-between">
+            <div>
+                <h1 class="font-bold text-lg leading-tight tracking-tight text-slate-900 dark:text-white">Quicksort Visualizer</h1>
+                <p class="text-[11px] text-slate-500 dark:text-slate-400 font-medium">Interactive Algorithm Visualizer • Lomuto &amp; Hoare Schemes</p>
+            </div>
+
+            <!-- Header Action Controls -->
+            <div class="flex items-center space-x-2 pointer-events-auto">
+                <button id="btnInfoModal" title="Algorithm Details & Math" class="p-2 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition flex items-center gap-1.5 text-xs font-semibold">
+                    <i class="fa-solid fa-circle-info text-base"></i>
+                    <span class="hidden sm:inline">How It Works</span>
+                </button>
+                <button id="btnCallStackToggle" title="Show or hide call stacks" class="p-2 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition flex items-center gap-1.5 text-xs font-semibold">
+                    <i id="callStackToggleIcon" class="fa-solid fa-eye text-base"></i>
+                    <span id="callStackToggleText" class="hidden sm:inline">Show call stacks</span>
+                </button>
+                <button id="btnThemeToggle" title="Toggle Light/Dark Theme" class="p-2 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition">
+                    <i id="themeIcon" class="fa-solid fa-moon text-base"></i>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Application Container -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex-1 w-full flex flex-col gap-4">
+
+        <!-- FULL-WIDTH TOP CONTROL PANEL (Wide but Short) -->
+        <div class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-3.5 shadow-sm flex flex-col gap-3 pointer-events-auto">
+            
+            <!-- Row 1: Configurations & Primary Playback Controls -->
+            <div class="flex flex-wrap items-center justify-between gap-3">
+                
+                <!-- Left Section: Preset, Custom Data, Partition Scheme -->
+                <div class="flex flex-wrap items-center gap-2.5">
+                    
+                    <!-- Data Preset & Randomize Button -->
+                    <div class="flex items-center space-x-1">
+                        <select id="presetSelect" class="bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs rounded-lg px-2.5 py-1.5 font-medium text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-sky-500 h-8">
+                            <option value="random">Random Array</option>
+                            <option value="nearlySorted">Nearly Sorted</option>
+                            <option value="reversed">Reversed Order</option>
+                            <option value="duplicates">With Duplicates</option>
+                        </select>
+
+                        <!-- Compact Dice Button (Matches height of input/select) -->
+                        <button id="btnDice" title="Generate Random Array" class="w-8 h-8 flex items-center justify-center bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 rounded-lg text-xs transition shrink-0">
+                            <i class="fa-solid fa-dice text-indigo-500 dark:text-indigo-400"></i>
+                        </button>
+                    </div>
+
+                    <!-- Custom Input (Auto-applies on Enter or Blur) -->
+                    <div class="flex items-center">
+                        <input id="customInput" type="text" placeholder="Custom: 7, 2, 1, 6, 8, 5" class="bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-2.5 py-1 text-xs font-mono w-64 text-slate-800 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-500 h-8" title="Press Enter to apply array values">
+                    </div>
+
+                    <!-- Partition Scheme Buttons -->
+                    <div class="flex items-center space-x-1 pl-1">
+                        <span class="text-[10px] font-bold uppercase tracking-wider text-indigo-700 dark:text-indigo-300 px-1.5 flex items-center gap-1">
+                            <i class="fa-solid fa-sliders text-indigo-500"></i>
+                            Partition:
+                        </span>
+                        <div class="inline-flex rounded-lg p-0.5 bg-indigo-50/80 dark:bg-indigo-950/60 border border-indigo-500/80 dark:border-indigo-400/80 shadow-xs">
+                            <button id="btnSchemeLomuto" type="button" class="px-2.5 py-1 text-xs font-bold rounded-md transition bg-indigo-600 text-white shadow-xs">Lomuto</button>
+                            <button id="btnSchemeHoare" type="button" class="px-2.5 py-1 text-xs font-bold rounded-md transition text-indigo-950 dark:text-indigo-100 hover:bg-indigo-100 dark:hover:bg-indigo-900">Hoare</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right Section: Speed & Playback Control Buttons -->
+                <div class="flex items-center space-x-2 bg-slate-50 dark:bg-slate-800/80 px-2.5 py-1 rounded-lg border border-slate-200 dark:border-slate-700 h-8 pointer-events-auto">
+                    <span class="text-[11px] font-semibold text-slate-500 dark:text-slate-400">Speed:</span>
+                    <input id="speedSlider" type="range" min="1" max="10" value="5" class="w-20 h-1.5 bg-slate-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer">
+                    <span id="speedValue" class="font-mono text-[11px] font-bold text-sky-600 dark:text-sky-400 w-7 text-right">1.0x</span>
+                </div>
+            </div>
+
+            <!-- Row 2: Playback Actions + Full-Width Step Bar -->
+            <div class="flex flex-wrap items-center gap-3 bg-slate-50 dark:bg-slate-950 p-2 rounded-xl border border-slate-200 dark:border-slate-800 pointer-events-auto">
+                <div class="flex items-center space-x-1 shrink-0">
+                    <button id="btnStart" title="First Step [Home]" class="w-7 h-7 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 transition flex items-center justify-center pointer-events-auto">
+                        <i class="fa-solid fa-backward-step text-[10px]"></i>
+                    </button>
+                    <button id="btnPrev" title="Step Back [Left Arrow]" class="w-7 h-7 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 transition flex items-center justify-center pointer-events-auto">
+                        <i class="fa-solid fa-chevron-left text-[10px]"></i>
+                    </button>
+                    <button id="btnPlayPause" title="Play / Pause [Space]" class="px-4 h-8 rounded-lg bg-sky-600 hover:bg-sky-700 text-white font-semibold flex items-center space-x-1.5 shadow-md shadow-sky-600/20 transition text-xs pointer-events-auto">
+                        <i id="playIcon" class="fa-solid fa-play"></i>
+                        <span id="playText">Play</span>
+                    </button>
+                    <button id="btnNext" title="Step Forward [Right Arrow]" class="w-7 h-7 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 transition flex items-center justify-center pointer-events-auto">
+                        <i class="fa-solid fa-chevron-right text-[10px]"></i>
+                    </button>
+                    <button id="btnEnd" title="Last Step [End]" class="w-7 h-7 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 transition flex items-center justify-center pointer-events-auto">
+                        <i class="fa-solid fa-forward-step text-[10px]"></i>
+                    </button>
+                </div>
+
+                <span class="text-xs font-mono font-semibold text-slate-600 dark:text-slate-300 whitespace-nowrap">
+                    Step:
+                </span>
+                <input id="scrubber" type="range" min="0" max="0" value="0" class="min-w-0 flex-1 h-2 bg-slate-200 dark:bg-slate-800 rounded-lg appearance-none cursor-pointer pointer-events-auto">
+                <span id="stepCounterBadge" class="text-xs font-mono font-bold text-sky-700 dark:text-sky-300 bg-sky-100 dark:bg-sky-950 px-2 py-0.5 rounded-md whitespace-nowrap">
+                    0 / 0
+                </span>
+            </div>
+        </div>
+
+        <!-- MAIN 2-COLUMN DISPLAY GRID -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
+
+            <!-- LEFT COLUMN: Array Visualizer (7 Cols) -->
+            <div class="lg:col-span-7 flex flex-col gap-4">
+                
+                <!-- Visualization Card -->
+                <div class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-5 shadow-sm flex flex-col">
+                    
+                    <!-- Subarray Range & Dynamic Step Description Header -->
+                    <div class="flex flex-wrap items-center justify-between gap-2 mb-4 border-b border-slate-100 dark:border-slate-800 pb-3">
+                        <div class="flex items-center space-x-2">
+                            <span id="activeRangeLabel" class="text-xs font-semibold text-slate-700 dark:text-slate-200 font-mono">Active Subarray: A[0..7]</span>
+                        </div>
+                        
+                        <!-- Short Description Badge replacing Ready/Running/Completed -->
+                        <div id="statusBadge" class="text-xs font-medium px-3 py-1 rounded-full bg-sky-50 dark:bg-sky-950/70 text-sky-800 dark:text-sky-200 border border-sky-200 dark:border-sky-800/60 max-w-full text-right truncate">
+                            Ready to start Quicksort
+                        </div>
+                    </div>
+
+                    <!-- Array Visual Canvas Area -->
+                    <div class="relative w-full min-h-[300px] flex flex-col justify-end pt-4 pb-2 px-3 border border-dashed border-slate-200 dark:border-slate-800 rounded-xl bg-slate-50/50 dark:bg-slate-950/30">
+                        
+                        <!-- Array Bars Container -->
+                        <div id="arrayContainer" class="flex items-end justify-center gap-2 sm:gap-3 h-56 w-full relative">
+                            <!-- JS generates perfectly aligned column wrappers here -->
+                        </div>
+
+                        <!-- Region Band Overlay Indicators -->
+                        <div id="regionsContainer" class="mt-4 w-full h-8 flex rounded-lg overflow-hidden border border-slate-200 dark:border-slate-800 font-mono text-[10px] font-semibold">
+                            <!-- JS renders region bands here -->
+                        </div>
+                    </div>
+
+                    <!-- Region Color Key Legend -->
+                    <div id="legendContainer" class="grid grid-cols-2 sm:grid-cols-5 gap-2 mt-4 text-xs font-medium">
+                        <!-- Dynamic Legend populated based on Lomuto/Hoare scheme -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- RIGHT COLUMN: Pseudocode Execution & Call Stack (5 Cols) -->
+            <div class="lg:col-span-5 flex flex-col gap-4">
+                
+                <!-- Pseudocode Execution Card -->
+                <div id="pseudocodeCard" class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-4 shadow-sm flex flex-col">
+                    <div class="flex items-center justify-between mb-2.5 border-b border-slate-100 dark:border-slate-800 pb-2">
+                        <h2 class="font-bold text-sm text-slate-800 dark:text-slate-200 flex items-center space-x-2">
+                            <i class="fa-solid fa-code text-sky-500"></i>
+                            <span>Algorithm Pseudocode</span>
+                        </h2>
+                        <span id="schemeBadge" class="text-[10px] font-mono bg-sky-100 dark:bg-sky-950/60 text-sky-700 dark:text-sky-300 px-2 py-0.5 rounded font-semibold">Lomuto Scheme</span>
+                    </div>
+
+                    <!-- Pseudocode Display Box -->
+                    <div id="pseudocodeContainer" class="bg-slate-900 text-slate-200 rounded-xl p-3 font-mono text-xs overflow-x-auto shadow-inner border border-slate-800 leading-relaxed min-h-[290px]">
+                        <!-- Pseudocode injected dynamically based on active scheme -->
+                    </div>
+                </div>
+
+                <!-- Recursion Call Stack Monitor -->
+                <div id="callStackCard" class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-4 shadow-sm flex flex-col">
+                    <div class="flex items-center justify-between mb-2.5 border-b border-slate-100 dark:border-slate-800 pb-2">
+                        <h2 class="font-bold text-sm text-slate-800 dark:text-slate-200 flex items-center space-x-2">
+                            <i class="fa-solid fa-layer-group text-purple-500"></i>
+                            <span>Call Stack</span>
+                        </h2>
+                        <span id="stackCountBadge" class="text-xs font-mono font-semibold px-2 py-0.5 rounded-full bg-purple-100 dark:bg-purple-950 text-purple-700 dark:text-purple-300">0 frames</span>
+                    </div>
+
+                    <!-- Call Stack frames list -->
+                    <div id="callStackContainer" class="flex flex-col gap-2 max-h-44 overflow-y-auto pr-1">
+                        <!-- Stack frames rendered via JS -->
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+    </main>
+
+    <!-- How QuickSort Works Info Modal -->
+    <div id="infoModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
+        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl max-w-2xl w-full p-6 shadow-2xl flex flex-col gap-4 max-h-[90vh] overflow-y-auto">
+            
+            <div class="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+                <h3 class="font-bold text-lg text-slate-900 dark:text-white flex items-center space-x-2">
+                    <i class="fa-solid fa-graduation-cap text-sky-500"></i>
+                    <span>How QuickSort Works</span>
+                </h3>
+                <button id="btnCloseModal" class="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+
+            <div class="space-y-4 text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
+                <p>
+                    <strong class="text-slate-900 dark:text-white">QuickSort</strong> is an efficient divide-and-conquer sorting algorithm invented by Sir Tony Hoare in 1959. It picks an element as a <em>pivot</em> and partitions the array such that all elements smaller than or equal to the pivot precede all larger elements.
+                </p>
+
+                <!-- Algorithm Schemes Comparison -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 font-mono text-xs">
+                    <div class="bg-slate-50 dark:bg-slate-950 p-3 rounded-xl border border-slate-200 dark:border-slate-800 flex flex-col gap-1.5">
+                        <span class="font-bold text-sky-600 dark:text-sky-400">Lomuto Partitioning:</span>
+                        <p class="font-sans text-[11px] text-slate-500 dark:text-slate-400">
+                            Selects the last element \(A[r]\) as pivot. Uses single scan index \(j\) and boundary index \(i\).
+                        </p>
+                        <div class="mt-1 space-y-1 text-[11px]">
+                            <div>\(\bullet\ A[p..i] \le x\)</div>
+                            <div>\(\bullet\ A[i+1..j-1] &gt; x\)</div>
+                            <div>\(\bullet\ A[r] = x\) (Pivot)</div>
+                        </div>
+                    </div>
+
+                    <div class="bg-slate-50 dark:bg-slate-950 p-3 rounded-xl border border-slate-200 dark:border-slate-800 flex flex-col gap-1.5">
+                        <span class="font-bold text-purple-600 dark:text-purple-400">Hoare Partitioning:</span>
+                        <p class="font-sans text-[11px] text-slate-500 dark:text-slate-400">
+                            Selects first element \(A[p]\) as pivot. Scans inward from both ends with two pointers \(i\) and \(j\).
+                        </p>
+                        <div class="mt-1 space-y-1 text-[11px]">
+                            <div>\(\bullet\ A[p..j] \le x\)</div>
+                            <div>\(\bullet\ A[j+1..r] \ge x\)</div>
+                            <div>\(\bullet\) Fewer average swaps than Lomuto</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Math Complexity Section -->
+                <div class="bg-sky-50/60 dark:bg-sky-950/30 p-3.5 rounded-xl border border-sky-100 dark:border-sky-900/50 space-y-2">
+                    <h4 class="font-bold text-xs uppercase text-sky-700 dark:text-sky-300 tracking-wide">Time &amp; Space Complexity</h4>
+                    <ul class="list-disc list-inside space-y-1 text-xs">
+                        <li><strong>Average Time Complexity:</strong> \(\Theta(n \log n)\)</li>
+                        <li><strong>Worst-Case Time Complexity:</strong> \(\mathcal{O}(n^2)\)</li>
+                        <li><strong>Space Complexity (Call Stack):</strong> \(\mathcal{O}(\log n)\) average auxiliary recursion stack space</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="pt-2 border-t border-slate-100 dark:border-slate-800 flex justify-end">
+                <button id="btnGotIt" class="px-4 py-2 bg-sky-600 hover:bg-sky-700 text-white rounded-lg font-semibold text-xs shadow-sm transition">
+                    Got it!
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Core State Variables
+        let initialArray = [7, 2, 1, 6, 8, 5, 3, 4];
+        let currentScheme = 'lomuto'; // 'lomuto' or 'hoare'
+        let steps = [];
+        let currentStepIndex = 0;
+        let isPlaying = false;
+        let playInterval = null;
+        let speed = 1.0;
+        let isAnimatingSwap = false;
+        let showCallStacks = false;
+
+        // Visual Colors Definition
+        const COLORS = {
+            default: 'bg-slate-200 text-slate-700 border-slate-300 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700',
+            lessEq: 'bg-amber-400 text-amber-950 border-amber-500 shadow-sm',
+            greater: 'bg-rose-500 text-white border-rose-600 shadow-sm',
+            unexamined: 'bg-sky-200 text-sky-950 border-sky-300 dark:bg-sky-900 dark:text-sky-100 dark:border-sky-700',
+            pivot: 'bg-indigo-600 text-white border-indigo-700 shadow-md ring-2 ring-indigo-400/50 scale-105',
+            sorted: 'bg-emerald-500 text-white border-emerald-600 shadow-sm',
+            comparing: 'ring-4 ring-sky-400 scale-105 z-10',
+            swapping: 'ring-4 ring-amber-500 z-20'
+        };
+
+        // Pseudocode Templates
+        const PSEUDOCODE_LOMUTO = `
+<div id="code-line-1" class="flex items-center px-2 py-0.5 rounded transition-colors"><span class="w-6 text-slate-500 select-none text-right pr-2">1</span><span><span class="text-purple-400">QuickSort</span>(A, p, r):</span></div>
+<div id="code-line-2" class="flex items-center px-2 py-0.5 rounded transition-colors"><span class="w-6 text-slate-500 select-none text-right pr-2">2</span><span class="pl-4"><span class="text-pink-400">if</span> p &lt; r <span class="text-pink-400">then</span>:</span></div>
+<div id="code-line-3" class="flex items-center px-2 py-0.5 rounded transition-colors"><span class="w-6 text-slate-500 select-none text-right pr-2">3</span><span class="pl-8">q := Partition(A, p, r)</span></div>
+<div id="code-line-4" class="flex items-center px-2 py-0.5 rounded transition-colors"><span class="w-6 text-slate-500 select-none text-right pr-2">4</span><span class="pl-8">QuickSort(A, p, q - 1)</span></div>
+<div id="code-line-5" class="flex items-center px-2 py-0.5 rounded transition-colors mb-3"><span class="w-6 text-slate-500 select-none text-right pr-2">5</span><span class="pl-8">QuickSort(A, q + 1, r)</span></div>
+
+<div id="code-line-6" class="flex items-center px-2 py-0.5 rounded transition-colors border-t border-slate-800 pt-2"><span class="w-6 text-slate-500 select-none text-right pr-2">6</span><span><span class="text-purple-400">Partition</span>(A, p, r):</span></div>
+<div id="code-line-7" class="flex items-center px-2 py-0.5 rounded transition-colors"><span class="w-6 text-slate-500 select-none text-right pr-2">7</span><span class="pl-4">x := A[r]</span></div>
+<div id="code-line-8" class="flex items-center px-2 py-0.5 rounded transition-colors"><span class="w-6 text-slate-500 select-none text-right pr-2">8</span><span class="pl-4">i := p - 1</span></div>
+<div id="code-line-9" class="flex items-center px-2 py-0.5 rounded transition-colors"><span class="w-6 text-slate-500 select-none text-right pr-2">9</span><span class="pl-4"><span class="text-pink-400">for</span> j := p <span class="text-pink-400">to</span> r - 1 <span class="text-pink-400">do</span>:</span></div>
+<div id="code-line-10" class="flex items-center px-2 py-0.5 rounded transition-colors"><span class="w-6 text-slate-500 select-none text-right pr-2">10</span><span class="pl-8"><span class="text-pink-400">if</span> A[j] &le; x <span class="text-pink-400">then</span>:</span></div>
+<div id="code-line-11" class="flex items-center px-2 py-0.5 rounded transition-colors"><span class="w-6 text-slate-500 select-none text-right pr-2">11</span><span class="pl-12">i := i + 1</span></div>
+<div id="code-line-12" class="flex items-center px-2 py-0.5 rounded transition-colors"><span class="w-6 text-slate-500 select-none text-right pr-2">12</span><span class="pl-12"><span class="text-amber-400">swap</span> A[i] &harr; A[j]</span></div>
+<div id="code-line-13" class="flex items-center px-2 py-0.5 rounded transition-colors"><span class="w-6 text-slate-500 select-none text-right pr-2">13</span><span class="pl-4"><span class="text-amber-400">swap</span> A[r] &harr; A[i + 1]</span></div>
+<div id="code-line-14" class="flex items-center px-2 py-0.5 rounded transition-colors"><span class="w-6 text-slate-500 select-none text-right pr-2">14</span><span class="pl-4"><span class="text-purple-400">return</span> i + 1</span></div>
+`;
+
+        const PSEUDOCODE_HOARE = `
+<div id="code-line-1" class="flex items-center px-2 py-0.5 rounded transition-colors"><span class="w-6 text-slate-500 select-none text-right pr-2">1</span><span><span class="text-purple-400">QuickSort</span>(A, p, r):</span></div>
+<div id="code-line-2" class="flex items-center px-2 py-0.5 rounded transition-colors"><span class="w-6 text-slate-500 select-none text-right pr-2">2</span><span class="pl-4"><span class="text-pink-400">if</span> p &lt; r <span class="text-pink-400">then</span>:</span></div>
+<div id="code-line-3" class="flex items-center px-2 py-0.5 rounded transition-colors"><span class="w-6 text-slate-500 select-none text-right pr-2">3</span><span class="pl-8">q := HoarePartition(A, p, r)</span></div>
+<div id="code-line-4" class="flex items-center px-2 py-0.5 rounded transition-colors"><span class="w-6 text-slate-500 select-none text-right pr-2">4</span><span class="pl-8">QuickSort(A, p, q)</span></div>
+<div id="code-line-5" class="flex items-center px-2 py-0.5 rounded transition-colors mb-3"><span class="w-6 text-slate-500 select-none text-right pr-2">5</span><span class="pl-8">QuickSort(A, q + 1, r)</span></div>
+
+<div id="code-line-6" class="flex items-center px-2 py-0.5 rounded transition-colors border-t border-slate-800 pt-2"><span class="w-6 text-slate-500 select-none text-right pr-2">6</span><span><span class="text-purple-400">HoarePartition</span>(A, p, r):</span></div>
+<div id="code-line-7" class="flex items-center px-2 py-0.5 rounded transition-colors"><span class="w-6 text-slate-500 select-none text-right pr-2">7</span><span class="pl-4">x := A[p]</span></div>
+<div id="code-line-8" class="flex items-center px-2 py-0.5 rounded transition-colors"><span class="w-6 text-slate-500 select-none text-right pr-2">8</span><span class="pl-4">i := p - 1</span></div>
+<div id="code-line-9" class="flex items-center px-2 py-0.5 rounded transition-colors"><span class="w-6 text-slate-500 select-none text-right pr-2">9</span><span class="pl-4">j := r + 1</span></div>
+<div id="code-line-10" class="flex items-center px-2 py-0.5 rounded transition-colors"><span class="w-6 text-slate-500 select-none text-right pr-2">10</span><span class="pl-4"><span class="text-pink-400">while</span> true <span class="text-pink-400">do</span>:</span></div>
+<div id="code-line-11" class="flex items-center px-2 py-0.5 rounded transition-colors"><span class="w-6 text-slate-500 select-none text-right pr-2">11</span><span class="pl-8"><span class="text-pink-400">repeat</span> j := j - 1 <span class="text-pink-400">until</span> A[j] &le; x</span></div>
+<div id="code-line-12" class="flex items-center px-2 py-0.5 rounded transition-colors"><span class="w-6 text-slate-500 select-none text-right pr-2">12</span><span class="pl-8"><span class="text-pink-400">repeat</span> i := i + 1 <span class="text-pink-400">until</span> A[i] &ge; x</span></div>
+<div id="code-line-13" class="flex items-center px-2 py-0.5 rounded transition-colors"><span class="w-6 text-slate-500 select-none text-right pr-2">13</span><span class="pl-8"><span class="text-pink-400">if</span> i &lt; j <span class="text-pink-400">then</span>:</span></div>
+<div id="code-line-14" class="flex items-center px-2 py-0.5 rounded transition-colors"><span class="w-6 text-slate-500 select-none text-right pr-2">14</span><span class="pl-12"><span class="text-amber-400">swap</span> A[i] &harr; A[j]</span></div>
+<div id="code-line-15" class="flex items-center px-2 py-0.5 rounded transition-colors"><span class="w-6 text-slate-500 select-none text-right pr-2">15</span><span class="pl-4"><span class="text-pink-400">else</span> <span class="text-purple-400">return</span> j</span></div>
+`;
+
+        function generateLomutoSteps(inputArr) {
+            let localSteps = [];
+            let A = [...inputArr];
+            let sortedSet = new Set();
+            let callStack = [];
+
+            function pushStep(params) {
+                localSteps.push({
+                    A: [...A],
+                    sortedIndices: new Set(sortedSet),
+                    stack: JSON.parse(JSON.stringify(callStack)),
+                    p: params.p ?? null,
+                    r: params.r ?? null,
+                    i: params.i ?? null,
+                    j: params.j ?? null,
+                    pivotIdx: params.pivotIdx ?? null,
+                    line: params.line,
+                    desc: params.desc || '',
+                    isCompare: params.isCompare || false,
+                    isSwap: params.isSwap || false,
+                    swappedPair: params.swappedPair || null
+                });
+            }
+
+            function quickSort(p, r) {
+                callStack.push({ name: `QuickSort(A, ${p}, ${r})`, p, r, type: 'qs' });
+                
+                pushStep({ line: 1, p, r, desc: `Call QuickSort on subarray A[${p}..${r}]` });
+                pushStep({ line: 2, p, r, desc: p < r ? `Subarray has size > 1 (${p} < ${r})` : `Base case reached (size ≤ 1)` });
+
+                if (p < r) {
+                    pushStep({ line: 3, p, r, desc: `Partition subarray A[${p}..${r}]` });
+                    let q = partition(p, r);
+
+                    sortedSet.add(q);
+                    pushStep({ line: 3, p, r, pivotIdx: q, desc: `Pivot element A[${q}] is now in final sorted position` });
+
+                    pushStep({ line: 4, p, r, desc: `Recursively sort left subarray A[${p}..${q - 1}]` });
+                    quickSort(p, q - 1);
+
+                    pushStep({ line: 5, p, r, desc: `Recursively sort right subarray A[${q + 1}..${r}]` });
+                    quickSort(q + 1, r);
+                } else {
+                    if (p === r) sortedSet.add(p);
+                }
+
+                callStack.pop();
+            }
+
+            function partition(p, r) {
+                callStack.push({ name: `Partition(A, ${p}, ${r})`, p, r, type: 'part' });
+
+                pushStep({ line: 6, p, r, desc: `Begin Lomuto Partition on A[${p}..${r}]` });
+
+                let x = A[r];
+                let pivotIdx = r;
+                pushStep({ line: 7, p, r, pivotIdx, desc: `Select last element x = A[${r}] (${x}) as pivot` });
+
+                let i = p - 1;
+                pushStep({ line: 8, p, r, i, pivotIdx, desc: `Initialize boundary index i = ${i}` });
+
+                for (let j = p; j < r; j++) {
+                    pushStep({ line: 9, p, r, i, j, pivotIdx, desc: `Scan element A[${j}] = ${A[j]}` });
+
+                    let isLess = A[j] <= x;
+                    pushStep({ 
+                        line: 10, p, r, i, j, pivotIdx, isCompare: true,
+                        desc: `Compare A[${j}] (${A[j]}) ≤ pivot x (${x}): ${isLess ? 'Yes' : 'No'}`
+                    });
+
+                    if (isLess) {
+                        i++;
+                        pushStep({ line: 11, p, r, i, j, pivotIdx, desc: `Increment boundary index i to ${i}` });
+
+                        if (i !== j) {
+                            let temp = A[i];
+                            A[i] = A[j];
+                            A[j] = temp;
+
+                            pushStep({
+                                line: 12, p, r, i, j, pivotIdx,
+                                isSwap: true,
+                                swappedPair: [i, j],
+                                desc: `Swap A[${i}] (${A[j]}) with A[${j}] (${A[i]})`
+                            });
+                        }
+                    }
+                }
+
+                let targetPivotIdx = i + 1;
+                if (r !== targetPivotIdx) {
+                    let temp = A[r];
+                    A[r] = A[targetPivotIdx];
+                    A[targetPivotIdx] = temp;
+
+                    pushStep({
+                        line: 13, p, r, i, j: r - 1, pivotIdx: targetPivotIdx,
+                        isSwap: true,
+                        swappedPair: [targetPivotIdx, r],
+                        desc: `Swap pivot A[${r}] (${temp}) with A[${targetPivotIdx}] (${A[r]})`
+                    });
+                } else {
+                    pushStep({ line: 13, p, r, i, j: r - 1, pivotIdx: r, desc: `Pivot is already at position ${r}` });
+                }
+
+                pushStep({ line: 14, p, r, i, j: r - 1, pivotIdx: targetPivotIdx, desc: `Return partition index q = ${targetPivotIdx}` });
+
+                callStack.pop();
+                return targetPivotIdx;
+            }
+
+            quickSort(0, A.length - 1);
+
+            for (let k = 0; k < A.length; k++) sortedSet.add(k);
+            pushStep({ line: null, p: null, r: null, i: null, j: null, pivotIdx: null, desc: 'Sorting completed successfully!' });
+            return localSteps;
+        }
+
+        function generateHoareSteps(inputArr) {
+            let localSteps = [];
+            let A = [...inputArr];
+            let sortedSet = new Set();
+            let callStack = [];
+
+            function pushStep(params) {
+                localSteps.push({
+                    A: [...A],
+                    sortedIndices: new Set(sortedSet),
+                    stack: JSON.parse(JSON.stringify(callStack)),
+                    p: params.p ?? null,
+                    r: params.r ?? null,
+                    i: params.i ?? null,
+                    j: params.j ?? null,
+                    pivotIdx: params.pivotIdx ?? null,
+                    line: params.line,
+                    desc: params.desc || '',
+                    isCompare: params.isCompare || false,
+                    isSwap: params.isSwap || false,
+                    swappedPair: params.swappedPair || null
+                });
+            }
+
+            function quickSort(p, r) {
+                callStack.push({ name: `QuickSort(A, ${p}, ${r})`, p, r, type: 'qs' });
+
+                pushStep({ line: 1, p, r, desc: `Call QuickSort on subarray A[${p}..${r}]` });
+                pushStep({ line: 2, p, r, desc: p < r ? `Subarray has size > 1 (${p} < ${r})` : `Base case reached (size ≤ 1)` });
+
+                if (p < r) {
+                    pushStep({ line: 3, p, r, desc: `Hoare Partition subarray A[${p}..${r}]` });
+                    let q = hoarePartition(p, r);
+
+                    pushStep({ line: 4, p, r, desc: `Recursively sort left partition A[${p}..${q}]` });
+                    quickSort(p, q);
+
+                    pushStep({ line: 5, p, r, desc: `Recursively sort right partition A[${q + 1}..${r}]` });
+                    quickSort(q + 1, r);
+                } else {
+                    if (p === r) sortedSet.add(p);
+                }
+
+                callStack.pop();
+            }
+
+            function hoarePartition(p, r) {
+                callStack.push({ name: `HoarePartition(A, ${p}, ${r})`, p, r, type: 'part' });
+
+                pushStep({ line: 6, p, r, desc: `Begin Hoare Partition on A[${p}..${r}]` });
+
+                let x = A[p];
+                let pivotIdx = p;
+                pushStep({ line: 7, p, r, pivotIdx, desc: `Select first element x = A[${p}] (${x}) as pivot` });
+
+                let i = p - 1;
+                pushStep({ line: 8, p, r, i, pivotIdx, desc: `Set left pointer i = p - 1 (${i})` });
+
+                let j = r + 1;
+                pushStep({ line: 9, p, r, i, j, pivotIdx, desc: `Set right pointer j = r + 1 (${j})` });
+
+                while (true) {
+                    pushStep({ line: 10, p, r, i, j, pivotIdx, desc: `Scan pointers inward` });
+
+                    do {
+                        j--;
+                        pushStep({ 
+                            line: 11, p, r, i, j, pivotIdx, isCompare: true,
+                            desc: `Decrement j to ${j}. Compare A[${j}] (${A[j]}) ≤ x (${x})`
+                        });
+                    } while (A[j] > x);
+
+                    do {
+                        i++;
+                        pushStep({ 
+                            line: 12, p, r, i, j, pivotIdx, isCompare: true,
+                            desc: `Increment i to ${i}. Compare A[${i}] (${A[i]}) ≥ x (${x})`
+                        });
+                    } while (A[i] < x);
+
+                    pushStep({ line: 13, p, r, i, j, pivotIdx, desc: `Check if pointers crossed: i (${i}) < j (${j})` });
+
+                    if (i < j) {
+                        let temp = A[i];
+                        A[i] = A[j];
+                        A[j] = temp;
+
+                        pushStep({
+                            line: 14, p, r, i, j, pivotIdx,
+                            isSwap: true,
+                            swappedPair: [i, j],
+                            desc: `Swap A[${i}] (${A[j]}) and A[${j}] (${A[i]})`
+                        });
+                    } else {
+                        pushStep({ line: 15, p, r, i, j, pivotIdx, desc: `Pointers crossed. Return partition point j = ${j}` });
+                        callStack.pop();
+                        return j;
+                    }
+                }
+            }
+
+            quickSort(0, A.length - 1);
+
+            for (let k = 0; k < A.length; k++) sortedSet.add(k);
+            pushStep({ line: null, p: null, r: null, i: null, j: null, pivotIdx: null, desc: 'Sorting completed successfully!' });
+
+            return localSteps;
+        }
+
+        function renderStep(stepIndex, animateSwap = false) {
+            if (!steps || steps.length === 0) return;
+            const step = steps[stepIndex];
+
+            // 1. Scrubber & Text Counter Update
+            document.getElementById('scrubber').value = stepIndex;
+            document.getElementById('stepCounterBadge').innerText = `${stepIndex} / ${steps.length - 1}`;
+
+            // 2. Active Subarray Label
+            const activeRangeLabel = document.getElementById('activeRangeLabel');
+            if (step.p !== null && step.r !== null) {
+                activeRangeLabel.innerText = `Active Subarray: A[${step.p}..${step.r}]`;
+            } else {
+                activeRangeLabel.innerText = `Sorting Complete`;
+            }
+
+            // 3. Status Badge with Short Description
+            const statusBadge = document.getElementById('statusBadge');
+            if (step.desc) {
+                statusBadge.innerText = step.desc;
+            } else if (stepIndex === 0) {
+                statusBadge.innerText = 'Ready to start Quicksort';
+            } else if (stepIndex === steps.length - 1) {
+                statusBadge.innerText = 'Sorting complete!';
+            } else {
+                statusBadge.innerText = 'Executing step...';
+            }
+
+            // 4. Render Array Bars with perfectly aligned column pointers
+            if (animateSwap && step.isSwap && step.swappedPair) {
+                animateBarSwap(step, () => {
+                    renderArrayBars(step);
+                });
+            } else {
+                renderArrayBars(step);
+            }
+
+            // 5. Render Region Bands
+            renderRegions(step);
+
+            // 6. Pseudocode line highlight
+            renderPseudocode(step.line);
+
+            // 7. Call Stack
+            renderCallStack(step.stack);
+        }
+
+        /**
+         * Render Array Bars with index-aligned column structure
+         */
+        function renderArrayBars(step) {
+            const container = document.getElementById('arrayContainer');
+            container.innerHTML = '';
+            const n = step.A.length;
+            if (n === 0) return;
+
+            const maxVal = Math.max(...step.A, 10);
+            const p = step.p;
+            const r = step.r;
+            const i = step.i;
+            const j = step.j;
+
+            // Loop from -1 up to n to maintain static layout width
+            for (let idx = -1; idx <= n; idx++) {
+                const isExtra = (idx === -1 || idx === n);
+
+                // Pointer tags for this column
+                let pointerTags = [];
+                if (p === idx) pointerTags.push({ label: 'p', color: 'bg-blue-600' });
+                if (r === idx) pointerTags.push({ label: 'r', color: 'bg-purple-600' });
+                if (i === idx) pointerTags.push({ label: 'i', color: 'bg-amber-600' });
+                if (j === idx) pointerTags.push({ label: 'j', color: 'bg-rose-600' });
+
+                // Outer Column Wrapper
+                const barWrapper = document.createElement('div');
+                barWrapper.id = `bar-wrapper-${idx}`;
+                barWrapper.className = 'flex-1 flex flex-col items-center h-full max-w-[48px] relative';
+
+                // 1. Fixed-Height Pointer Zone at the TOP
+                const pointerZone = document.createElement('div');
+                pointerZone.className = 'h-7 w-full flex items-end justify-center gap-0.5 shrink-0 mb-1';
+                pointerTags.forEach(tag => {
+                    const badge = document.createElement('span');
+                    badge.className = `${tag.color} text-white text-[10px] font-mono font-bold px-1.5 py-0.2 rounded shadow-xs tracking-wide whitespace-nowrap`;
+                    badge.innerText = tag.label;
+                    pointerZone.appendChild(badge);
+                });
+                barWrapper.appendChild(pointerZone);
+
+                // 2. Bar Container
+                const barArea = document.createElement('div');
+                barArea.className = 'w-full flex-1 flex flex-col justify-end items-center';
+
+                if (isExtra) {
+                    // Transparent placeholder with 0 height so it takes space without displaying a bar
+                    const dummyBar = document.createElement('div');
+                    dummyBar.className = 'w-full h-0 opacity-0 pointer-events-none';
+                    barArea.appendChild(dummyBar);
+                } else {
+                    const val = step.A[idx];
+                    const heightPercent = Math.max(18, Math.round((val / maxVal) * 100));
+
+                    let colorClass = COLORS.default;
+                    if (step.sortedIndices.has(idx)) {
+                        colorClass = COLORS.sorted;
+                    } else if (idx === step.pivotIdx) {
+                        colorClass = COLORS.pivot;
+                    } else if (p !== null && r !== null && idx >= p && idx <= r) {
+                        if (currentScheme === 'lomuto') {
+                            if (i !== null && idx >= p && idx <= i) {
+                                colorClass = COLORS.lessEq;
+                            } else if (i !== null && j !== null && idx > i && idx < j) {
+                                colorClass = COLORS.greater;
+                            } else {
+                                colorClass = COLORS.unexamined;
+                            }
+                        } else { // Hoare
+                            if (i !== null && idx <= i) {
+                                colorClass = COLORS.lessEq;
+                            } else if (j !== null && idx >= j) {
+                                colorClass = COLORS.greater;
+                            } else {
+                                colorClass = COLORS.unexamined;
+                            }
+                        }
+                    } else {
+                        colorClass = 'bg-slate-200 text-slate-400 border-slate-300 dark:bg-slate-800/60 dark:text-slate-500 dark:border-slate-800 opacity-50';
+                    }
+
+                    let animationClass = '';
+                    if (step.isCompare && (idx === step.j || idx === step.i || idx === step.pivotIdx)) {
+                        animationClass = COLORS.comparing;
+                    }
+                    if (step.isSwap && step.swappedPair && step.swappedPair.includes(idx)) {
+                        animationClass = COLORS.swapping;
+                    }
+
+                    const bar = document.createElement('div');
+                    bar.id = `bar-${idx}`;
+                    bar.className = `w-full rounded-t-lg border flex flex-col items-center justify-end pb-1.5 bar-transition ${colorClass} ${animationClass}`;
+                    bar.style.height = `${heightPercent}%`;
+
+                    const valLabel = document.createElement('span');
+                    valLabel.className = 'font-mono font-bold text-xs sm:text-sm drop-shadow-sm';
+                    valLabel.innerText = val;
+                    bar.appendChild(valLabel);
+
+                    barArea.appendChild(bar);
+                }
+                barWrapper.appendChild(barArea);
+
+                // 3. Index Label at the bottom
+                const idxLabel = document.createElement('span');
+                idxLabel.className = `text-[11px] font-mono font-semibold mt-1.5 shrink-0 ${
+                    isExtra ? 'text-slate-400 dark:text-slate-500' : 'text-slate-500 dark:text-slate-400'
+                }`;
+                idxLabel.innerText = idx;
+                barWrapper.appendChild(idxLabel);
+
+                container.appendChild(barWrapper);
+            }
+        }
+
+        /**
+         * Smooth Slide Animation for Swapping Bars
+         */
+        function animateBarSwap(step, callback) {
+            if (!step.swappedPair || step.swappedPair.length < 2) {
+                if (callback) callback();
+                return;
+            }
+
+            const [idx1, idx2] = step.swappedPair;
+            const wrap1 = document.getElementById(`bar-wrapper-${idx1}`);
+            const wrap2 = document.getElementById(`bar-wrapper-${idx2}`);
+
+            if (!wrap1 || !wrap2) {
+                if (callback) callback();
+                return;
+            }
+
+            const rect1 = wrap1.getBoundingClientRect();
+            const rect2 = wrap2.getBoundingClientRect();
+            const dx = rect2.left - rect1.left;
+
+            isAnimatingSwap = true;
+
+            wrap1.style.transition = 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
+            wrap2.style.transition = 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
+            wrap1.style.transform = `translateX(${dx}px)`;
+            wrap2.style.transform = `translateX(${-dx}px)`;
+
+            setTimeout(() => {
+                wrap1.style.transition = '';
+                wrap2.style.transition = '';
+                wrap1.style.transform = '';
+                wrap2.style.transform = '';
+                isAnimatingSwap = false;
+                if (callback) callback();
+            }, 320);
+        }
+
+        /**
+         * Render Region Band Overlay Indicators with fixed-height, non-wrapping labels
+         */
+        function renderRegions(step) {
+            const container = document.getElementById('regionsContainer');
+            container.innerHTML = '';
+            const n = step.A.length;
+            if (n === 0 || step.p === null || step.r === null) {
+                container.innerHTML = `<div class="w-full h-full flex items-center justify-center text-slate-400 text-xs font-sans italic">Array Partitioning Inactive</div>`;
+                return;
+            }
+
+            const p = step.p;
+            const r = step.r;
+            const i = step.i;
+            const j = step.j;
+
+            for (let k = -1; k <= n; k++) {
+                const cell = document.createElement('div');
+                cell.className = 'flex-1 h-full flex items-center justify-center text-[10px] border-r border-slate-200 dark:border-slate-800 last:border-r-0 font-semibold whitespace-nowrap overflow-hidden text-ellipsis px-0.5';
+                
+                if (k >= p && k <= r) {
+                    if (currentScheme === 'lomuto') {
+                        if (k === step.pivotIdx) {
+                            cell.className += ' bg-indigo-500/20 text-indigo-700 dark:text-indigo-300';
+                            cell.innerText = 'Pivot x';
+                        } else if (i !== null && k >= p && k <= i) {
+                            cell.className += ' bg-amber-500/20 text-amber-800 dark:text-amber-300';
+                            cell.innerText = '≤ x';
+                        } else if (i !== null && j !== null && k > i && k < j) {
+                            cell.className += ' bg-rose-500/20 text-rose-800 dark:text-rose-300';
+                            cell.innerText = '> x';
+                        } else {
+                            cell.className += ' bg-sky-500/10 text-sky-700 dark:text-sky-300';
+                            cell.innerText = 'Unexamined';
+                        }
+                    } else { // Hoare
+                        if (k === step.pivotIdx) {
+                            cell.className += ' bg-indigo-500/20 text-indigo-700 dark:text-indigo-300';
+                            cell.innerText = 'Pivot x';
+                        } else if (i !== null && k <= i) {
+                            cell.className += ' bg-amber-500/20 text-amber-800 dark:text-amber-300';
+                            cell.innerText = '≤ x';
+                        } else if (j !== null && k >= j) {
+                            cell.className += ' bg-rose-500/20 text-rose-800 dark:text-rose-300';
+                            cell.innerText = '≥ x';
+                        } else {
+                            cell.className += ' bg-sky-500/10 text-sky-700 dark:text-sky-300';
+                            cell.innerText = 'Unexamined';
+                        }
+                    }
+                } else {
+                    cell.className += ' bg-slate-100 dark:bg-slate-900 text-slate-300 dark:text-slate-700';
+                    cell.innerText = '-';
+                }
+
+                container.appendChild(cell);
+            }
+        }
+
+        /**
+         * Render Legend items matching scheme
+         */
+        function renderLegend() {
+            const legend = document.getElementById('legendContainer');
+            if (currentScheme === 'lomuto') {
+                legend.innerHTML = `
+                    <div class="flex items-center space-x-1.5 bg-amber-50 dark:bg-amber-950/30 text-amber-800 dark:text-amber-300 px-2 py-1 rounded border border-amber-200 dark:border-amber-800/50">
+                        <span class="w-2.5 h-2.5 rounded-full bg-amber-400"></span>
+                        <span>&le; x (Left)</span>
+                    </div>
+                    <div class="flex items-center space-x-1.5 bg-rose-50 dark:bg-rose-950/30 text-rose-800 dark:text-rose-300 px-2 py-1 rounded border border-rose-200 dark:border-rose-800/50">
+                        <span class="w-2.5 h-2.5 rounded-full bg-rose-500"></span>
+                        <span>&gt; x (Right)</span>
+                    </div>
+                    <div class="flex items-center space-x-1.5 bg-sky-50 dark:bg-sky-950/30 text-sky-800 dark:text-sky-300 px-2 py-1 rounded border border-sky-200 dark:border-sky-800/50">
+                        <span class="w-2.5 h-2.5 rounded-full bg-sky-300"></span>
+                        <span>Unexamined</span>
+                    </div>
+                    <div class="flex items-center space-x-1.5 bg-indigo-50 dark:bg-indigo-950/30 text-indigo-800 dark:text-indigo-300 px-2 py-1 rounded border border-indigo-200 dark:border-indigo-800/50">
+                        <span class="w-2.5 h-2.5 rounded-full bg-indigo-600"></span>
+                        <span>Pivot (x)</span>
+                    </div>
+                    <div class="flex items-center space-x-1.5 bg-emerald-50 dark:bg-emerald-950/30 text-emerald-800 dark:text-emerald-300 px-2 py-1 rounded border border-emerald-200 dark:border-emerald-800/50 col-span-2 sm:col-span-1">
+                        <span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
+                        <span>Sorted</span>
+                    </div>
+                `;
+            } else {
+                legend.innerHTML = `
+                    <div class="flex items-center space-x-1.5 bg-amber-50 dark:bg-amber-950/30 text-amber-800 dark:text-amber-300 px-2 py-1 rounded border border-amber-200 dark:border-amber-800/50">
+                        <span class="w-2.5 h-2.5 rounded-full bg-amber-400"></span>
+                        <span>&le; x Region</span>
+                    </div>
+                    <div class="flex items-center space-x-1.5 bg-rose-50 dark:bg-rose-950/30 text-rose-800 dark:text-rose-300 px-2 py-1 rounded border border-rose-200 dark:border-rose-800/50">
+                        <span class="w-2.5 h-2.5 rounded-full bg-rose-500"></span>
+                        <span>&ge; x Region</span>
+                    </div>
+                    <div class="flex items-center space-x-1.5 bg-sky-50 dark:bg-sky-950/30 text-sky-800 dark:text-sky-300 px-2 py-1 rounded border border-sky-200 dark:border-sky-800/50">
+                        <span class="w-2.5 h-2.5 rounded-full bg-sky-300"></span>
+                        <span>Unexamined</span>
+                    </div>
+                    <div class="flex items-center space-x-1.5 bg-indigo-50 dark:bg-indigo-950/30 text-indigo-800 dark:text-indigo-300 px-2 py-1 rounded border border-indigo-200 dark:border-indigo-800/50 text-[10px] leading-none whitespace-nowrap">
+                        <span class="w-2.5 h-2.5 rounded-full bg-indigo-600"></span>
+                        <span>Pivot x = A[p]</span>
+                    </div>
+                    <div class="flex items-center space-x-1.5 bg-emerald-50 dark:bg-emerald-950/30 text-emerald-800 dark:text-emerald-300 px-2 py-1 rounded border border-emerald-200 dark:border-emerald-800/50 col-span-2 sm:col-span-1">
+                        <span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
+                        <span>Sorted</span>
+                    </div>
+                `;
+            }
+        }
+
+        /**
+         * Highlight executing line in Pseudocode
+         */
+        function renderPseudocode(activeLine) {
+            const maxLines = currentScheme === 'lomuto' ? 14 : 15;
+            for (let l = 1; l <= maxLines; l++) {
+                const lineElem = document.getElementById(`code-line-${l}`);
+                if (lineElem) {
+                    if (l === activeLine) {
+                        lineElem.classList.add('code-active-line');
+                    } else {
+                        lineElem.classList.remove('code-active-line');
+                    }
+                }
+            }
+        }
+
+        /**
+         * Render Call Stack
+         */
+        function renderCallStack(stack) {
+            const container = document.getElementById('callStackContainer');
+            const stackCountBadge = document.getElementById('stackCountBadge');
+            const callStackCard = document.getElementById('callStackCard');
+
+            if (callStackCard.classList.contains('hidden')) {
+                return;
+            }
+
+            container.innerHTML = '';
+            
+            stackCountBadge.innerText = `${stack.length} frame${stack.length === 1 ? '' : 's'}`;
+
+            if (stack.length === 0) {
+                container.innerHTML = `<div class="text-xs text-slate-400 italic p-2 text-center">Call stack empty</div>`;
+                return;
+            }
+
+            [...stack].reverse().forEach((frame, idx) => {
+                const item = document.createElement('div');
+                const isActive = idx === 0;
+
+                item.className = `p-2 rounded-lg text-xs font-mono flex items-center justify-between border ${
+                    isActive 
+                        ? 'bg-purple-50 dark:bg-purple-950/40 border-purple-300 dark:border-purple-800 text-purple-900 dark:text-purple-200 font-semibold shadow-xs' 
+                        : 'bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400'
+                }`;
+
+                item.innerHTML = `
+                    <div class="flex items-center space-x-2">
+                        <i class="fa-solid ${frame.type === 'part' ? 'fa-scissors text-amber-500' : 'fa-sitemap text-sky-500'}"></i>
+                        <span>${frame.name}</span>
+                    </div>
+                `;
+
+                container.appendChild(item);
+            });
+        }
+
+        /**
+         * Initialize & Generate Steps
+         */
+        function initVisualization(arr) {
+            pause();
+            initialArray = [...arr];
+
+            if (currentScheme === 'lomuto') {
+                steps = generateLomutoSteps(initialArray);
+                document.getElementById('pseudocodeContainer').innerHTML = PSEUDOCODE_LOMUTO;
+                document.getElementById('schemeBadge').innerText = 'Lomuto Scheme';
+            } else {
+                steps = generateHoareSteps(initialArray);
+                document.getElementById('pseudocodeContainer').innerHTML = PSEUDOCODE_HOARE;
+                document.getElementById('schemeBadge').innerText = 'Hoare Scheme';
+            }
+
+            renderLegend();
+
+            currentStepIndex = 0;
+            const scrubber = document.getElementById('scrubber');
+            scrubber.max = steps.length - 1;
+            scrubber.value = 0;
+
+            renderStep(0);
+        }
+
+        function syncCallStackVisibility() {
+            const callStackCard = document.getElementById('callStackCard');
+            const callStackToggleText = document.getElementById('callStackToggleText');
+            const callStackToggleIcon = document.getElementById('callStackToggleIcon');
+
+            if (showCallStacks) {
+                callStackCard.classList.remove('hidden');
+                callStackToggleText.innerText = 'Hide call stacks';
+                callStackToggleIcon.className = 'fa-solid fa-eye-slash text-base';
+            } else {
+                callStackCard.classList.add('hidden');
+                callStackToggleText.innerText = 'Show call stacks';
+                callStackToggleIcon.className = 'fa-solid fa-eye text-base';
+            }
+        }
+
+        function updateSchemeButtons() {
+            const btnLomuto = document.getElementById('btnSchemeLomuto');
+            const btnHoare = document.getElementById('btnSchemeHoare');
+            
+            if (currentScheme === 'lomuto') {
+                btnLomuto.className = "px-2.5 py-1 text-xs font-bold rounded-md transition bg-indigo-600 text-white shadow-xs";
+                btnHoare.className = "px-2.5 py-1 text-xs font-bold rounded-md transition text-indigo-950 dark:text-indigo-100 hover:bg-indigo-100 dark:hover:bg-indigo-900";
+            } else {
+                btnHoare.className = "px-2.5 py-1 text-xs font-bold rounded-md transition bg-indigo-600 text-white shadow-xs";
+                btnLomuto.className = "px-2.5 py-1 text-xs font-bold rounded-md transition text-indigo-950 dark:text-indigo-100 hover:bg-indigo-100 dark:hover:bg-indigo-900";
+            }
+        }
+
+        function play() {
+            if (currentStepIndex >= steps.length - 1) {
+                currentStepIndex = 0;
+            }
+            isPlaying = true;
+            document.getElementById('playText').innerText = 'Pause';
+            document.getElementById('playIcon').className = 'fa-solid fa-pause';
+
+            const intervalMs = Math.round(1000 / (speed * 2));
+            clearInterval(playInterval);
+            playInterval = setInterval(() => {
+                if (currentStepIndex < steps.length - 1) {
+                    currentStepIndex++;
+                    renderStep(currentStepIndex, true);
+                } else {
+                    pause();
+                }
+            }, intervalMs);
+        }
+
+        function pause() {
+            isPlaying = false;
+            clearInterval(playInterval);
+            document.getElementById('playText').innerText = 'Play';
+            document.getElementById('playIcon').className = 'fa-solid fa-play';
+        }
+
+        function togglePlay() {
+            if (isPlaying) pause();
+            else play();
+        }
+
+        function stepNext() {
+            pause();
+            if (currentStepIndex < steps.length - 1) {
+                currentStepIndex++;
+                renderStep(currentStepIndex, true);
+            }
+        }
+
+        function stepPrev() {
+            pause();
+            if (currentStepIndex > 0) {
+                currentStepIndex--;
+                renderStep(currentStepIndex, false);
+            }
+        }
+
+        function jumpToStart() {
+            pause();
+            currentStepIndex = 0;
+            renderStep(0);
+        }
+
+        function jumpToEnd() {
+            pause();
+            currentStepIndex = steps.length - 1;
+            renderStep(currentStepIndex);
+        }
+
+        function generateRandomArray(size = 8) {
+            let arr = [];
+            for (let k = 0; k < size; k++) {
+                arr.push(Math.floor(Math.random() * 25) + 2);
+            }
+            return arr;
+        }
+
+        function loadPreset(presetKey) {
+            let newArr = [];
+            switch (presetKey) {
+                case 'nearlySorted':
+                    newArr = [1, 3, 2, 5, 4, 7, 6, 8];
+                    break;
+                case 'reversed':
+                    newArr = [9, 8, 7, 6, 5, 4, 3, 2];
+                    break;
+                case 'duplicates':
+                    newArr = [4, 2, 4, 1, 3, 4, 2, 5];
+                    break;
+                case 'random':
+                default:
+                    newArr = generateRandomArray(8);
+                    break;
+            }
+            document.getElementById('customInput').value = newArr.join(', ');
+            initVisualization(newArr);
+        }
+
+        function applyCustomInput() {
+            const rawVal = document.getElementById('customInput').value;
+            const parsed = rawVal.split(',')
+                .map(x => parseInt(x.trim()))
+                .filter(x => !isNaN(x) && x >= 0 && x <= 99);
+            
+            if (parsed.length >= 3 && parsed.length <= 16) {
+                initVisualization(parsed);
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            
+            // Playback controls
+            document.getElementById('btnPlayPause').addEventListener('click', togglePlay);
+            document.getElementById('btnNext').addEventListener('click', stepNext);
+            document.getElementById('btnPrev').addEventListener('click', stepPrev);
+            document.getElementById('btnStart').addEventListener('click', jumpToStart);
+            document.getElementById('btnEnd').addEventListener('click', jumpToEnd);
+
+            document.getElementById('btnCallStackToggle').addEventListener('click', () => {
+                showCallStacks = !showCallStacks;
+                syncCallStackVisibility();
+                if (showCallStacks) {
+                    renderCallStack(steps[currentStepIndex]?.stack || []);
+                }
+            });
+
+            syncCallStackVisibility();
+
+            // Step Scrubber Slider with slide/swap animation when dragging fast
+            const scrubber = document.getElementById('scrubber');
+            scrubber.addEventListener('input', (e) => {
+                pause();
+                currentStepIndex = parseInt(e.target.value);
+                renderStep(currentStepIndex, true);
+            });
+
+            // Scheme Button Switchers
+            document.getElementById('btnSchemeLomuto').addEventListener('click', () => {
+                currentScheme = 'lomuto';
+                updateSchemeButtons();
+                initVisualization(initialArray);
+            });
+
+            document.getElementById('btnSchemeHoare').addEventListener('click', () => {
+                currentScheme = 'hoare';
+                updateSchemeButtons();
+                initVisualization(initialArray);
+            });
+
+            // Speed Slider
+            const speedSlider = document.getElementById('speedSlider');
+            speedSlider.addEventListener('input', (e) => {
+                const val = parseInt(e.target.value);
+                speed = val / 5;
+                document.getElementById('speedValue').innerText = `${speed.toFixed(1)}x`;
+                if (isPlaying) play();
+            });
+
+            // Preset Selector
+            document.getElementById('presetSelect').addEventListener('change', (e) => {
+                loadPreset(e.target.value);
+            });
+
+            // Dice Random Generator Button
+            document.getElementById('btnDice').addEventListener('click', () => {
+                const randomArr = generateRandomArray(8);
+                document.getElementById('customInput').value = randomArr.join(', ');
+                initVisualization(randomArr);
+            });
+
+            // Custom Input Events (Auto-applies on Enter key or change)
+            const customInput = document.getElementById('customInput');
+            customInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    applyCustomInput();
+                    customInput.blur();
+                }
+            });
+
+            // Light/Dark Theme Toggle
+            const btnThemeToggle = document.getElementById('btnThemeToggle');
+            const themeIcon = document.getElementById('themeIcon');
+            btnThemeToggle.addEventListener('click', () => {
+                const htmlElem = document.documentElement;
+                if (htmlElem.classList.contains('dark')) {
+                    htmlElem.classList.remove('dark');
+                    htmlElem.classList.add('light');
+                    themeIcon.className = 'fa-solid fa-moon text-base';
+                } else {
+                    htmlElem.classList.remove('light');
+                    htmlElem.classList.add('dark');
+                    themeIcon.className = 'fa-solid fa-sun text-base text-amber-400';
+                }
+            });
+
+            // Modal Handlers with MathJax rendering trigger
+            const infoModal = document.getElementById('infoModal');
+            const openModal = () => {
+                infoModal.classList.remove('hidden');
+                if (window.MathJax && window.MathJax.typesetPromise) {
+                    window.MathJax.typesetPromise();
+                }
+            };
+            document.getElementById('btnInfoModal').addEventListener('click', openModal);
+            document.getElementById('btnCloseModal').addEventListener('click', () => infoModal.classList.add('hidden'));
+            document.getElementById('btnGotIt').addEventListener('click', () => infoModal.classList.add('hidden'));
+
+            // Keyboard Navigation Shortcuts
+            window.addEventListener('keydown', (e) => {
+                if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return;
+                
+                if (e.code === 'Space') {
+                    e.preventDefault();
+                    togglePlay();
+                } else if (e.code === 'ArrowRight') {
+                    e.preventDefault();
+                    stepNext();
+                } else if (e.code === 'ArrowLeft') {
+                    e.preventDefault();
+                    stepPrev();
+                } else if (e.code === 'Home') {
+                    e.preventDefault();
+                    jumpToStart();
+                } else if (e.code === 'End') {
+                    e.preventDefault();
+                    jumpToEnd();
+                }
+            });
+
+            // Initial load
+            loadPreset('random');
+        });
+    </script>
+</body>
+</html>
