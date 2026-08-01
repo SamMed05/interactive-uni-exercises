@@ -711,12 +711,12 @@
                 });
                 barWrapper.appendChild(pointerZone);
 
-                // 2. Bar Container
+                // 2. Bar Container (Takes remaining height, aligned to bottom)
                 const barArea = document.createElement('div');
                 barArea.className = 'w-full flex-1 flex flex-col justify-end items-center';
 
                 if (isExtra) {
-                    // Transparent placeholder with 0 height so it takes space without displaying a bar
+                    // Transparent placeholder with 0 height
                     const dummyBar = document.createElement('div');
                     dummyBar.className = 'w-full h-0 opacity-0 pointer-events-none';
                     barArea.appendChild(dummyBar);
@@ -760,6 +760,7 @@
                     }
 
                     const bar = document.createElement('div');
+                    // Added ID here so animateBarSwap targets only the inner bar
                     bar.id = `bar-${idx}`;
                     bar.className = `w-full rounded-t-lg border flex flex-col items-center justify-end pb-1.5 bar-transition ${colorClass} ${animationClass}`;
                     bar.style.height = `${heightPercent}%`;
@@ -773,7 +774,7 @@
                 }
                 barWrapper.appendChild(barArea);
 
-                // 3. Index Label at the bottom
+                // 3. Index Label at the BOTTOM
                 const idxLabel = document.createElement('span');
                 idxLabel.className = `text-[11px] font-mono font-semibold mt-1.5 shrink-0 ${
                     isExtra ? 'text-slate-400 dark:text-slate-500' : 'text-slate-500 dark:text-slate-400'
@@ -795,30 +796,31 @@
             }
 
             const [idx1, idx2] = step.swappedPair;
-            const wrap1 = document.getElementById(`bar-wrapper-${idx1}`);
-            const wrap2 = document.getElementById(`bar-wrapper-${idx2}`);
+            // Select the inner bar elements instead of the entire wrappers
+            const bar1 = document.getElementById(`bar-${idx1}`);
+            const bar2 = document.getElementById(`bar-${idx2}`);
 
-            if (!wrap1 || !wrap2) {
+            if (!bar1 || !bar2) {
                 if (callback) callback();
                 return;
             }
 
-            const rect1 = wrap1.getBoundingClientRect();
-            const rect2 = wrap2.getBoundingClientRect();
+            const rect1 = bar1.getBoundingClientRect();
+            const rect2 = bar2.getBoundingClientRect();
             const dx = rect2.left - rect1.left;
 
             isAnimatingSwap = true;
 
-            wrap1.style.transition = 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
-            wrap2.style.transition = 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
-            wrap1.style.transform = `translateX(${dx}px)`;
-            wrap2.style.transform = `translateX(${-dx}px)`;
+            bar1.style.transition = 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
+            bar2.style.transition = 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
+            bar1.style.transform = `translateX(${dx}px)`;
+            bar2.style.transform = `translateX(${-dx}px)`;
 
             setTimeout(() => {
-                wrap1.style.transition = '';
-                wrap2.style.transition = '';
-                wrap1.style.transform = '';
-                wrap2.style.transform = '';
+                bar1.style.transition = '';
+                bar2.style.transition = '';
+                bar1.style.transform = '';
+                bar2.style.transform = '';
                 isAnimatingSwap = false;
                 if (callback) callback();
             }, 320);
