@@ -30,7 +30,7 @@
     <style>
         body {
             font-family: 'Inter', sans-serif;
-            user-select: none;
+            /* user-select: none; */
         }
 
         /* Smooth transition for array bar heights and colors */
@@ -137,7 +137,7 @@
                     <!-- Partition Scheme Buttons -->
                     <div class="flex items-center space-x-1 pl-1">
                         <span class="text-[10px] font-bold uppercase tracking-wider text-indigo-700 dark:text-indigo-300 px-1.5 flex items-center gap-1">
-                            <i class="fa-solid fa-sliders text-indigo-500"></i>
+                            <!-- <i class="fa-solid fa-sliders text-indigo-500"></i> -->
                             Partition:
                         </span>
                         <div class="inline-flex rounded-lg p-0.5 bg-indigo-50/80 dark:bg-indigo-950/60 border border-indigo-500/80 dark:border-indigo-400/80 shadow-xs">
@@ -361,19 +361,19 @@
         const PSEUDOCODE_LOMUTO = `
 <div id="code-line-1" class="flex items-center px-2 py-0.5 rounded transition-colors"><span class="w-6 text-slate-500 select-none text-right pr-2">1</span><span><span class="text-purple-400">QuickSort</span>(A, p, r):</span></div>
 <div id="code-line-2" class="flex items-center px-2 py-0.5 rounded transition-colors"><span class="w-6 text-slate-500 select-none text-right pr-2">2</span><span class="pl-4"><span class="text-pink-400">if</span> p &lt; r <span class="text-pink-400">then</span>:</span></div>
-<div id="code-line-3" class="flex items-center px-2 py-0.5 rounded transition-colors"><span class="w-6 text-slate-500 select-none text-right pr-2">3</span><span class="pl-8">q := Partition(A, p, r)</span></div>
+<div id="code-line-3" class="flex items-center px-2 py-0.5 rounded transition-colors"><span class="w-6 text-slate-500 select-none text-right pr-2">3</span><span class="pl-8">q := LomutoPartition(A, p, r)</span></div>
 <div id="code-line-4" class="flex items-center px-2 py-0.5 rounded transition-colors"><span class="w-6 text-slate-500 select-none text-right pr-2">4</span><span class="pl-8">QuickSort(A, p, q - 1)</span></div>
 <div id="code-line-5" class="flex items-center px-2 py-0.5 rounded transition-colors mb-3"><span class="w-6 text-slate-500 select-none text-right pr-2">5</span><span class="pl-8">QuickSort(A, q + 1, r)</span></div>
 
-<div id="code-line-6" class="flex items-center px-2 py-0.5 rounded transition-colors border-t border-slate-800 pt-2"><span class="w-6 text-slate-500 select-none text-right pr-2">6</span><span><span class="text-purple-400">Partition</span>(A, p, r):</span></div>
-<div id="code-line-7" class="flex items-center px-2 py-0.5 rounded transition-colors"><span class="w-6 text-slate-500 select-none text-right pr-2">7</span><span class="pl-4">x := A[r]</span></div>
-<div id="code-line-8" class="flex items-center px-2 py-0.5 rounded transition-colors"><span class="w-6 text-slate-500 select-none text-right pr-2">8</span><span class="pl-4">i := p - 1</span></div>
-<div id="code-line-9" class="flex items-center px-2 py-0.5 rounded transition-colors"><span class="w-6 text-slate-500 select-none text-right pr-2">9</span><span class="pl-4"><span class="text-pink-400">for</span> j := p <span class="text-pink-400">to</span> r - 1 <span class="text-pink-400">do</span>:</span></div>
-<div id="code-line-10" class="flex items-center px-2 py-0.5 rounded transition-colors"><span class="w-6 text-slate-500 select-none text-right pr-2">10</span><span class="pl-8"><span class="text-pink-400">if</span> A[j] &le; x <span class="text-pink-400">then</span>:</span></div>
+<div id="code-line-6" class="flex items-center px-2 py-0.5 rounded transition-colors border-t border-slate-800 pt-2"><span class="w-6 text-slate-500 select-none text-right pr-2">6</span><span><span class="text-purple-400">LomutoPartition</span>(A, p, r):</span></div>
+<div id="code-line-7" class="flex items-center px-2 py-0.5 rounded transition-colors"><span class="w-6 text-slate-500 select-none text-right pr-2">7</span><span class="pl-4">piv := A[r]</span><span class="text-slate-500 text-[11px] ml-auto">// select pivot</span></div>
+<div id="code-line-8" class="flex items-center px-2 py-0.5 rounded transition-colors"><span class="w-6 text-slate-500 select-none text-right pr-2">8</span><span class="pl-4">i := p - 1</span><span class="text-slate-500 text-[11px] ml-auto">// last index of &le; piv</span></div>
+<div id="code-line-9" class="flex items-center px-2 py-0.5 rounded transition-colors"><span class="w-6 text-slate-500 select-none text-right pr-2">9</span><span class="pl-4"><span class="text-pink-400">for</span> j := p <span class="text-pink-400">to</span> r - 1 <span class="text-pink-400">do</span>:</span><span class="text-slate-500 text-[11px] ml-auto">// scan array</span></div>
+<div id="code-line-10" class="flex items-center px-2 py-0.5 rounded transition-colors"><span class="w-6 text-slate-500 select-none text-right pr-2">10</span><span class="pl-8"><span class="text-pink-400">if</span> A[j] &le; piv <span class="text-pink-400">then</span>:</span></div>
 <div id="code-line-11" class="flex items-center px-2 py-0.5 rounded transition-colors"><span class="w-6 text-slate-500 select-none text-right pr-2">11</span><span class="pl-12">i := i + 1</span></div>
 <div id="code-line-12" class="flex items-center px-2 py-0.5 rounded transition-colors"><span class="w-6 text-slate-500 select-none text-right pr-2">12</span><span class="pl-12"><span class="text-amber-400">swap</span> A[i] &harr; A[j]</span></div>
-<div id="code-line-13" class="flex items-center px-2 py-0.5 rounded transition-colors"><span class="w-6 text-slate-500 select-none text-right pr-2">13</span><span class="pl-4"><span class="text-amber-400">swap</span> A[r] &harr; A[i + 1]</span></div>
-<div id="code-line-14" class="flex items-center px-2 py-0.5 rounded transition-colors"><span class="w-6 text-slate-500 select-none text-right pr-2">14</span><span class="pl-4"><span class="text-purple-400">return</span> i + 1</span></div>
+<div id="code-line-13" class="flex items-center px-2 py-0.5 rounded transition-colors"><span class="w-6 text-slate-500 select-none text-right pr-2">13</span><span class="pl-4"><span class="text-amber-400">swap</span> A[i + 1] &harr; A[r]</span><span class="text-slate-500 text-[11px] ml-auto">// put pivot in place</span></div>
+<div id="code-line-14" class="flex items-center px-2 py-0.5 rounded transition-colors"><span class="w-6 text-slate-500 select-none text-right pr-2">14</span><span class="pl-4"><span class="text-purple-400">return</span> i + 1</span><span class="text-slate-500 text-[11px] ml-auto">// pivot index</span></div>
 `;
 
         const PSEUDOCODE_HOARE = `
@@ -384,15 +384,16 @@
 <div id="code-line-5" class="flex items-center px-2 py-0.5 rounded transition-colors mb-3"><span class="w-6 text-slate-500 select-none text-right pr-2">5</span><span class="pl-8">QuickSort(A, q + 1, r)</span></div>
 
 <div id="code-line-6" class="flex items-center px-2 py-0.5 rounded transition-colors border-t border-slate-800 pt-2"><span class="w-6 text-slate-500 select-none text-right pr-2">6</span><span><span class="text-purple-400">HoarePartition</span>(A, p, r):</span></div>
-<div id="code-line-7" class="flex items-center px-2 py-0.5 rounded transition-colors"><span class="w-6 text-slate-500 select-none text-right pr-2">7</span><span class="pl-4">x := A[p]</span></div>
-<div id="code-line-8" class="flex items-center px-2 py-0.5 rounded transition-colors"><span class="w-6 text-slate-500 select-none text-right pr-2">8</span><span class="pl-4">i := p - 1</span></div>
-<div id="code-line-9" class="flex items-center px-2 py-0.5 rounded transition-colors"><span class="w-6 text-slate-500 select-none text-right pr-2">9</span><span class="pl-4">j := r + 1</span></div>
-<div id="code-line-10" class="flex items-center px-2 py-0.5 rounded transition-colors"><span class="w-6 text-slate-500 select-none text-right pr-2">10</span><span class="pl-4"><span class="text-pink-400">while</span> true <span class="text-pink-400">do</span>:</span></div>
-<div id="code-line-11" class="flex items-center px-2 py-0.5 rounded transition-colors"><span class="w-6 text-slate-500 select-none text-right pr-2">11</span><span class="pl-8"><span class="text-pink-400">repeat</span> j := j - 1 <span class="text-pink-400">until</span> A[j] &le; x</span></div>
-<div id="code-line-12" class="flex items-center px-2 py-0.5 rounded transition-colors"><span class="w-6 text-slate-500 select-none text-right pr-2">12</span><span class="pl-8"><span class="text-pink-400">repeat</span> i := i + 1 <span class="text-pink-400">until</span> A[i] &ge; x</span></div>
-<div id="code-line-13" class="flex items-center px-2 py-0.5 rounded transition-colors"><span class="w-6 text-slate-500 select-none text-right pr-2">13</span><span class="pl-8"><span class="text-pink-400">if</span> i &lt; j <span class="text-pink-400">then</span>:</span></div>
-<div id="code-line-14" class="flex items-center px-2 py-0.5 rounded transition-colors"><span class="w-6 text-slate-500 select-none text-right pr-2">14</span><span class="pl-12"><span class="text-amber-400">swap</span> A[i] &harr; A[j]</span></div>
-<div id="code-line-15" class="flex items-center px-2 py-0.5 rounded transition-colors"><span class="w-6 text-slate-500 select-none text-right pr-2">15</span><span class="pl-4"><span class="text-pink-400">else</span> <span class="text-purple-400">return</span> j</span></div>
+<div id="code-line-7" class="flex items-center px-2 py-0.5 rounded transition-colors"><span class="w-6 text-slate-500 select-none text-right pr-2">7</span><span class="pl-4">piv := A[p]</span><span class="text-slate-500 text-[11px] ml-auto">// select pivot</span></div>
+<div id="code-line-8" class="flex items-center px-2 py-0.5 rounded transition-colors"><span class="w-6 text-slate-500 select-none text-right pr-2">8</span><span class="pl-4">i := p - 1, j := r + 1</span></div>
+<div id="code-line-9" class="flex items-center px-2 py-0.5 rounded transition-colors"><span class="w-6 text-slate-500 select-none text-right pr-2">9</span><span class="pl-4"><span class="text-pink-400">while</span> true <span class="text-pink-400">do</span>:</span></div>
+<div id="code-line-10" class="flex items-center px-2 py-0.5 rounded transition-colors"><span class="w-6 text-slate-500 select-none text-right pr-2">10</span><span class="pl-8">i := i + 1</span></div>
+<div id="code-line-11" class="flex items-center px-2 py-0.5 rounded transition-colors"><span class="w-6 text-slate-500 select-none text-right pr-2">11</span><span class="pl-8"><span class="text-pink-400">while</span> A[i] &lt; piv <span class="text-pink-400">do</span> i := i + 1</span><span class="text-slate-500 text-[11px] ml-auto">// scan right</span></div>
+<div id="code-line-12" class="flex items-center px-2 py-0.5 rounded transition-colors"><span class="w-6 text-slate-500 select-none text-right pr-2">12</span><span class="pl-8">j := j - 1</span></div>
+<div id="code-line-13" class="flex items-center px-2 py-0.5 rounded transition-colors"><span class="w-6 text-slate-500 select-none text-right pr-2">13</span><span class="pl-8"><span class="text-pink-400">while</span> A[j] &gt; piv <span class="text-pink-400">do</span> j := j - 1</span><span class="text-slate-500 text-[11px] ml-auto">// scan left</span></div>
+<div id="code-line-14" class="flex items-center px-2 py-0.5 rounded transition-colors"><span class="w-6 text-slate-500 select-none text-right pr-2">14</span><span class="pl-8"><span class="text-pink-400">if</span> i &lt; j <span class="text-pink-400">then</span>:</span></div>
+<div id="code-line-15" class="flex items-center px-2 py-0.5 rounded transition-colors"><span class="w-6 text-slate-500 select-none text-right pr-2">15</span><span class="pl-12"><span class="text-amber-400">swap</span> A[i] &harr; A[j]</span></div>
+<div id="code-line-16" class="flex items-center px-2 py-0.5 rounded transition-colors"><span class="w-6 text-slate-500 select-none text-right pr-2">16</span><span class="pl-8"><span class="text-pink-400">else</span> <span class="text-purple-400">return</span> j</span><span class="text-slate-500 text-[11px] ml-auto">// split index</span></div>
 `;
 
         function generateLomutoSteps(inputArr) {
@@ -421,21 +422,19 @@
 
             function quickSort(p, r) {
                 callStack.push({ name: `QuickSort(A, ${p}, ${r})`, p, r, type: 'qs' });
-                
+
                 pushStep({ line: 1, p, r, desc: `Call QuickSort on subarray A[${p}..${r}]` });
                 pushStep({ line: 2, p, r, desc: p < r ? `Subarray has size > 1 (${p} < ${r})` : `Base case reached (size ≤ 1)` });
 
                 if (p < r) {
-                    pushStep({ line: 3, p, r, desc: `Partition subarray A[${p}..${r}]` });
-                    let q = partition(p, r);
-
+                    pushStep({ line: 3, p, r, desc: `Lomuto Partition subarray A[${p}..${r}]` });
+                    let q = lomutoPartition(p, r);
                     sortedSet.add(q);
-                    pushStep({ line: 3, p, r, pivotIdx: q, desc: `Pivot element A[${q}] is now in final sorted position` });
 
-                    pushStep({ line: 4, p, r, desc: `Recursively sort left subarray A[${p}..${q - 1}]` });
+                    pushStep({ line: 4, p, r, desc: `Recursively sort left partition A[${p}..${q - 1}]` });
                     quickSort(p, q - 1);
 
-                    pushStep({ line: 5, p, r, desc: `Recursively sort right subarray A[${q + 1}..${r}]` });
+                    pushStep({ line: 5, p, r, desc: `Recursively sort right partition A[${q + 1}..${r}]` });
                     quickSort(q + 1, r);
                 } else {
                     if (p === r) sortedSet.add(p);
@@ -444,72 +443,67 @@
                 callStack.pop();
             }
 
-            function partition(p, r) {
-                callStack.push({ name: `Partition(A, ${p}, ${r})`, p, r, type: 'part' });
+            function lomutoPartition(p, r) {
+                callStack.push({ name: `LomutoPartition(A, ${p}, ${r})`, p, r, type: 'part' });
 
                 pushStep({ line: 6, p, r, desc: `Begin Lomuto Partition on A[${p}..${r}]` });
 
-                let x = A[r];
+                let piv = A[r];
                 let pivotIdx = r;
-                pushStep({ line: 7, p, r, pivotIdx, desc: `Select last element x = A[${r}] (${x}) as pivot` });
+                pushStep({ line: 7, p, r, pivotIdx, desc: `Select pivot piv = A[${r}] (${piv})` });
 
                 let i = p - 1;
-                pushStep({ line: 8, p, r, i, pivotIdx, desc: `Initialize boundary index i = ${i}` });
+                pushStep({ line: 8, p, r, i, pivotIdx, desc: `Initialize pointer i = p - 1 (${i})` });
 
                 for (let j = p; j < r; j++) {
-                    pushStep({ line: 9, p, r, i, j, pivotIdx, desc: `Scan element A[${j}] = ${A[j]}` });
-
-                    let isLess = A[j] <= x;
-                    pushStep({ 
+                    pushStep({ line: 9, p, r, i, j, pivotIdx, desc: `Loop index j = ${j}` });
+                    pushStep({
                         line: 10, p, r, i, j, pivotIdx, isCompare: true,
-                        desc: `Compare A[${j}] (${A[j]}) ≤ pivot x (${x}): ${isLess ? 'Yes' : 'No'}`
+                        desc: `Compare A[${j}] (${A[j]}) ≤ piv (${piv})`
                     });
 
-                    if (isLess) {
+                    if (A[j] <= piv) {
                         i++;
-                        pushStep({ line: 11, p, r, i, j, pivotIdx, desc: `Increment boundary index i to ${i}` });
+                        pushStep({ line: 11, p, r, i, j, pivotIdx, desc: `A[${j}] ≤ piv: increment i to ${i}` });
 
-                        if (i !== j) {
-                            let temp = A[i];
-                            A[i] = A[j];
-                            A[j] = temp;
+                        let temp = A[i];
+                        A[i] = A[j];
+                        A[j] = temp;
 
-                            pushStep({
-                                line: 12, p, r, i, j, pivotIdx,
-                                isSwap: true,
-                                swappedPair: [i, j],
-                                desc: `Swap A[${i}] (${A[j]}) with A[${j}] (${A[i]})`
-                            });
-                        }
+                        pushStep({
+                            line: 12, p, r, i, j, pivotIdx,
+                            isSwap: true,
+                            swappedPair: [i, j],
+                            desc: `Swap A[${i}] (${A[j]}) and A[${j}] (${A[i]})`
+                        });
                     }
                 }
 
-                let targetPivotIdx = i + 1;
-                if (r !== targetPivotIdx) {
-                    let temp = A[r];
-                    A[r] = A[targetPivotIdx];
-                    A[targetPivotIdx] = temp;
+                pushStep({ line: 13, p, r, i, j: r, pivotIdx, desc: `Place pivot in final position: swap A[${i + 1}] and A[${r}]` });
 
-                    pushStep({
-                        line: 13, p, r, i, j: r - 1, pivotIdx: targetPivotIdx,
-                        isSwap: true,
-                        swappedPair: [targetPivotIdx, r],
-                        desc: `Swap pivot A[${r}] (${temp}) with A[${targetPivotIdx}] (${A[r]})`
-                    });
-                } else {
-                    pushStep({ line: 13, p, r, i, j: r - 1, pivotIdx: r, desc: `Pivot is already at position ${r}` });
-                }
+                let temp = A[i + 1];
+                A[i + 1] = A[r];
+                A[r] = temp;
 
-                pushStep({ line: 14, p, r, i, j: r - 1, pivotIdx: targetPivotIdx, desc: `Return partition index q = ${targetPivotIdx}` });
+                let q = i + 1;
+                pushStep({
+                    line: 13, p, r, i: q, j: r, pivotIdx: q,
+                    isSwap: true,
+                    swappedPair: [q, r],
+                    desc: `Pivot ${piv} is now fixed at index ${q}`
+                });
+
+                pushStep({ line: 14, p, r, i: q, pivotIdx: q, desc: `Return pivot index q = ${q}` });
 
                 callStack.pop();
-                return targetPivotIdx;
+                return q;
             }
 
             quickSort(0, A.length - 1);
 
             for (let k = 0; k < A.length; k++) sortedSet.add(k);
             pushStep({ line: null, p: null, r: null, i: null, j: null, pivotIdx: null, desc: 'Sorting completed successfully!' });
+
             return localSteps;
         }
 
@@ -550,7 +544,7 @@
                     pushStep({ line: 4, p, r, desc: `Recursively sort left partition A[${p}..${q}]` });
                     quickSort(p, q);
 
-                    pushStep({ line: 5, p, r, desc: `Recursively sort right partition A[${q + 1}..${r}]` });
+                    pushStep({ line: 5, p, r, desc: `Recursively sort right partition A[${q} + 1..${r}]` });
                     quickSort(q + 1, r);
                 } else {
                     if (p === r) sortedSet.add(p);
@@ -564,36 +558,48 @@
 
                 pushStep({ line: 6, p, r, desc: `Begin Hoare Partition on A[${p}..${r}]` });
 
-                let x = A[p];
+                let piv = A[p];
                 let pivotIdx = p;
-                pushStep({ line: 7, p, r, pivotIdx, desc: `Select first element x = A[${p}] (${x}) as pivot` });
+                pushStep({ line: 7, p, r, pivotIdx, desc: `Select pivot piv = A[${p}] (${piv})` });
 
                 let i = p - 1;
-                pushStep({ line: 8, p, r, i, pivotIdx, desc: `Set left pointer i = p - 1 (${i})` });
-
                 let j = r + 1;
-                pushStep({ line: 9, p, r, i, j, pivotIdx, desc: `Set right pointer j = r + 1 (${j})` });
+                pushStep({ line: 8, p, r, i, j, pivotIdx, desc: `Initialize pointers i = ${i}, j = ${j}` });
 
                 while (true) {
-                    pushStep({ line: 10, p, r, i, j, pivotIdx, desc: `Scan pointers inward` });
+                    pushStep({ line: 9, p, r, i, j, pivotIdx, desc: `Scan inward` });
 
-                    do {
-                        j--;
+                    i++;
+                    pushStep({ line: 10, p, r, i, j, pivotIdx, desc: `Advance left pointer i to ${i}` });
+
+                    while (A[i] < piv) {
                         pushStep({ 
                             line: 11, p, r, i, j, pivotIdx, isCompare: true,
-                            desc: `Decrement j to ${j}. Compare A[${j}] (${A[j]}) ≤ x (${x})`
+                            desc: `A[${i}] (${A[i]}) < piv (${piv}): advance i`
                         });
-                    } while (A[j] > x);
-
-                    do {
                         i++;
-                        pushStep({ 
-                            line: 12, p, r, i, j, pivotIdx, isCompare: true,
-                            desc: `Increment i to ${i}. Compare A[${i}] (${A[i]}) ≥ x (${x})`
-                        });
-                    } while (A[i] < x);
+                    }
+                    pushStep({ 
+                        line: 11, p, r, i, j, pivotIdx, isCompare: true,
+                        desc: `A[${i}] (${A[i]}) ≥ piv (${piv}): stop left scan at i = ${i}`
+                    });
 
-                    pushStep({ line: 13, p, r, i, j, pivotIdx, desc: `Check if pointers crossed: i (${i}) < j (${j})` });
+                    j--;
+                    pushStep({ line: 12, p, r, i, j, pivotIdx, desc: `Advance right pointer j to ${j}` });
+
+                    while (A[j] > piv) {
+                        pushStep({ 
+                            line: 13, p, r, i, j, pivotIdx, isCompare: true,
+                            desc: `A[${j}] (${A[j]}) > piv (${piv}): advance j`
+                        });
+                        j--;
+                    }
+                    pushStep({ 
+                        line: 13, p, r, i, j, pivotIdx, isCompare: true,
+                        desc: `A[${j}] (${A[j]}) ≤ piv (${piv}): stop right scan at j = ${j}`
+                    });
+
+                    pushStep({ line: 14, p, r, i, j, pivotIdx, desc: `Check pointer boundary: i (${i}) < j (${j})` });
 
                     if (i < j) {
                         let temp = A[i];
@@ -601,13 +607,13 @@
                         A[j] = temp;
 
                         pushStep({
-                            line: 14, p, r, i, j, pivotIdx,
+                            line: 15, p, r, i, j, pivotIdx,
                             isSwap: true,
                             swappedPair: [i, j],
                             desc: `Swap A[${i}] (${A[j]}) and A[${j}] (${A[i]})`
                         });
                     } else {
-                        pushStep({ line: 15, p, r, i, j, pivotIdx, desc: `Pointers crossed. Return partition point j = ${j}` });
+                        pushStep({ line: 16, p, r, i, j, pivotIdx, desc: `Pointers crossed (i ≥ j). Return partition index q = ${j}` });
                         callStack.pop();
                         return j;
                     }
@@ -851,30 +857,30 @@
                     if (currentScheme === 'lomuto') {
                         if (k === step.pivotIdx) {
                             cell.className += ' bg-indigo-500/20 text-indigo-700 dark:text-indigo-300';
-                            cell.innerText = 'Pivot x';
+                            cell.innerText = 'Pivot piv';
                         } else if (i !== null && k >= p && k <= i) {
                             cell.className += ' bg-amber-500/20 text-amber-800 dark:text-amber-300';
-                            cell.innerText = '≤ x';
+                            cell.innerText = '≤ piv';
                         } else if (i !== null && j !== null && k > i && k < j) {
                             cell.className += ' bg-rose-500/20 text-rose-800 dark:text-rose-300';
-                            cell.innerText = '> x';
+                            cell.innerText = '> piv';
                         } else {
                             cell.className += ' bg-sky-500/10 text-sky-700 dark:text-sky-300';
-                            cell.innerText = 'Unexamined';
+                            cell.innerText = '?';
                         }
                     } else { // Hoare
                         if (k === step.pivotIdx) {
                             cell.className += ' bg-indigo-500/20 text-indigo-700 dark:text-indigo-300';
-                            cell.innerText = 'Pivot x';
+                            cell.innerText = 'Pivot piv';
                         } else if (i !== null && k <= i) {
                             cell.className += ' bg-amber-500/20 text-amber-800 dark:text-amber-300';
-                            cell.innerText = '≤ x';
+                            cell.innerText = '≤ piv';
                         } else if (j !== null && k >= j) {
                             cell.className += ' bg-rose-500/20 text-rose-800 dark:text-rose-300';
-                            cell.innerText = '≥ x';
+                            cell.innerText = '≥ piv';
                         } else {
                             cell.className += ' bg-sky-500/10 text-sky-700 dark:text-sky-300';
-                            cell.innerText = 'Unexamined';
+                            cell.innerText = '?';
                         }
                     }
                 } else {
@@ -895,19 +901,19 @@
                 legend.innerHTML = `
                     <div class="flex items-center space-x-1.5 bg-amber-50 dark:bg-amber-950/30 text-amber-800 dark:text-amber-300 px-2 py-1 rounded border border-amber-200 dark:border-amber-800/50">
                         <span class="w-2.5 h-2.5 rounded-full bg-amber-400"></span>
-                        <span>&le; x (Left)</span>
+                        <span>&le; piv (Left)</span>
                     </div>
                     <div class="flex items-center space-x-1.5 bg-rose-50 dark:bg-rose-950/30 text-rose-800 dark:text-rose-300 px-2 py-1 rounded border border-rose-200 dark:border-rose-800/50">
                         <span class="w-2.5 h-2.5 rounded-full bg-rose-500"></span>
-                        <span>&gt; x (Right)</span>
+                        <span>&gt; piv (Right)</span>
                     </div>
                     <div class="flex items-center space-x-1.5 bg-sky-50 dark:bg-sky-950/30 text-sky-800 dark:text-sky-300 px-2 py-1 rounded border border-sky-200 dark:border-sky-800/50">
                         <span class="w-2.5 h-2.5 rounded-full bg-sky-300"></span>
-                        <span>Unexamined</span>
+                        <span>?</span>
                     </div>
                     <div class="flex items-center space-x-1.5 bg-indigo-50 dark:bg-indigo-950/30 text-indigo-800 dark:text-indigo-300 px-2 py-1 rounded border border-indigo-200 dark:border-indigo-800/50">
                         <span class="w-2.5 h-2.5 rounded-full bg-indigo-600"></span>
-                        <span>Pivot (x)</span>
+                        <span>Pivot (piv)</span>
                     </div>
                     <div class="flex items-center space-x-1.5 bg-emerald-50 dark:bg-emerald-950/30 text-emerald-800 dark:text-emerald-300 px-2 py-1 rounded border border-emerald-200 dark:border-emerald-800/50 col-span-2 sm:col-span-1">
                         <span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
@@ -918,19 +924,19 @@
                 legend.innerHTML = `
                     <div class="flex items-center space-x-1.5 bg-amber-50 dark:bg-amber-950/30 text-amber-800 dark:text-amber-300 px-2 py-1 rounded border border-amber-200 dark:border-amber-800/50">
                         <span class="w-2.5 h-2.5 rounded-full bg-amber-400"></span>
-                        <span>&le; x Region</span>
+                        <span>&le; piv Region</span>
                     </div>
                     <div class="flex items-center space-x-1.5 bg-rose-50 dark:bg-rose-950/30 text-rose-800 dark:text-rose-300 px-2 py-1 rounded border border-rose-200 dark:border-rose-800/50">
                         <span class="w-2.5 h-2.5 rounded-full bg-rose-500"></span>
-                        <span>&ge; x Region</span>
+                        <span>&ge; piv Region</span>
                     </div>
                     <div class="flex items-center space-x-1.5 bg-sky-50 dark:bg-sky-950/30 text-sky-800 dark:text-sky-300 px-2 py-1 rounded border border-sky-200 dark:border-sky-800/50">
                         <span class="w-2.5 h-2.5 rounded-full bg-sky-300"></span>
-                        <span>Unexamined</span>
+                        <span>?</span>
                     </div>
                     <div class="flex items-center space-x-1.5 bg-indigo-50 dark:bg-indigo-950/30 text-indigo-800 dark:text-indigo-300 px-2 py-1 rounded border border-indigo-200 dark:border-indigo-800/50 text-[10px] leading-none whitespace-nowrap">
                         <span class="w-2.5 h-2.5 rounded-full bg-indigo-600"></span>
-                        <span>Pivot x = A[p]</span>
+                        <span>Pivot piv = A[p]</span>
                     </div>
                     <div class="flex items-center space-x-1.5 bg-emerald-50 dark:bg-emerald-950/30 text-emerald-800 dark:text-emerald-300 px-2 py-1 rounded border border-emerald-200 dark:border-emerald-800/50 col-span-2 sm:col-span-1">
                         <span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
@@ -944,7 +950,7 @@
          * Highlight executing line in Pseudocode
          */
         function renderPseudocode(activeLine) {
-            const maxLines = currentScheme === 'lomuto' ? 14 : 15;
+            const maxLines = currentScheme === 'lomuto' ? 14 : 16;
             for (let l = 1; l <= maxLines; l++) {
                 const lineElem = document.getElementById(`code-line-${l}`);
                 if (lineElem) {
