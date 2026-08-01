@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" class="dark">
+<html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -151,7 +151,7 @@
             <i class="fa-solid fa-chevron-left"></i>
           </button>
           
-          <button id="playBtn" onclick="togglePlay()" title="Play / Pause" class="w-11 h-11 flex items-center justify-center bg-sky-500 hover:bg-sky-400 text-slate-950 font-bold rounded-lg transition shadow-lg shadow-sky-500/20">
+          <button id="playBtn" onclick="togglePlay()" title="Play / Pause" class="w-11 h-11 flex items-center justify-center bg-sky-500 hover:bg-sky-400 text-white font-bold rounded-lg transition shadow-lg shadow-sky-500/20">
             <i class="fa-solid fa-play text-base"></i>
           </button>
 
@@ -161,6 +161,23 @@
           <button onclick="lastStep()" title="Jump to End" class="w-9 h-9 flex items-center justify-center bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-lg transition border border-slate-300 dark:border-slate-700">
             <i class="fa-solid fa-forward-step"></i>
           </button>
+        </div>
+
+        <!-- Step Timeline Slider -->
+        <div class="flex flex-col gap-1 w-32 sm:w-40">
+          <div class="flex justify-between items-center text-[10px] text-slate-500 dark:text-slate-400">
+            <!-- <span class="font-bold uppercase">Scrub Step</span> -->
+            <span id="stepSliderValue" class="code-font text-sky-500 font-semibold">0</span>
+          </div>
+          <input 
+            type="range" 
+            id="stepSlider" 
+            min="0" 
+            max="0" 
+            value="0" 
+            oninput="jumpToStep(this.value)" 
+            class="w-full h-1.5 bg-slate-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer accent-sky-500"
+          >
         </div>
 
         <!-- Step Counter & Speed Controller -->
@@ -454,18 +471,48 @@
     let playbackSpeed = 1.0;
 
     /**
-     * Theme Toggle Logic
+     * Detects system dark mode preference on initialization and sets up a listener
+     */
+    function initTheme() {
+      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      if (prefersDark) {
+        document.documentElement.classList.add('dark');
+      } else {
+        document.documentElement.classList.remove('dark');
+      }
+      updateThemeIcon();
+
+      // Auto-adapt dynamically if user changes system theme settings
+      window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
+        if (e.matches) {
+          document.documentElement.classList.add('dark');
+        } else {
+          document.documentElement.classList.remove('dark');
+        }
+        updateThemeIcon();
+        renderStep();
+      });
+    }
+
+    /**
+     * Updates button icon state based on active theme
+     */
+    function updateThemeIcon() {
+      const isDark = document.documentElement.classList.contains('dark');
+      const themeIcon = document.getElementById('themeIcon');
+      if (themeIcon) {
+        themeIcon.className = isDark 
+          ? 'fa-solid fa-sun text-amber-400' 
+          : 'fa-solid fa-moon text-indigo-600';
+      }
+    }
+
+    /**
+     * Manual theme toggle button handler
      */
     function toggleTheme() {
-      const html = document.documentElement;
-      const isDark = html.classList.contains('dark');
-      if (isDark) {
-        html.classList.remove('dark');
-        document.getElementById('themeIcon').className = 'fa-solid fa-moon text-indigo-600';
-      } else {
-        html.classList.add('dark');
-        document.getElementById('themeIcon').className = 'fa-solid fa-sun text-amber-400';
-      }
+      document.documentElement.classList.toggle('dark');
+      updateThemeIcon();
       renderStep();
     }
 
@@ -589,6 +636,15 @@
     }
 
     /**
+     * Jump directly to a given step index (called by step slider)
+     */
+    function jumpToStep(stepIdx) {
+      pause();
+      currentStepIdx = parseInt(stepIdx, 10);
+      renderStep();
+    }
+
+    /**
      * Renders a single frame based on currentStepIdx
      */
     function renderStep() {
@@ -598,6 +654,17 @@
       // Update Step counter & Description
       document.getElementById('stepCounter').innerText = `Step ${currentStepIdx + 1} / ${currentSteps.length}`;
       document.getElementById('stepDescription').innerText = step.desc;
+
+      // Update Step Slider
+      const stepSlider = document.getElementById('stepSlider');
+      const stepSliderValue = document.getElementById('stepSliderValue');
+      if (stepSlider) {
+        stepSlider.max = currentSteps.length - 1;
+        stepSlider.value = currentStepIdx;
+      }
+      if (stepSliderValue) {
+        stepSliderValue.innerText = `${currentStepIdx + 1}/${currentSteps.length}`;
+      }
 
       // Update Status Badge
       const statusBadge = document.getElementById('statusBadge');
@@ -796,14 +863,14 @@
         currentStepIdx = 0;
       }
       isPlaying = true;
-      document.getElementById('playBtn').innerHTML = `<i class="fa-solid fa-pause text-base"></i>`;
+      document.getElementById('playBtn').innerHTML = `<i class="fa-solid fa-pause text-base text-white"></i>`;
       scheduleNext();
     }
 
     function pause() {
       isPlaying = false;
       if (playTimer) clearTimeout(playTimer);
-      document.getElementById('playBtn').innerHTML = `<i class="fa-solid fa-play text-base"></i>`;
+      document.getElementById('playBtn').innerHTML = `<i class="fa-solid fa-play text-base text-white"></i>`;
     }
 
     function scheduleNext() {
@@ -905,6 +972,7 @@
 
     // Initialize default view on load
     window.onload = function() {
+      initTheme();
       loadPreset('standard');
     };
   </script>
