@@ -1,21 +1,103 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
   <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Interactive Exercises</title>
   <link rel="stylesheet" href="styles.css">
   <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      padding: 0;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 1rem;
+    }
+
+    /* Controls Layout */
+    .controls {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+      margin-bottom: 1.5rem;
+    }
+
+    /* Form Controls: Prevent iOS zoom on focus with 16px font-size & improve touch targets */
+    .controls input[type="search"],
+    .controls select {
+      width: 100%;
+      min-height: 44px;
+      padding: 0.6rem 0.8rem;
+      font-size: 16px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      appearance: none;
+      -webkit-appearance: none;
+    }
+
+    /* List Touch Target Optimization */
+    #pageList {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+
+    #pageList li a {
+      display: block;
+      min-height: 44px;
+      padding: 0.75rem 1rem;
+      text-decoration: none;
+      border-radius: 6px;
+    }
+
+    /* Media Query for Larger Screens */
+    @media (min-width: 600px) {
+      .container {
+        padding: 2rem 1rem;
+      }
+
+      .controls {
+        flex-direction: row;
+        align-items: center;
+      }
+
+      .controls input[type="search"] {
+        flex: 1;
+      }
+
+      .controls select {
+        width: auto;
+      }
+    }
+
     /* GitHub Corner Banner Styling from https://tholman.com/github-corners/ */
     .github-corner:hover .octo-arm { animation: octocat-wave 560ms ease-in-out; }
-      @keyframes octocat-wave {
-        0%, 100% { transform: rotate(0); }
-        20%, 60% { transform: rotate(-25deg); }
-        40%, 80% { transform: rotate(10deg); }
+    @keyframes octocat-wave {
+      0%, 100% { transform: rotate(0); }
+      20%, 60% { transform: rotate(-25deg); }
+      40%, 80% { transform: rotate(10deg); }
+    }
+    /* Scale down GitHub Corner on small screens */
+    @media (max-width: 500px) {
+      .github-corner svg {
+        width: 60px !important;
+        height: 60px !important;
       }
-      @media (max-width: 500px) {
-        .github-corner:hover .octo-arm { animation: none; }
-        .github-corner .octo-arm { animation: octocat-wave 560ms ease-in-out; }
+      .github-corner:hover .octo-arm { 
+        animation: none; 
       }
+      .github-corner .octo-arm { 
+        animation: octocat-wave 560ms ease-in-out; 
+      }
+    }
   </style>
 </head>
 <body>
