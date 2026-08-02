@@ -606,6 +606,13 @@
                         A[i] = A[j];
                         A[j] = temp;
 
+                        // Track the pivot's new index if it gets swapped
+                        if (pivotIdx === i) {
+                            pivotIdx = j;
+                        } else if (pivotIdx === j) {
+                            pivotIdx = i;
+                        }
+
                         pushStep({
                             line: 15, p, r, i, j, pivotIdx,
                             isSwap: true,
@@ -913,7 +920,7 @@
                     </div>
                     <div class="flex items-center space-x-1.5 bg-indigo-50 dark:bg-indigo-950/30 text-indigo-800 dark:text-indigo-300 px-2 py-1 rounded border border-indigo-200 dark:border-indigo-800/50">
                         <span class="w-2.5 h-2.5 rounded-full bg-indigo-600"></span>
-                        <span>Pivot (piv)</span>
+                        <span>piv = A[r]</span>
                     </div>
                     <div class="flex items-center space-x-1.5 bg-emerald-50 dark:bg-emerald-950/30 text-emerald-800 dark:text-emerald-300 px-2 py-1 rounded border border-emerald-200 dark:border-emerald-800/50 col-span-2 sm:col-span-1">
                         <span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
@@ -934,9 +941,9 @@
                         <span class="w-2.5 h-2.5 rounded-full bg-sky-300"></span>
                         <span>?</span>
                     </div>
-                    <div class="flex items-center space-x-1.5 bg-indigo-50 dark:bg-indigo-950/30 text-indigo-800 dark:text-indigo-300 px-2 py-1 rounded border border-indigo-200 dark:border-indigo-800/50 text-[10px] leading-none whitespace-nowrap">
+                    <div class="flex items-center space-x-1.5 bg-indigo-50 dark:bg-indigo-950/30 text-indigo-800 dark:text-indigo-300 px-2 py-1 rounded border border-indigo-200 dark:border-indigo-800/50">
                         <span class="w-2.5 h-2.5 rounded-full bg-indigo-600"></span>
-                        <span>Pivot piv = A[p]</span>
+                        <span>piv = A[p]</span>
                     </div>
                     <div class="flex items-center space-x-1.5 bg-emerald-50 dark:bg-emerald-950/30 text-emerald-800 dark:text-emerald-300 px-2 py-1 rounded border border-emerald-200 dark:border-emerald-800/50 col-span-2 sm:col-span-1">
                         <span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
