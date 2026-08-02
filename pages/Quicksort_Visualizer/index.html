@@ -216,7 +216,7 @@
                         </div>
 
                         <!-- Region Band Overlay Indicators -->
-                        <div id="regionsContainer" class="mt-4 w-full h-8 flex rounded-lg overflow-hidden border border-slate-200 dark:border-slate-800 font-mono text-[10px] font-semibold">
+                        <div id="regionsContainer" class="mt-4 w-full h-8 flex items-stretch rounded-lg overflow-hidden border border-slate-200 dark:border-slate-800 font-mono text-[10px] font-semibold">
                             <!-- JS renders region bands here -->
                         </div>
                     </div>
@@ -292,7 +292,7 @@
                     <div class="bg-slate-50 dark:bg-slate-950 p-3 rounded-xl border border-slate-200 dark:border-slate-800 flex flex-col gap-1.5">
                         <span class="font-bold text-sky-600 dark:text-sky-400">Lomuto Partitioning:</span>
                         <p class="font-sans text-[11px] text-slate-500 dark:text-slate-400">
-                            Selects the last element \(A[r]\) as pivot. Uses single scan index \(j\) and boundary index \(i\).
+                            Uses the last element \(A[r]\) as a positional pivot and swaps it into its final sorted slot.
                         </p>
                         <div class="mt-1 space-y-1 text-[11px]">
                             <div>\(\bullet\ A[p..i] \le x\)</div>
@@ -304,7 +304,7 @@
                     <div class="bg-slate-50 dark:bg-slate-950 p-3 rounded-xl border border-slate-200 dark:border-slate-800 flex flex-col gap-1.5">
                         <span class="font-bold text-purple-600 dark:text-purple-400">Hoare Partitioning:</span>
                         <p class="font-sans text-[11px] text-slate-500 dark:text-slate-400">
-                            Selects first element \(A[p]\) as pivot. Scans inward from both ends with two pointers \(i\) and \(j\).
+                            Stores the pivot value \(x = A[p]\) and scans inward with two pointers \(i\) and \(j\).
                         </p>
                         <div class="mt-1 space-y-1 text-[11px]">
                             <div>\(\bullet\ A[p..j] \le x\)</div>
@@ -412,6 +412,7 @@
                     i: params.i ?? null,
                     j: params.j ?? null,
                     pivotIdx: params.pivotIdx ?? null,
+                    pivVal: params.pivVal ?? null,
                     line: params.line,
                     desc: params.desc || '',
                     isCompare: params.isCompare || false,
@@ -423,18 +424,18 @@
             function quickSort(p, r) {
                 callStack.push({ name: `QuickSort(A, ${p}, ${r})`, p, r, type: 'qs' });
 
-                pushStep({ line: 1, p, r, desc: `Call QuickSort on subarray A[${p}..${r}]` });
-                pushStep({ line: 2, p, r, desc: p < r ? `Subarray has size > 1 (${p} < ${r})` : `Base case reached (size ≤ 1)` });
+                pushStep({ line: 1, p, r, desc: `QuickSort A[${p}..${r}]` });
+                pushStep({ line: 2, p, r, desc: p < r ? `Keep partitioning (${p} < ${r})` : `Base case (size ≤ 1)` });
 
                 if (p < r) {
-                    pushStep({ line: 3, p, r, desc: `Lomuto Partition subarray A[${p}..${r}]` });
+                    pushStep({ line: 3, p, r, desc: `Partition A[${p}..${r}] with Lomuto` });
                     let q = lomutoPartition(p, r);
                     sortedSet.add(q);
 
-                    pushStep({ line: 4, p, r, desc: `Recursively sort left partition A[${p}..${q - 1}]` });
+                    pushStep({ line: 4, p, r, desc: `Sort left side A[${p}..${q - 1}]` });
                     quickSort(p, q - 1);
 
-                    pushStep({ line: 5, p, r, desc: `Recursively sort right partition A[${q + 1}..${r}]` });
+                    pushStep({ line: 5, p, r, desc: `Sort right side A[${q + 1}..${r}]` });
                     quickSort(q + 1, r);
                 } else {
                     if (p === r) sortedSet.add(p);
@@ -450,7 +451,7 @@
 
                 let piv = A[r];
                 let pivotIdx = r;
-                pushStep({ line: 7, p, r, pivotIdx, desc: `Select pivot piv = A[${r}] (${piv})` });
+                pushStep({ line: 7, p, r, pivotIdx, pivVal: piv, desc: `Select pivot piv = A[${r}] (${piv})` });
 
                 let i = p - 1;
                 pushStep({ line: 8, p, r, i, pivotIdx, desc: `Initialize pointer i = p - 1 (${i})` });
@@ -523,6 +524,7 @@
                     i: params.i ?? null,
                     j: params.j ?? null,
                     pivotIdx: params.pivotIdx ?? null,
+                    pivVal: params.pivVal ?? null, // <-- ADD THIS LINE
                     line: params.line,
                     desc: params.desc || '',
                     isCompare: params.isCompare || false,
@@ -534,17 +536,17 @@
             function quickSort(p, r) {
                 callStack.push({ name: `QuickSort(A, ${p}, ${r})`, p, r, type: 'qs' });
 
-                pushStep({ line: 1, p, r, desc: `Call QuickSort on subarray A[${p}..${r}]` });
-                pushStep({ line: 2, p, r, desc: p < r ? `Subarray has size > 1 (${p} < ${r})` : `Base case reached (size ≤ 1)` });
+                pushStep({ line: 1, p, r, desc: `QuickSort A[${p}..${r}]` });
+                pushStep({ line: 2, p, r, desc: p < r ? `Keep partitioning (${p} < ${r})` : `Base case (size ≤ 1)` });
 
                 if (p < r) {
-                    pushStep({ line: 3, p, r, desc: `Hoare Partition subarray A[${p}..${r}]` });
+                    pushStep({ line: 3, p, r, desc: `Partition A[${p}..${r}] with Hoare` });
                     let q = hoarePartition(p, r);
 
-                    pushStep({ line: 4, p, r, desc: `Recursively sort left partition A[${p}..${q}]` });
+                    pushStep({ line: 4, p, r, desc: `Sort left side A[${p}..${q}]` });
                     quickSort(p, q);
 
-                    pushStep({ line: 5, p, r, desc: `Recursively sort right partition A[${q} + 1..${r}]` });
+                    pushStep({ line: 5, p, r, desc: `Sort right side A[${q} + 1..${r}]` });
                     quickSort(q + 1, r);
                 } else {
                     if (p === r) sortedSet.add(p);
@@ -560,7 +562,7 @@
 
                 let piv = A[p];
                 let pivotIdx = p;
-                pushStep({ line: 7, p, r, pivotIdx, desc: `Select pivot piv = A[${p}] (${piv})` });
+                pushStep({ line: 7, p, r, pivotIdx, pivVal: piv, desc: `Select pivot piv = A[${p}] (${piv})` });
 
                 let i = p - 1;
                 let j = r + 1;
@@ -675,10 +677,13 @@
             // 5. Render Region Bands
             renderRegions(step);
 
-            // 6. Pseudocode line highlight
+            // 6. Render Legend
+            renderLegend(step);
+
+            // 7. Pseudocode line highlight
             renderPseudocode(step.line);
 
-            // 7. Call Stack
+            // 8. Call Stack
             renderCallStack(step.stack);
         }
 
@@ -711,11 +716,11 @@
                 // Outer Column Wrapper
                 const barWrapper = document.createElement('div');
                 barWrapper.id = `bar-wrapper-${idx}`;
-                barWrapper.className = 'flex-1 flex flex-col items-center h-full max-w-[48px] relative';
+                barWrapper.className = 'flex-1 flex flex-col items-center h-full relative';
 
                 // 1. Fixed-Height Pointer Zone at the TOP
                 const pointerZone = document.createElement('div');
-                pointerZone.className = 'h-7 w-full flex items-end justify-center gap-0.5 shrink-0 mb-1';
+                pointerZone.className = 'h-8 w-full flex items-end justify-center gap-0.5 shrink-0 mb-2';
                 pointerTags.forEach(tag => {
                     const badge = document.createElement('span');
                     badge.className = `${tag.color} text-white text-[10px] font-mono font-bold px-1.5 py-0.2 rounded shadow-xs tracking-wide whitespace-nowrap`;
@@ -855,16 +860,21 @@
             const r = step.r;
             const i = step.i;
             const j = step.j;
+            const pivVal = step.pivVal ?? null;
+            const row = document.createElement('div');
+            row.className = 'flex items-stretch justify-center gap-1 sm:gap-3 w-full h-full';
+
+            container.appendChild(row);
 
             for (let k = -1; k <= n; k++) {
                 const cell = document.createElement('div');
-                cell.className = 'flex-1 h-full flex items-center justify-center text-[10px] border-r border-slate-200 dark:border-slate-800 last:border-r-0 font-semibold whitespace-nowrap overflow-hidden text-ellipsis px-0.5';
+                cell.className = 'flex-1 h-full flex items-center justify-center text-[10px] border border-slate-200 dark:border-slate-800 font-semibold whitespace-nowrap overflow-hidden text-ellipsis px-0.5';
                 
                 if (k >= p && k <= r) {
                     if (currentScheme === 'lomuto') {
                         if (k === step.pivotIdx) {
                             cell.className += ' bg-indigo-500/20 text-indigo-700 dark:text-indigo-300';
-                            cell.innerText = 'piv';
+                            cell.innerText = pivVal === null ? 'piv' : `piv = ${pivVal}`;
                         } else if (i !== null && k >= p && k <= i) {
                             cell.className += ' bg-amber-500/20 text-amber-800 dark:text-amber-300';
                             cell.innerText = '≤ piv';
@@ -878,7 +888,7 @@
                     } else { // Hoare
                         if (k === step.pivotIdx) {
                             cell.className += ' bg-indigo-500/20 text-indigo-700 dark:text-indigo-300';
-                            cell.innerText = 'piv';
+                            cell.innerText = pivVal !== null ? `piv = ${pivVal}` : '= piv';
                         } else if (i !== null && k <= i) {
                             cell.className += ' bg-amber-500/20 text-amber-800 dark:text-amber-300';
                             cell.innerText = '≤ piv';
@@ -895,15 +905,27 @@
                     cell.innerText = '-';
                 }
 
-                container.appendChild(cell);
+                row.appendChild(cell);
             }
         }
 
         /**
          * Render Legend items matching scheme
          */
-        function renderLegend() {
+        function renderLegend(step = null) {
             const legend = document.getElementById('legendContainer');
+            const activeStep = step || steps[currentStepIndex] || null;
+            let latestPivotValue = null;
+            const scanLimit = activeStep ? Math.min(currentStepIndex, steps.length - 1) : steps.length - 1;
+            for (let idx = scanLimit; idx >= 0; idx--) {
+                if (steps[idx].pivVal !== null && steps[idx].pivVal !== undefined) {
+                    latestPivotValue = steps[idx].pivVal;
+                    break;
+                }
+            }
+            const pivValText = (activeStep && activeStep.pivVal !== null && activeStep.pivVal !== undefined)
+                ? `piv = ${activeStep.pivVal}`
+                : (latestPivotValue !== null ? `piv = ${latestPivotValue}` : (currentScheme === 'lomuto' ? 'piv = A[r]' : 'piv = A[p]'));
             if (currentScheme === 'lomuto') {
                 legend.innerHTML = `
                     <div class="flex items-center space-x-1.5 bg-amber-50 dark:bg-amber-950/30 text-amber-800 dark:text-amber-300 px-2 py-1 rounded border border-amber-200 dark:border-amber-800/50">
@@ -920,7 +942,7 @@
                     </div>
                     <div class="flex items-center space-x-1.5 bg-indigo-50 dark:bg-indigo-950/30 text-indigo-800 dark:text-indigo-300 px-2 py-1 rounded border border-indigo-200 dark:border-indigo-800/50">
                         <span class="w-2.5 h-2.5 rounded-full bg-indigo-600"></span>
-                        <span>piv = A[r]</span>
+                        <span>${pivValText}</span>
                     </div>
                     <div class="flex items-center space-x-1.5 bg-emerald-50 dark:bg-emerald-950/30 text-emerald-800 dark:text-emerald-300 px-2 py-1 rounded border border-emerald-200 dark:border-emerald-800/50 col-span-2 sm:col-span-1">
                         <span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
@@ -943,7 +965,7 @@
                     </div>
                     <div class="flex items-center space-x-1.5 bg-indigo-50 dark:bg-indigo-950/30 text-indigo-800 dark:text-indigo-300 px-2 py-1 rounded border border-indigo-200 dark:border-indigo-800/50">
                         <span class="w-2.5 h-2.5 rounded-full bg-indigo-600"></span>
-                        <span>piv = A[p]</span>
+                        <span>${pivValText}</span>
                     </div>
                     <div class="flex items-center space-x-1.5 bg-emerald-50 dark:bg-emerald-950/30 text-emerald-800 dark:text-emerald-300 px-2 py-1 rounded border border-emerald-200 dark:border-emerald-800/50 col-span-2 sm:col-span-1">
                         <span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
@@ -1032,7 +1054,7 @@
                 document.getElementById('schemeBadge').innerText = 'Hoare Scheme';
             }
 
-            renderLegend();
+            renderLegend(steps[0]);
 
             currentStepIndex = 0;
             const scrubber = document.getElementById('scrubber');
