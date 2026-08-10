@@ -1,0 +1,1052 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DFS Cycle Detection Visualizer</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+            mono: ['Fira Code', 'monospace'],
+          },
+          colors: {
+            brand: {
+              50: '#eff6ff',
+              100: '#dbeafe',
+              500: '#3b82f6',
+              600: '#2563eb',
+              700: '#1d4ed8',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    .dark ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+    ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+
+    .glow-node-active { filter: drop-shadow(0 0 8px rgba(59, 130, 246, 0.7)); }
+    .glow-node-visited { filter: drop-shadow(0 0 6px rgba(16, 185, 129, 0.5)); }
+    .glow-node-cycle { filter: drop-shadow(0 0 10px rgba(244, 63, 94, 0.8)); }
+    .glow-edge-cycle { stroke-dasharray: 8; animation: dash 1s linear infinite; }
+
+    @keyframes dash {
+      to { stroke-dashoffset: -16; }
+    }
+    
+    @keyframes pulse-ring {
+      0% { transform: scale(0.95); opacity: 0.8; }
+      50% { transform: scale(1.15); opacity: 0.4; }
+      100% { transform: scale(0.95); opacity: 0.8; }
+    }
+    .pulse-effect { animation: pulse-ring 2s infinite ease-in-out; }
+  </style>
+</head>
+<body class="bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-100 font-sans min-h-screen flex flex-col antialiased selection:bg-brand-500 selection:text-white transition-colors duration-200">
+
+  <!-- Header -->
+  <header class="border-b border-slate-200 dark:border-slate-800 bg-white/80 dark:bg-slate-900/80 backdrop-blur sticky top-0 z-50">
+    <div class="max-w-7xl mx-auto px-4 py-2.5 flex flex-wrap items-center justify-between gap-3">
+      
+      <!-- Title & Theme Badge -->
+      <div class="flex items-center space-x-3">
+        <div class="p-2 bg-blue-600/10 dark:bg-blue-600/20 text-blue-600 dark:text-blue-400 rounded-xl border border-blue-500/20 dark:border-blue-500/30">
+          <i class="fa-solid fa-diagram-project text-lg"></i>
+        </div>
+        <div>
+          <h1 class="text-base font-bold tracking-tight text-slate-900 dark:text-white flex items-center gap-2">
+            DFS Cycle Detection
+            <span class="text-[11px] font-mono font-normal bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 px-2 py-0.5 rounded border border-slate-200 dark:border-slate-700">Undirected Graph</span>
+          </h1>
+        </div>
+      </div>
+
+      <!-- Header Tools & Presets Controls -->
+      <div class="flex flex-wrap items-center gap-2">
+        <!-- Edit Tools -->
+        <div class="flex items-center bg-slate-100 dark:bg-slate-950 p-1 rounded-xl border border-slate-200 dark:border-slate-800 text-xs">
+          <button id="tool-select" onclick="setTool('select')" class="tool-btn px-2.5 py-1.5 rounded-lg font-medium transition flex items-center gap-1.5 bg-brand-600 text-white shadow" title="Select / Move Nodes">
+            <i class="fa-solid fa-hand-pointer"></i> <span class="hidden sm:inline">Select</span>
+          </button>
+          <button id="tool-add-node" onclick="setTool('add-node')" class="tool-btn px-2.5 py-1.5 rounded-lg font-medium transition text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 flex items-center gap-1.5" title="Add New Node">
+            <i class="fa-solid fa-circle-plus"></i> <span class="hidden sm:inline">Add Node</span>
+          </button>
+          <button id="tool-add-edge" onclick="setTool('add-edge')" class="tool-btn px-2.5 py-1.5 rounded-lg font-medium transition text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 flex items-center gap-1.5" title="Add Edge Between Nodes">
+            <i class="fa-solid fa-share-nodes"></i> <span class="hidden sm:inline">Add Edge</span>
+          </button>
+          <button id="tool-delete" onclick="setTool('delete')" class="tool-btn px-2.5 py-1.5 rounded-lg font-medium transition text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 flex items-center gap-1.5" title="Delete Node or Edge">
+            <i class="fa-solid fa-trash-can"></i> <span class="hidden sm:inline">Delete</span>
+          </button>
+        </div>
+
+        <!-- Preset Selection -->
+        <select id="preset-select" onchange="loadPreset(this.value)" class="bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 text-xs rounded-xl px-3 py-1.5 focus:ring-2 focus:ring-brand-500 outline-none cursor-pointer">
+          <option value="" disabled selected>Presets...</option>
+          <option value="tree">🌳 Acyclic Tree</option>
+          <option value="simple-cycle">🔄 Simple Cycle</option>
+          <option value="disconnected">🔀 Disconnected Graph</option>
+          <option value="complex">🕸️ Complex Network</option>
+          <option value="random">🎲 Random Graph</option>
+        </select>
+
+        <!-- Theme Toggle Button -->
+        <button id="theme-toggle" onclick="toggleThemeOverride()" class="p-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl text-xs transition border border-slate-200 dark:border-slate-700" title="Toggle Theme">
+          <i id="theme-icon" class="fa-solid fa-moon"></i>
+        </button>
+      </div>
+
+    </div>
+  </header>
+
+  <!-- Main Grid Layout -->
+  <main class="flex-1 max-w-7xl w-full mx-auto p-4 grid grid-cols-1 lg:grid-cols-12 gap-5">
+
+    <!-- Left Column: Graph Visualizer & Playback Scrubber -->
+    <div class="lg:col-span-7 flex flex-col gap-4">
+      
+      <!-- Graph Canvas Box -->
+      <div class="bg-white dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 flex flex-col shadow-lg dark:shadow-xl relative overflow-hidden min-h-[460px]">
+        
+        <!-- Interactive Canvas SVG -->
+        <div class="relative flex-1 bg-slate-100/60 dark:bg-slate-950/60 rounded-xl border border-slate-200 dark:border-slate-800/60 overflow-hidden min-h-[360px] flex items-center justify-center">
+          <svg id="graph-svg" class="w-full h-full min-h-[360px] select-none cursor-crosshair">
+            <!-- Grid pattern background -->
+            <defs>
+              <pattern id="grid" width="30" height="30" patternUnits="userSpaceOnUse">
+                <path d="M 30 0 L 0 0 0 30" fill="none" class="stroke-slate-300/40 dark:stroke-slate-700/20" stroke-width="1"/>
+              </pattern>
+            </defs>
+            <rect width="100%" height="100%" fill="url(#grid)" />
+            <g id="edges-layer"></g>
+            <g id="nodes-layer"></g>
+          </svg>
+
+          <!-- Instructions hint -->
+          <div id="canvas-hint" class="absolute bottom-3 left-3 pointer-events-none text-[11px] text-slate-500 dark:text-slate-400 bg-white/80 dark:bg-slate-900/80 backdrop-blur px-2.5 py-1 rounded-md border border-slate-200 dark:border-slate-800">
+            <i class="fa-solid fa-circle-info mr-1 text-brand-500"></i> <span id="hint-text">Click empty space to add nodes, or drag nodes to move.</span>
+          </div>
+
+          <!-- Active Cycle Notification Banner -->
+          <div id="status-banner" class="absolute top-3 left-1/2 -translate-x-1/2 transition-all duration-300 transform -translate-y-12 opacity-0 pointer-events-none z-10">
+            <div id="status-banner-content" class="px-4 py-2 rounded-xl text-xs font-bold shadow-2xl flex items-center gap-2 border">
+              <!-- Dynamically populated -->
+            </div>
+          </div>
+        </div>
+
+        <!-- Compact Control Bar with Step Slider -->
+        <div class="mt-4 pt-3 border-t border-slate-200 dark:border-slate-800 flex flex-wrap items-center gap-3">
+          
+          <!-- Step Playback Buttons -->
+          <div class="flex items-center gap-1.5">
+            <button id="btn-reset" onclick="resetAlgorithm()" class="p-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-xl text-xs transition border border-slate-200 dark:border-slate-700" title="Reset Step">
+              <i class="fa-solid fa-backward-step"></i>
+            </button>
+            <button id="btn-prev" onclick="stepBackward()" class="p-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-xl text-xs transition border border-slate-200 dark:border-slate-700" title="Previous Step">
+              <i class="fa-solid fa-chevron-left"></i>
+            </button>
+            <button id="btn-play" onclick="togglePlay()" class="w-9 h-9 bg-brand-600 hover:bg-brand-500 text-white rounded-xl text-xs font-semibold transition shadow-md flex items-center justify-center shrink-0" title="Play / Pause">
+              <i id="play-icon" class="fa-solid fa-play"></i>
+            </button>
+            <button id="btn-next" onclick="stepForward()" class="p-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-xl text-xs transition border border-slate-200 dark:border-slate-700" title="Next Step">
+              <i class="fa-solid fa-chevron-right"></i>
+            </button>
+          </div>
+
+          <!-- Step Scrubber Slider -->
+          <div class="flex items-center gap-2 flex-1 min-w-[180px]">
+            <input id="step-slider" type="range" min="0" max="0" value="0" oninput="jumpToStep(this.value)" class="w-full h-1.5 bg-slate-200 dark:bg-slate-800 rounded-lg appearance-none cursor-pointer accent-brand-500">
+            <div class="text-xs font-mono text-slate-500 dark:text-slate-400 whitespace-nowrap min-w-[55px] text-right">
+              <span id="step-counter" class="text-brand-600 dark:text-brand-400 font-bold">0</span>/<span id="step-total">0</span>
+            </div>
+          </div>
+
+          <!-- Speed Input Field -->
+          <div class="flex items-center gap-1.5 text-xs font-mono text-slate-500 dark:text-slate-400 border-l border-slate-200 dark:border-slate-800 pl-3">
+            <label for="speed-input" class="text-[11px] font-sans">Speed:</label>
+            <input id="speed-input" type="number" min="100" max="3000" step="50" value="700" onchange="updateSpeed(this.value)" class="w-16 px-1.5 py-1 text-center bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-slate-800 dark:text-slate-200 rounded-lg outline-none focus:ring-1 focus:ring-brand-500">
+            <span class="text-[10px]">ms</span>
+          </div>
+
+        </div>
+
+      </div>
+
+      <!-- Execution Log -->
+      <div class="bg-white dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 flex flex-col shadow-lg dark:shadow-xl">
+        <div class="flex items-center justify-between pb-2 mb-2 border-b border-slate-200 dark:border-slate-800 text-xs">
+          <span class="font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+            <i class="fa-solid fa-terminal text-brand-500"></i> Log
+          </span>
+          <span id="log-status" class="text-[10px] font-mono text-slate-400">Idle</span>
+        </div>
+        <div id="log-container" class="h-28 overflow-y-auto font-mono text-xs space-y-1 pr-2 text-slate-700 dark:text-slate-300">
+          <div class="text-slate-400 dark:text-slate-500 italic">Press play or use step navigation to begin visual analysis.</div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Right Column: Clean Syntax Pseudocode & Data Structures Inspector -->
+    <div class="lg:col-span-5 flex flex-col gap-4">
+      
+      <!-- Pseudocode Panel -->
+      <div class="bg-white dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 flex flex-col shadow-lg dark:shadow-xl">
+        <div class="flex items-center justify-between pb-2 mb-3 border-b border-slate-200 dark:border-slate-800">
+          <h2 class="text-xs font-bold text-slate-700 dark:text-slate-200 uppercase tracking-wider flex items-center gap-1.5">
+            <i class="fa-solid fa-code text-purple-500 dark:text-purple-400"></i> Pseudocode
+          </h2>
+          <span class="text-[10px] font-mono bg-purple-100 dark:bg-purple-950 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800/50 px-2 py-0.5 rounded">DFS</span>
+        </div>
+
+        <div id="code-container" class="font-mono text-xs leading-relaxed space-y-0.5 overflow-x-auto bg-slate-50 dark:bg-slate-950 p-3 rounded-xl border border-slate-200 dark:border-slate-800/80 text-slate-800 dark:text-slate-200">
+          <!-- DFS-HasCycle Procedure -->
+          <div id="line-1" class="code-line px-2 py-0.5 rounded transition"><span class="text-blue-600 dark:text-blue-400 font-bold">DFS-HasCycle</span>(G)</div>
+          <div id="line-2" class="code-line px-2 py-0.5 rounded transition pl-4"><span class="text-emerald-600 dark:text-emerald-400 font-semibold">visited</span>[0..n] <span class="text-purple-600 dark:text-purple-400">new array</span></div>
+          <div id="line-3" class="code-line px-2 py-0.5 rounded transition pl-4"><span class="text-amber-600 dark:text-amber-400 font-semibold">prev</span>[0..n] <span class="text-purple-600 dark:text-purple-400">new array</span></div>
+          <div id="line-4" class="code-line px-2 py-0.5 rounded transition pl-4"><span class="text-pink-600 dark:text-pink-400 font-bold">for all</span> v ∈ V</div>
+          <div id="line-5" class="code-line px-2 py-0.5 rounded transition pl-8"><span class="text-emerald-600 dark:text-emerald-400">visited</span>[v] := <span class="text-sky-600 dark:text-sky-400 font-semibold">FALSE</span></div>
+          <div id="line-6" class="code-line px-2 py-0.5 rounded transition pl-8"><span class="text-amber-600 dark:text-amber-400">prev</span>[v] := 0</div>
+          <div id="line-7" class="code-line px-2 py-0.5 rounded transition pl-4"><span class="text-pink-600 dark:text-pink-400 font-bold">for all</span> v ∈ V <span class="text-slate-400 dark:text-slate-500 text-[10px]">// Check all components</span></div>
+          <div id="line-8" class="code-line px-2 py-0.5 rounded transition pl-8"><span class="text-pink-600 dark:text-pink-400 font-bold">if</span> <span class="text-emerald-600 dark:text-emerald-400">visited</span>[v] = <span class="text-sky-600 dark:text-sky-400 font-semibold">FALSE</span> <span class="text-pink-600 dark:text-pink-400 font-bold">AND</span> <span class="text-blue-600 dark:text-blue-400 font-bold">DFS-Visit</span>(G, v)</div>
+          <div id="line-9" class="code-line px-2 py-0.5 rounded transition pl-12"><span class="text-rose-600 dark:text-rose-400 font-bold">then return</span> <span class="text-rose-600 dark:text-rose-400 font-extrabold">TRUE</span> <span class="text-slate-400 dark:text-slate-500 text-[10px]">// Cycle detected</span></div>
+          <div id="line-10" class="code-line px-2 py-0.5 rounded transition pl-4"><span class="text-emerald-600 dark:text-emerald-400 font-bold">return</span> <span class="text-emerald-600 dark:text-emerald-400 font-extrabold">FALSE</span> <span class="text-slate-400 dark:text-slate-500 text-[10px]">// Acyclic</span></div>
+
+          <div class="my-2 border-t border-slate-200 dark:border-slate-800/80"></div>
+
+          <!-- DFS-Visit Procedure -->
+          <div id="line-12" class="code-line px-2 py-0.5 rounded transition"><span class="text-blue-600 dark:text-blue-400 font-bold">DFS-Visit</span>(G, v)</div>
+          <div id="line-13" class="code-line px-2 py-0.5 rounded transition pl-4"><span class="text-emerald-600 dark:text-emerald-400">visited</span>[v] := <span class="text-emerald-600 dark:text-emerald-400 font-semibold">TRUE</span></div>
+          <div id="line-14" class="code-line px-2 py-0.5 rounded transition pl-4"><span class="text-pink-600 dark:text-pink-400 font-bold">for all</span> (v, u) ∈ E <span class="text-slate-400 dark:text-slate-500 text-[10px]">// Incident edges</span></div>
+          <div id="line-15" class="code-line px-2 py-0.5 rounded transition pl-8"><span class="text-pink-600 dark:text-pink-400 font-bold">if</span> <span class="text-emerald-600 dark:text-emerald-400">visited</span>[u] = <span class="text-sky-600 dark:text-sky-400 font-semibold">FALSE</span></div>
+          <div id="line-16" class="code-line px-2 py-0.5 rounded transition pl-12"><span class="text-amber-600 dark:text-amber-400">prev</span>[u] := v</div>
+          <div id="line-17" class="code-line px-2 py-0.5 rounded transition pl-8"><span class="text-pink-600 dark:text-pink-400 font-bold">if</span> <span class="text-amber-600 dark:text-amber-400">prev</span>[v] ≠ u <span class="text-pink-600 dark:text-pink-400 font-bold">AND</span> (<span class="text-emerald-600 dark:text-emerald-400">visited</span>[u] = <span class="text-emerald-600 dark:text-emerald-400 font-semibold">TRUE</span> <span class="text-pink-600 dark:text-pink-400 font-bold">OR</span> <span class="text-blue-600 dark:text-blue-400 font-bold">DFS-Visit</span>(G, u))</div>
+          <div id="line-18" class="code-line px-2 py-0.5 rounded transition pl-12"><span class="text-rose-600 dark:text-rose-400 font-bold">then return</span> <span class="text-rose-600 dark:text-rose-400 font-extrabold">TRUE</span> <span class="text-slate-400 dark:text-slate-500 text-[10px]">// Cycle detected</span></div>
+          <div id="line-19" class="code-line px-2 py-0.5 rounded transition pl-4"><span class="text-emerald-600 dark:text-emerald-400 font-bold">return</span> <span class="text-emerald-600 dark:text-emerald-400 font-extrabold">FALSE</span></div>
+        </div>
+      </div>
+
+      <!-- Data Structures Inspector -->
+      <div class="bg-white dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 flex flex-col gap-3 shadow-lg dark:shadow-xl">
+        <div class="flex items-center justify-between pb-2 border-b border-slate-200 dark:border-slate-800">
+          <h2 class="text-xs font-bold text-slate-700 dark:text-slate-200 uppercase tracking-wider flex items-center gap-1.5">
+            <i class="fa-solid fa-layer-group text-emerald-500 dark:text-emerald-400"></i> State Arrays & Stack
+          </h2>
+        </div>
+
+        <!-- Arrays Monitor -->
+        <div class="grid grid-cols-2 gap-3">
+          <!-- Visited Array -->
+          <div class="bg-slate-50 dark:bg-slate-950 p-3 rounded-xl border border-slate-200 dark:border-slate-800/80">
+            <div class="text-[11px] font-mono font-bold text-emerald-600 dark:text-emerald-400 mb-2 flex items-center justify-between">
+              <span>visited[]</span>
+              <span class="text-[9px] text-slate-400 font-normal">Boolean</span>
+            </div>
+            <div id="visited-array-container" class="flex flex-wrap gap-1.5">
+              <span class="text-slate-400 text-xs italic">No nodes</span>
+            </div>
+          </div>
+
+          <!-- Prev Array -->
+          <div class="bg-slate-50 dark:bg-slate-950 p-3 rounded-xl border border-slate-200 dark:border-slate-800/80">
+            <div class="text-[11px] font-mono font-bold text-amber-600 dark:text-amber-400 mb-2 flex items-center justify-between">
+              <span>prev[]</span>
+              <span class="text-[9px] text-slate-400 font-normal">Parent</span>
+            </div>
+            <div id="prev-array-container" class="flex flex-wrap gap-1.5">
+              <span class="text-slate-400 text-xs italic">No nodes</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Call Stack Inspector -->
+        <div class="bg-slate-50 dark:bg-slate-950 p-3 rounded-xl border border-slate-200 dark:border-slate-800/80 flex flex-col">
+          <div class="text-[11px] font-mono font-bold text-blue-600 dark:text-blue-400 mb-2 flex items-center justify-between">
+            <span class="flex items-center gap-1"><i class="fa-solid fa-cubes text-xs"></i> Call Stack</span>
+            <span id="stack-depth" class="text-[10px] text-slate-400 font-normal">Depth: 0</span>
+          </div>
+          <div id="call-stack-container" class="flex flex-col-reverse gap-1.5 max-h-28 overflow-y-auto">
+            <div class="text-slate-400 text-xs italic p-1">Stack is empty</div>
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+
+  </main>
+
+  <script>
+    // Global Application State
+    let nodes = [];
+    let edges = [];
+    let nextNodeId = 1;
+    let selectedTool = 'select'; // 'select', 'add-node', 'add-edge', 'delete'
+    let selectedNodeForEdge = null;
+    let draggedNode = null;
+    let dragOffset = { x: 0, y: 0 };
+
+    // Simulation Execution State
+    let executionSteps = [];
+    let currentStepIndex = 0;
+    let isPlaying = false;
+    let timer = null;
+    let stepSpeed = 700;
+
+    // System Theme Mode Detection & Toggle
+    let themeOverride = null; // null = system, 'dark' | 'light'
+
+    function updateTheme() {
+      const isDarkSystem = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      const isDark = themeOverride ? themeOverride === 'dark' : isDarkSystem;
+      
+      if (isDark) {
+        document.documentElement.classList.add('dark');
+        document.getElementById('theme-icon').className = 'fa-solid fa-sun';
+      } else {
+        document.documentElement.classList.remove('dark');
+        document.getElementById('theme-icon').className = 'fa-solid fa-moon';
+      }
+      renderGraph();
+    }
+
+    function toggleThemeOverride() {
+      const isCurrentlyDark = document.documentElement.classList.contains('dark');
+      themeOverride = isCurrentlyDark ? 'light' : 'dark';
+      updateTheme();
+    }
+
+    // Listen for system theme changes
+    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
+      if (!themeOverride) updateTheme();
+    });
+
+    // SVG elements
+    const svg = document.getElementById('graph-svg');
+    const nodesLayer = document.getElementById('nodes-layer');
+    const edgesLayer = document.getElementById('edges-layer');
+
+    // Generate deterministic steps based on graph topology
+    function generateDFSExecutionSteps() {
+      const steps = [];
+      if (nodes.length === 0) return steps;
+
+      const V = nodes.map(n => n.id).sort((a, b) => a - b);
+      
+      const adj = {};
+      V.forEach(id => adj[id] = []);
+      edges.forEach(e => {
+        adj[e.source].push(e.target);
+        adj[e.target].push(e.source);
+      });
+      V.forEach(id => adj[id].sort((a, b) => a - b));
+
+      const visited = {};
+      const prev = {};
+      V.forEach(id => {
+        visited[id] = false;
+        prev[id] = 0;
+      });
+
+      const callStack = [];
+
+      function createStep(line, logMsg, activeNode = null, activeNeighbor = null, status = 'running', cycleEdges = []) {
+        steps.push({
+          line,
+          visited: { ...visited },
+          prev: { ...prev },
+          activeNode,
+          activeNeighbor,
+          callStack: callStack.map(frame => ({ ...frame })),
+          log: logMsg,
+          status,
+          cycleEdges
+        });
+      }
+
+      // Procedure start
+      createStep(1, "Starting procedure DFS-HasCycle(G)");
+      createStep(2, "Initializing 'visited' array");
+      createStep(3, "Initializing 'prev' array");
+
+      createStep(4, "Initializing vertices loop...");
+      for (let v of V) {
+        visited[v] = false;
+        createStep(5, `Set visited[${v}] := FALSE`, v);
+        prev[v] = 0;
+        createStep(6, `Set prev[${v}] := 0`, v);
+      }
+
+      createStep(7, "Starting component traversal loop over all vertices");
+
+      function dfsVisit(v) {
+        visited[v] = true;
+        createStep(13, `DFS-Visit(G, ${v}): Set visited[${v}] := TRUE`, v);
+
+        const neighbors = adj[v] || [];
+        createStep(14, `Examining incident edges for vertex ${v}. Neighbors: [${neighbors.join(', ')}]`, v);
+
+        for (let i = 0; i < neighbors.length; i++) {
+          const u = neighbors[i];
+          createStep(14, `Inspecting neighbor u = ${u} of vertex v = ${v}`, v, u);
+
+          createStep(15, `Check visited[${u}] == FALSE (Currently: ${visited[u]})`, v, u);
+          if (visited[u] === false) {
+            prev[u] = v;
+            createStep(16, `visited[${u}] is FALSE -> Set prev[${u}] := ${v}`, v, u);
+          }
+
+          createStep(17, `Check: prev[${v}] ≠ ${u} AND (visited[${u}] == TRUE OR DFS-Visit(G, ${u}))`, v, u);
+
+          if (prev[v] !== u) {
+            if (visited[u] === true) {
+              // Cycle detected
+              const cycle = extractCyclePath(v, u, prev);
+              createStep(18, `CYCLE DETECTED! prev[${v}] (${prev[v]}) ≠ ${u} and visited[${u}] == TRUE.`, v, u, 'cycle_found', cycle);
+              return true;
+            } else {
+              callStack.push({ v, u });
+              const subCycle = dfsVisit(u);
+              callStack.pop();
+
+              if (subCycle) {
+                const cycle = extractCyclePath(v, u, prev);
+                createStep(18, `Recursion returned TRUE (Cycle propagated back to ${v}).`, v, u, 'cycle_found', cycle);
+                return true;
+              }
+            }
+          } else {
+            createStep(17, `prev[${v}] == ${u} (Parent node). Skipping backward traversal.`, v, u);
+          }
+        }
+
+        createStep(19, `Finished inspecting vertex ${v}. Returning FALSE from DFS-Visit(G, ${v})`, v);
+        return false;
+      }
+
+      for (let v of V) {
+        createStep(8, `Checking visited[${v}] == FALSE (Currently: ${visited[v]})`, v);
+        if (!visited[v]) {
+          createStep(8, `Vertex ${v} is unvisited. Invoking DFS-Visit(G, ${v})...`, v);
+          callStack.push({ v, u: null });
+          const found = dfsVisit(v);
+          callStack.pop();
+
+          if (found) {
+            createStep(9, `DFS-Visit returned TRUE. DFS-HasCycle returning TRUE (Cycle detected)`, v, null, 'cycle_found');
+            return steps;
+          }
+        }
+      }
+
+      createStep(10, "All vertices processed. No cycle found. DFS-HasCycle returning FALSE", null, null, 'no_cycle');
+      return steps;
+    }
+
+    function extractCyclePath(v, u, prev) {
+      const cycleEdges = [[v, u]];
+      let curr = v;
+      let limit = 0;
+      while (curr !== u && curr !== 0 && limit < 100) {
+        const parent = prev[curr];
+        if (parent === 0) break;
+        cycleEdges.push([curr, parent]);
+        curr = parent;
+        limit++;
+      }
+      return cycleEdges;
+    }
+
+    // SVG Graph Rendering
+    function renderGraph() {
+      edgesLayer.innerHTML = '';
+      nodesLayer.innerHTML = '';
+
+      const isDark = document.documentElement.classList.contains('dark');
+      const currentStep = executionSteps[currentStepIndex] || null;
+
+      // Render Edges
+      edges.forEach(edge => {
+        const sourceNode = nodes.find(n => n.id === edge.source);
+        const targetNode = nodes.find(n => n.id === edge.target);
+        if (!sourceNode || !targetNode) return;
+
+        const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+        line.setAttribute('x1', sourceNode.x);
+        line.setAttribute('y1', sourceNode.y);
+        line.setAttribute('x2', targetNode.x);
+        line.setAttribute('y2', targetNode.y);
+
+        let strokeColor = isDark ? '#334155' : '#cbd5e1';
+        let strokeWidth = '3';
+        let strokeDash = '';
+        let extraClass = '';
+
+        if (currentStep) {
+          const isCycleEdge = currentStep.cycleEdges && currentStep.cycleEdges.some(
+            ([a, b]) => (a === edge.source && b === edge.target) || (a === edge.target && b === edge.source)
+          );
+
+          const isActiveEdge = currentStep.activeNode && currentStep.activeNeighbor && (
+            (currentStep.activeNode === edge.source && currentStep.activeNeighbor === edge.target) ||
+            (currentStep.activeNode === edge.target && currentStep.activeNeighbor === edge.source)
+          );
+
+          if (isCycleEdge) {
+            strokeColor = '#f43f5e';
+            strokeWidth = '5';
+            extraClass = 'glow-edge-cycle';
+          } else if (isActiveEdge) {
+            strokeColor = '#f59e0b';
+            strokeWidth = '4';
+            strokeDash = '6,6';
+          }
+        }
+
+        line.setAttribute('stroke', strokeColor);
+        line.setAttribute('stroke-width', strokeWidth);
+        if (strokeDash) line.setAttribute('stroke-dasharray', strokeDash);
+        if (extraClass) line.setAttribute('class', extraClass);
+
+        line.addEventListener('click', (e) => {
+          e.stopPropagation();
+          if (selectedTool === 'delete') {
+            deleteEdge(edge.source, edge.target);
+          }
+        });
+
+        edgesLayer.appendChild(line);
+      });
+
+      // Render Nodes
+      nodes.forEach(node => {
+        const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+        g.setAttribute('transform', `translate(${node.x}, ${node.y})`);
+        g.setAttribute('class', 'cursor-pointer select-none');
+
+        let circleBg = isDark ? '#1e293b' : '#ffffff';
+        let strokeColor = isDark ? '#64748b' : '#94a3b8';
+        let strokeWidth = '2';
+        let extraClass = '';
+
+        if (currentStep) {
+          const isVisited = currentStep.visited && currentStep.visited[node.id];
+          const isActive = currentStep.activeNode === node.id;
+          const isNeighbor = currentStep.activeNeighbor === node.id;
+          const isCycleNode = currentStep.cycleEdges && currentStep.cycleEdges.some(([a, b]) => a === node.id || b === node.id);
+
+          if (isCycleNode) {
+            circleBg = isDark ? '#881337' : '#ffe4e6';
+            strokeColor = '#f43f5e';
+            strokeWidth = '4';
+            extraClass = 'glow-node-cycle';
+          } else if (isActive) {
+            circleBg = isDark ? '#1d4ed8' : '#dbeafe';
+            strokeColor = '#3b82f6';
+            strokeWidth = '4';
+            extraClass = 'glow-node-active';
+          } else if (isNeighbor) {
+            circleBg = isDark ? '#78350f' : '#fef3c7';
+            strokeColor = '#f59e0b';
+            strokeWidth = '3';
+          } else if (isVisited) {
+            circleBg = isDark ? '#064e3b' : '#d1fae5';
+            strokeColor = '#10b981';
+            strokeWidth = '3';
+            extraClass = 'glow-node-visited';
+          }
+        }
+
+        if (selectedNodeForEdge === node.id) {
+          strokeColor = '#2563eb';
+          strokeWidth = '4';
+        }
+
+        if (currentStep && currentStep.activeNode === node.id) {
+          const ring = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+          ring.setAttribute('r', '26');
+          ring.setAttribute('fill', 'none');
+          ring.setAttribute('stroke', '#3b82f6');
+          ring.setAttribute('stroke-width', '2');
+          ring.setAttribute('class', 'pulse-effect');
+          g.appendChild(ring);
+        }
+
+        const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+        circle.setAttribute('r', '20');
+        circle.setAttribute('fill', circleBg);
+        circle.setAttribute('stroke', strokeColor);
+        circle.setAttribute('stroke-width', strokeWidth);
+        if (extraClass) circle.setAttribute('class', extraClass);
+
+        const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+        text.setAttribute('text-anchor', 'middle');
+        text.setAttribute('dy', '.3em');
+        text.setAttribute('fill', (isDark || (currentStep && (currentStep.activeNode === node.id || currentStep.cycleEdges?.some(([a, b]) => a === node.id || b === node.id)))) && !(!isDark && currentStep) ? '#ffffff' : (isDark ? '#ffffff' : '#0f172a'));
+        text.setAttribute('font-weight', 'bold');
+        text.setAttribute('font-size', '14');
+        text.setAttribute('font-family', 'Inter, sans-serif');
+        text.textContent = node.id;
+
+        g.appendChild(circle);
+        g.appendChild(text);
+
+        g.addEventListener('mousedown', (e) => handleNodeMouseDown(e, node));
+        g.addEventListener('touchstart', (e) => handleNodeTouchStart(e, node), { passive: false });
+
+        nodesLayer.appendChild(g);
+      });
+
+      updateUI();
+    }
+
+    // Node Dragging & Selection Handlers
+    function handleNodeMouseDown(e, node) {
+      e.stopPropagation();
+      if (selectedTool === 'select') {
+        draggedNode = node;
+        const rect = svg.getBoundingClientRect();
+        dragOffset.x = e.clientX - rect.left - node.x;
+        dragOffset.y = e.clientY - rect.top - node.y;
+      } else if (selectedTool === 'add-edge') {
+        if (selectedNodeForEdge === null) {
+          selectedNodeForEdge = node.id;
+        } else if (selectedNodeForEdge !== node.id) {
+          addEdge(selectedNodeForEdge, node.id);
+          selectedNodeForEdge = null;
+        } else {
+          selectedNodeForEdge = null;
+        }
+        renderGraph();
+      } else if (selectedTool === 'delete') {
+        deleteNode(node.id);
+      }
+    }
+
+    function handleNodeTouchStart(e, node) {
+      e.stopPropagation();
+      if (e.touches.length === 1 && selectedTool === 'select') {
+        draggedNode = node;
+        const rect = svg.getBoundingClientRect();
+        dragOffset.x = e.touches[0].clientX - rect.left - node.x;
+        dragOffset.y = e.touches[0].clientY - rect.top - node.y;
+      }
+    }
+
+    svg.addEventListener('mousemove', (e) => {
+      if (draggedNode && selectedTool === 'select') {
+        const rect = svg.getBoundingClientRect();
+        draggedNode.x = Math.max(30, Math.min(rect.width - 30, e.clientX - rect.left - dragOffset.x));
+        draggedNode.y = Math.max(30, Math.min(rect.height - 30, e.clientY - rect.top - dragOffset.y));
+        renderGraph();
+      }
+    });
+
+    svg.addEventListener('touchmove', (e) => {
+      if (draggedNode && selectedTool === 'select' && e.touches.length === 1) {
+        const rect = svg.getBoundingClientRect();
+        draggedNode.x = Math.max(30, Math.min(rect.width - 30, e.touches[0].clientX - rect.left - dragOffset.x));
+        draggedNode.y = Math.max(30, Math.min(rect.height - 30, e.touches[0].clientY - rect.top - dragOffset.y));
+        renderGraph();
+      }
+    }, { passive: false });
+
+    window.addEventListener('mouseup', () => { draggedNode = null; });
+    window.addEventListener('touchend', () => { draggedNode = null; });
+
+    svg.addEventListener('click', (e) => {
+      if (selectedTool === 'add-node') {
+        const rect = svg.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+        addNode(x, y);
+      } else if (selectedTool === 'add-edge') {
+        selectedNodeForEdge = null;
+        renderGraph();
+      }
+    });
+
+    // Graph State Editors
+    function addNode(x, y) {
+      nodes.push({ id: nextNodeId++, x, y });
+      rebuildSimulation();
+    }
+
+    function addEdge(source, target) {
+      if (source === target) return;
+      const exists = edges.some(e => (e.source === source && e.target === target) || (e.source === target && e.target === source));
+      if (!exists) {
+        edges.push({ source, target });
+        rebuildSimulation();
+      }
+    }
+
+    function deleteNode(id) {
+      nodes = nodes.filter(n => n.id !== id);
+      edges = edges.filter(e => e.source !== id && e.target !== id);
+      rebuildSimulation();
+    }
+
+    function deleteEdge(source, target) {
+      edges = edges.filter(e => !( (e.source === source && e.target === target) || (e.source === target && e.target === source) ));
+      rebuildSimulation();
+    }
+
+    function setTool(tool) {
+      selectedTool = tool;
+      selectedNodeForEdge = null;
+      document.querySelectorAll('.tool-btn').forEach(btn => {
+        btn.classList.remove('bg-brand-600', 'text-white', 'shadow');
+        btn.classList.add('text-slate-600', 'dark:text-slate-400');
+      });
+      const activeBtn = document.getElementById(`tool-${tool}`);
+      if (activeBtn) {
+        activeBtn.classList.add('bg-brand-600', 'text-white', 'shadow');
+        activeBtn.classList.remove('text-slate-600', 'dark:text-slate-400');
+      }
+
+      const hints = {
+        'select': 'Click empty space to add nodes, or drag nodes to move.',
+        'add-node': 'Click anywhere on the canvas grid to place a new vertex.',
+        'add-edge': 'Click two vertices sequentially to draw an undirected edge.',
+        'delete': 'Click any vertex or edge to remove it from the graph.'
+      };
+      document.getElementById('hint-text').textContent = hints[tool] || '';
+      renderGraph();
+    }
+
+    // Simulation Control & UI Synchronization
+    function rebuildSimulation() {
+      pauseSimulation();
+      executionSteps = generateDFSExecutionSteps();
+      currentStepIndex = 0;
+      
+      const slider = document.getElementById('step-slider');
+      slider.max = Math.max(0, executionSteps.length - 1);
+      slider.value = 0;
+
+      renderGraph();
+    }
+
+    function updateUI() {
+      const step = executionSteps[currentStepIndex];
+
+      // Update Step Counter & Scrubber
+      document.getElementById('step-counter').textContent = currentStepIndex;
+      const totalSteps = Math.max(0, executionSteps.length - 1);
+      document.getElementById('step-total').textContent = totalSteps;
+      const slider = document.getElementById('step-slider');
+      slider.max = totalSteps;
+      slider.value = currentStepIndex;
+
+      // Highlight Active Pseudocode Line
+      document.querySelectorAll('.code-line').forEach(el => {
+        el.classList.remove('bg-brand-600/20', 'dark:bg-brand-600/30', 'border-l-4', 'border-brand-500', 'font-bold');
+      });
+      if (step && step.line) {
+        const lineEl = document.getElementById(`line-${step.line}`);
+        if (lineEl) {
+          lineEl.classList.add('bg-brand-600/20', 'dark:bg-brand-600/30', 'border-l-4', 'border-brand-500', 'font-bold');
+          lineEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+      }
+
+      // Render Visited Array
+      const visitedContainer = document.getElementById('visited-array-container');
+      visitedContainer.innerHTML = '';
+      if (step && step.visited && nodes.length > 0) {
+        nodes.forEach(n => {
+          const val = step.visited[n.id];
+          const badge = document.createElement('div');
+          badge.className = `px-2 py-0.5 rounded text-[11px] font-mono font-semibold flex items-center gap-1 border ${
+            val 
+              ? 'bg-emerald-100 dark:bg-emerald-950 border-emerald-300 dark:border-emerald-700 text-emerald-800 dark:text-emerald-300' 
+              : 'bg-slate-100 dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-400 dark:text-slate-500'
+          }`;
+          badge.innerHTML = `<span>${n.id}:</span><span>${val ? 'TRUE' : 'FALSE'}</span>`;
+          visitedContainer.appendChild(badge);
+        });
+      } else {
+        visitedContainer.innerHTML = '<span class="text-slate-400 text-xs italic">No nodes</span>';
+      }
+
+      // Render Prev Array
+      const prevContainer = document.getElementById('prev-array-container');
+      prevContainer.innerHTML = '';
+      if (step && step.prev && nodes.length > 0) {
+        nodes.forEach(n => {
+          const parent = step.prev[n.id];
+          const badge = document.createElement('div');
+          badge.className = `px-2 py-0.5 rounded text-[11px] font-mono font-semibold flex items-center gap-1 border ${
+            parent !== 0 
+              ? 'bg-amber-100 dark:bg-amber-950 border-amber-300 dark:border-amber-700 text-amber-800 dark:text-amber-300' 
+              : 'bg-slate-100 dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-400 dark:text-slate-500'
+          }`;
+          badge.innerHTML = `<span>${n.id}:</span><span>${parent}</span>`;
+          prevContainer.appendChild(badge);
+        });
+      } else {
+        prevContainer.innerHTML = '<span class="text-slate-400 text-xs italic">No nodes</span>';
+      }
+
+      // Render Call Stack
+      const stackContainer = document.getElementById('call-stack-container');
+      const depthEl = document.getElementById('stack-depth');
+      stackContainer.innerHTML = '';
+      if (step && step.callStack && step.callStack.length > 0) {
+        depthEl.textContent = `Depth: ${step.callStack.length}`;
+        step.callStack.forEach((frame) => {
+          const frameDiv = document.createElement('div');
+          frameDiv.className = 'bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-1.5 rounded text-xs font-mono flex items-center justify-between text-slate-700 dark:text-slate-300';
+          frameDiv.innerHTML = `
+            <span class="text-blue-600 dark:text-blue-400 font-semibold">DFS-Visit(G, v=${frame.v})</span>
+            ${frame.u !== null ? `<span class="text-amber-600 dark:text-amber-400 text-[10px]">u=${frame.u}</span>` : ''}
+          `;
+          stackContainer.appendChild(frameDiv);
+        });
+      } else {
+        depthEl.textContent = 'Depth: 0';
+        stackContainer.innerHTML = '<div class="text-slate-400 text-xs italic p-1">Stack is empty</div>';
+      }
+
+      // Log Container
+      const logContainer = document.getElementById('log-container');
+      const logStatus = document.getElementById('log-status');
+      if (step) {
+        logStatus.textContent = `Step ${currentStepIndex}`;
+        const logEntry = document.createElement('div');
+        logEntry.className = 'flex items-start gap-2 text-xs py-0.5 border-b border-slate-100 dark:border-slate-800/40';
+        logEntry.innerHTML = `
+          <span class="text-slate-400 text-[10px] select-none">[Step ${currentStepIndex}]</span>
+          <span class="flex-1">${step.log}</span>
+        `;
+        logContainer.appendChild(logEntry);
+        logContainer.scrollTop = logContainer.scrollHeight;
+      }
+
+      // Status Banner
+      const banner = document.getElementById('status-banner');
+      const bannerContent = document.getElementById('status-banner-content');
+      if (step && (step.status === 'cycle_found' || step.status === 'no_cycle')) {
+        banner.classList.remove('opacity-0', '-translate-y-12');
+        banner.classList.add('opacity-100', 'translate-y-0');
+        if (step.status === 'cycle_found') {
+          bannerContent.className = 'px-4 py-2 rounded-xl text-xs font-bold shadow-2xl flex items-center gap-2 bg-rose-100 dark:bg-rose-950 border-rose-300 dark:border-rose-600 text-rose-800 dark:text-rose-200 border';
+          bannerContent.innerHTML = '<i class="fa-solid fa-triangle-exclamation text-rose-500 text-base"></i> CYCLE DETECTED IN GRAPH!';
+        } else {
+          bannerContent.className = 'px-4 py-2 rounded-xl text-xs font-bold shadow-2xl flex items-center gap-2 bg-emerald-100 dark:bg-emerald-950 border-emerald-300 dark:border-emerald-600 text-emerald-800 dark:text-emerald-200 border';
+          bannerContent.innerHTML = '<i class="fa-solid fa-circle-check text-emerald-500 text-base"></i> NO CYCLES DETECTED (ACYCLIC GRAPH)';
+        }
+      } else {
+        banner.classList.add('opacity-0', '-translate-y-12');
+        banner.classList.remove('opacity-100', 'translate-y-0');
+      }
+    }
+
+    function jumpToStep(index) {
+      pauseSimulation();
+      currentStepIndex = parseInt(index);
+      rebuildLogsUpTo(currentStepIndex);
+      renderGraph();
+    }
+
+    function togglePlay() {
+      if (isPlaying) {
+        pauseSimulation();
+      } else {
+        if (currentStepIndex >= executionSteps.length - 1) {
+          currentStepIndex = 0;
+          document.getElementById('log-container').innerHTML = '';
+        }
+        isPlaying = true;
+        document.getElementById('play-icon').className = 'fa-solid fa-pause';
+        timer = setInterval(() => {
+          if (currentStepIndex < executionSteps.length - 1) {
+            currentStepIndex++;
+            renderGraph();
+          } else {
+            pauseSimulation();
+          }
+        }, stepSpeed);
+      }
+    }
+
+    function pauseSimulation() {
+      isPlaying = false;
+      if (timer) clearInterval(timer);
+      document.getElementById('play-icon').className = 'fa-solid fa-play';
+    }
+
+    function stepForward() {
+      pauseSimulation();
+      if (currentStepIndex < executionSteps.length - 1) {
+        currentStepIndex++;
+        renderGraph();
+      }
+    }
+
+    function stepBackward() {
+      pauseSimulation();
+      if (currentStepIndex > 0) {
+        currentStepIndex--;
+        rebuildLogsUpTo(currentStepIndex);
+        renderGraph();
+      }
+    }
+
+    function resetAlgorithm() {
+      pauseSimulation();
+      currentStepIndex = 0;
+      document.getElementById('log-container').innerHTML = '';
+      renderGraph();
+    }
+
+    function rebuildLogsUpTo(targetIndex) {
+      const logContainer = document.getElementById('log-container');
+      logContainer.innerHTML = '';
+      for (let i = 0; i <= targetIndex; i++) {
+        const step = executionSteps[i];
+        if (step) {
+          const logEntry = document.createElement('div');
+          logEntry.className = 'flex items-start gap-2 text-xs py-0.5 border-b border-slate-100 dark:border-slate-800/40';
+          logEntry.innerHTML = `
+            <span class="text-slate-400 text-[10px] select-none">[Step ${i}]</span>
+            <span class="flex-1">${step.log}</span>
+          `;
+          logContainer.appendChild(logEntry);
+        }
+      }
+    }
+
+    function updateSpeed(val) {
+      stepSpeed = Math.max(50, Math.min(3000, parseInt(val) || 700));
+      if (isPlaying) {
+        pauseSimulation();
+        togglePlay();
+      }
+    }
+
+    // Preset Graphs Loader
+    function loadPreset(type) {
+      pauseSimulation();
+      const svgRect = svg.getBoundingClientRect();
+      const cx = svgRect.width / 2 || 300;
+      const cy = svgRect.height / 2 || 200;
+
+      nodes = [];
+      edges = [];
+
+      if (type === 'tree') {
+        nodes = [
+          { id: 1, x: cx, y: cy - 100 },
+          { id: 2, x: cx - 120, y: cy },
+          { id: 3, x: cx + 120, y: cy },
+          { id: 4, x: cx - 180, y: cy + 100 },
+          { id: 5, x: cx - 60, y: cy + 100 },
+          { id: 6, x: cx + 120, y: cy + 100 },
+        ];
+        edges = [
+          { source: 1, target: 2 },
+          { source: 1, target: 3 },
+          { source: 2, target: 4 },
+          { source: 2, target: 5 },
+          { source: 3, target: 6 },
+        ];
+        nextNodeId = 7;
+      } else if (type === 'simple-cycle') {
+        nodes = [
+          { id: 1, x: cx - 90, y: cy - 80 },
+          { id: 2, x: cx + 90, y: cy - 80 },
+          { id: 3, x: cx + 90, y: cy + 80 },
+          { id: 4, x: cx - 90, y: cy + 80 },
+        ];
+        edges = [
+          { source: 1, target: 2 },
+          { source: 2, target: 3 },
+          { source: 3, target: 4 },
+          { source: 4, target: 1 },
+        ];
+        nextNodeId = 5;
+      } else if (type === 'disconnected') {
+        nodes = [
+          { id: 1, x: cx - 160, y: cy - 50 },
+          { id: 2, x: cx - 160, y: cy + 60 },
+          { id: 3, x: cx + 100, y: cy - 80 },
+          { id: 4, x: cx + 180, y: cy + 40 },
+          { id: 5, x: cx + 40, y: cy + 40 },
+        ];
+        edges = [
+          { source: 1, target: 2 },
+          { source: 3, target: 4 },
+          { source: 4, target: 5 },
+          { source: 5, target: 3 },
+        ];
+        nextNodeId = 6;
+      } else if (type === 'complex') {
+        nodes = [
+          { id: 1, x: cx - 150, y: cy - 90 },
+          { id: 2, x: cx, y: cy - 110 },
+          { id: 3, x: cx + 150, y: cy - 90 },
+          { id: 4, x: cx - 100, y: cy + 80 },
+          { id: 5, x: cx + 100, y: cy + 80 },
+          { id: 6, x: cx, y: cy + 20 },
+        ];
+        edges = [
+          { source: 1, target: 2 },
+          { source: 2, target: 3 },
+          { source: 1, target: 4 },
+          { source: 4, target: 6 },
+          { source: 6, target: 2 },
+          { source: 3, target: 5 },
+          { source: 5, target: 6 },
+        ];
+        nextNodeId = 7;
+      } else if (type === 'random') {
+        const count = 6;
+        for (let i = 1; i <= count; i++) {
+          const angle = ((i - 1) / count) * 2 * Math.PI;
+          nodes.push({
+            id: i,
+            x: Math.round(cx + 120 * Math.cos(angle)),
+            y: Math.round(cy + 100 * Math.sin(angle))
+          });
+        }
+        for (let i = 1; i <= count; i++) {
+          const target = (i % count) + 1;
+          edges.push({ source: i, target });
+        }
+        edges.push({ source: 1, target: 4 });
+        nextNodeId = count + 1;
+      }
+
+      document.getElementById('preset-select').value = '';
+      rebuildSimulation();
+    }
+
+    // Startup Initialization
+    window.addEventListener('load', () => {
+      updateTheme();
+      loadPreset('simple-cycle');
+    });
+
+    window.addEventListener('resize', () => {
+      renderGraph();
+    });
+  </script>
+</body>
+</html>
