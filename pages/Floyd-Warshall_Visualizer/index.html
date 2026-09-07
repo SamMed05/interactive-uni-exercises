@@ -1,0 +1,1173 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Floyd-Warshall Algorithm Visualizer</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        pivot: '#3b82f6',
+                        active: '#eab308',
+                        updated: '#22c55e',
+                        skipped: '#9ca3af',
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        /* Custom scrollbars */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: rgba(156, 163, 175, 0.4); border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: rgba(156, 163, 175, 0.6); }
+    </style>
+</head>
+<body class="h-full bg-slate-50 text-slate-800 dark:bg-slate-900 dark:text-slate-100 flex flex-col font-sans transition-colors duration-200 select-none">
+
+    <!-- Header -->
+    <header class="border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 px-4 py-2.5 shrink-0 flex flex-wrap items-center justify-between gap-3 shadow-sm">
+        <div class="flex items-center gap-3">
+            <div class="p-2 bg-blue-600 text-white rounded-lg shadow-md">
+                <i data-lucide="network" class="w-5 h-5"></i>
+            </div>
+            <div>
+                <h1 class="font-bold text-base md:text-lg leading-tight">Floyd-Warshall Visualizer</h1>
+                <p class="text-[11px] text-slate-500 dark:text-slate-400">All-Pairs Shortest Paths Interactive Guide</p>
+            </div>
+        </div>
+
+        <!-- Controls / Presets / Theme -->
+        <div class="flex items-center flex-wrap gap-2 text-xs md:text-sm">
+            <!-- Preset selector -->
+            <label for="presetSelect" class="sr-only">Select Example</label>
+            <select id="presetSelect" class="bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg px-2.5 py-1.5 font-medium focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <option value="default">Standard Graph (5 nodes)</option>
+                <option value="negative">Negative Weight Edges</option>
+                <option value="dense">Dense Graph</option>
+                <option value="disconnected">Disconnected Graph</option>
+                <option value="random">Random Graph</option>
+            </select>
+
+            <!-- Toggle Graph Orientation -->
+            <button id="btnToggleDirected" class="flex items-center gap-1.5 px-2.5 py-1.5 bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg font-medium transition-colors" title="Toggle Graph Orientation">
+                <i data-lucide="arrow-right-left" class="w-4 h-4 text-blue-500"></i>
+                <span id="directedLabel">Directed</span>
+            </button>
+
+            <button id="btnRandom" class="flex items-center gap-1.5 px-2.5 py-1.5 bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 rounded-lg font-medium transition-colors" title="Generate Random Graph">
+                <i data-lucide="shuffle" class="w-4 h-4"></i> Random
+            </button>
+
+            <button id="btnShare" class="p-2 bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 rounded-lg font-medium transition-colors" title="Share URL with Graph parameters">
+                <i data-lucide="share-2" class="w-4 h-4"></i>
+            </button>
+
+            <div class="h-5 w-px bg-slate-300 dark:bg-slate-700 mx-0.5"></div>
+
+            <!-- Theme Toggle -->
+            <button id="btnTheme" class="p-1.5 bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 rounded-lg text-slate-700 dark:text-slate-200 transition-colors" title="Toggle Theme">
+                <i data-lucide="sun" class="w-4 h-4 hidden dark:block"></i>
+                <i data-lucide="moon" class="w-4 h-4 block dark:hidden"></i>
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Workspace -->
+    <main class="flex-1 min-h-0 p-3 md:p-4 grid grid-cols-1 lg:grid-cols-12 gap-3.5 overflow-y-auto lg:overflow-hidden">
+        
+        <!-- Left: Graph Visualizer + Mini i-k-j Diagram (4 Cols) -->
+        <section class="lg:col-span-4 bg-white dark:bg-slate-950 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm p-3 flex flex-col min-h-[420px] lg:min-h-0">
+            <div class="flex items-center justify-between pb-1.5 mb-1 border-b border-slate-100 dark:border-slate-800 shrink-0">
+                <h2 class="font-semibold text-xs md:text-sm flex items-center gap-2">
+                    <i data-lucide="share-2" class="w-4 h-4 text-blue-500"></i> Graph Representation
+                </h2>
+                <span id="graphNodeCount" class="text-[11px] px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 font-mono text-slate-500">5 Nodes</span>
+            </div>
+            
+            <!-- Main SVG Canvas -->
+            <div id="svgContainer" class="flex-1 w-full relative flex items-center justify-center overflow-hidden min-h-[220px]">
+                <svg id="graphSvg" class="w-full h-full max-w-[1000px] select-none" viewBox="0 0 500 450"></svg>
+            </div>
+
+            <!-- Mini Diagram i -> k -> j vs i -> j -->
+            <div class="mt-2 pt-2 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/80 rounded-lg p-2 shrink-0">
+                <div class="text-[11px] font-semibold text-slate-500 dark:text-slate-400 mb-1 flex items-center justify-between">
+                    <span>Current Path Comparison</span>
+                    <span id="miniFormulaText" class="font-mono text-blue-600 dark:text-blue-400 font-normal">D[i,j] vs D[i,k] + D[k,j]</span>
+                </div>
+                <div class="h-20 w-full relative flex items-center justify-center">
+                    <svg id="miniTriangleSvg" class="w-full h-full max-w-[360px]" viewBox="0 0 320 80"></svg>
+                </div>
+            </div>
+
+            <!-- Legend for Graph -->
+            <div class="pt-2 mt-2 border-t border-slate-100 dark:border-slate-800 flex flex-wrap items-center justify-around gap-2 text-[11px] text-slate-500 dark:text-slate-400 shrink-0">
+                <div class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-blue-500 inline-block"></span> Pivot k</div>
+                <div class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-amber-500 inline-block"></span> Source i</div>
+                <div class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-green-500 inline-block"></span> Target j</div>
+            </div>
+        </section>
+
+        <!-- Middle: Distance Matrix (4 Cols) -->
+        <section class="lg:col-span-4 bg-white dark:bg-slate-950 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm p-3 flex flex-col min-h-[340px] lg:min-h-0">
+            <div class="flex items-center justify-between pb-1.5 mb-2 border-b border-slate-100 dark:border-slate-800 shrink-0">
+                <h2 class="font-semibold text-xs md:text-sm flex items-center gap-2">
+                    <i data-lucide="grid" class="w-4 h-4 text-blue-500"></i> Distance Matrix <span id="matrixKLabel" class="font-mono text-blue-600 dark:text-blue-400 font-bold">D<sup>(0)</sup></span>
+                </h2>
+                <div class="text-[11px] text-slate-400">Hover cell to highlight</div>
+            </div>
+
+            <div class="flex-1 flex items-center justify-center overflow-auto p-1">
+                <div id="matrixWrapper" class="w-full flex justify-center">
+                    <!-- Dynamic Matrix Table -->
+                </div>
+            </div>
+
+            <!-- Matrix Legend -->
+            <div class="pt-2 border-t border-slate-100 dark:border-slate-800 flex flex-wrap items-center justify-around gap-2 text-[11px] text-slate-500 dark:text-slate-400 shrink-0">
+                <div class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded bg-blue-200 dark:bg-blue-900 border border-blue-500 inline-block"></span> Row/Col k</div>
+                <div class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded bg-amber-200 dark:bg-amber-900 border border-amber-500 inline-block"></span> Active (i,j)</div>
+                <div class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded bg-emerald-200 dark:bg-emerald-900 border border-emerald-500 inline-block"></span> Updated</div>
+            </div>
+        </section>
+
+        <!-- Right: Pseudocode & Explanation Box (4 Cols - Wider Space) -->
+        <section class="lg:col-span-4 flex flex-col gap-3 min-h-[380px] lg:min-h-0">
+            
+            <!-- Pseudocode Container -->
+            <div class="bg-white dark:bg-slate-950 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm p-3 flex-1 flex flex-col min-h-[220px]">
+                <div class="flex items-center justify-between pb-1.5 mb-2 border-b border-slate-100 dark:border-slate-800 shrink-0">
+                    <h2 class="font-semibold text-xs md:text-sm flex items-center gap-2">
+                        <i data-lucide="code" class="w-4 h-4 text-blue-500"></i> Pseudocode
+                    </h2>
+                    <span class="text-[11px] text-slate-400 font-mono">Time: O(V³)</span>
+                </div>
+
+                <div class="flex-1 font-mono text-[11px] md:text-xs overflow-y-auto bg-slate-900 text-slate-200 rounded-lg p-2.5 border border-slate-800 space-y-0.5" id="pseudocodeBox">
+                    <div id="code-line-1" class="px-2 py-0.5 rounded transition-all border-l-2 border-transparent"><span class="text-purple-400 font-bold">Floyd-Warshall</span>(G, w):</div>
+                    <div id="code-line-2" class="px-2 py-0.5 rounded transition-all border-l-2 border-transparent pl-4"><span class="text-pink-400">for</span> i := <span class="text-amber-300">1</span> <span class="text-pink-400">to</span> n <span class="text-pink-400">do</span></div>
+                    <div id="code-line-3" class="px-2 py-0.5 rounded transition-all border-l-2 border-transparent pl-8"><span class="text-pink-400">for</span> j := <span class="text-amber-300">1</span> <span class="text-pink-400">to</span> n <span class="text-pink-400">do</span></div>
+                    <div id="code-line-4" class="px-2 py-0.5 rounded transition-all border-l-2 border-transparent pl-12"><span class="text-pink-400">if</span> i == j <span class="text-pink-400">then</span> dist[i,j,<span class="text-amber-300">0</span>] := <span class="text-amber-300">0</span></div>
+                    <div id="code-line-5" class="px-2 py-0.5 rounded transition-all border-l-2 border-transparent pl-12"><span class="text-pink-400">else</span> dist[i,j,<span class="text-amber-300">0</span>] := <span class="text-cyan-300">∞</span></div>
+                    <div id="code-line-6" class="px-2 py-0.5 rounded transition-all border-l-2 border-transparent pl-4"><span class="text-pink-400">for each</span> (u,v) ∈ E <span class="text-pink-400">do</span></div>
+                    <div id="code-line-7" class="px-2 py-0.5 rounded transition-all border-l-2 border-transparent pl-8">dist[u,v,<span class="text-amber-300">0</span>] := w(u,v)</div>
+                    <div id="code-line-8" class="px-2 py-0.5 rounded transition-all border-l-2 border-transparent pl-4"><span class="text-pink-400">for</span> k := <span class="text-amber-300">1</span> <span class="text-pink-400">to</span> n <span class="text-pink-400">do</span></div>
+                    <div id="code-line-9" class="px-2 py-0.5 rounded transition-all border-l-2 border-transparent pl-8"><span class="text-pink-400">for</span> i := <span class="text-amber-300">1</span> <span class="text-pink-400">to</span> n <span class="text-pink-400">do</span></div>
+                    <div id="code-line-10" class="px-2 py-0.5 rounded transition-all border-l-2 border-transparent pl-12"><span class="text-pink-400">for</span> j := <span class="text-amber-300">1</span> <span class="text-pink-400">to</span> n <span class="text-pink-400">do</span></div>
+                    <div id="code-line-11" class="px-2 py-0.5 rounded transition-all border-l-2 border-transparent pl-16">dist[i,j,k] := <span class="text-blue-300">min</span>( dist[i,j,k-1],</div>
+                    <div id="code-line-12" class="px-2 py-0.5 rounded transition-all border-l-2 border-transparent pl-28">dist[i,k,k-1] + dist[k,j,k-1] )</div>
+                    <div id="code-line-13" class="px-2 py-0.5 rounded transition-all border-l-2 border-transparent pl-4"><span class="text-purple-400 font-bold">return</span> dist[·,·,n]</div>
+                </div>
+            </div>
+
+            <!-- Explanation Box -->
+            <div id="stepLogContainer" class="bg-white dark:bg-slate-950 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm p-3 h-36 flex flex-col justify-between shrink-0">
+                <div class="flex items-start gap-2.5 overflow-hidden">
+                    <div id="logIcon" class="mt-0.5 p-1 rounded bg-blue-100 dark:bg-blue-900/50 text-blue-600 dark:text-blue-400 shrink-0">
+                        <i data-lucide="info" class="w-4 h-4"></i>
+                    </div>
+                    <div class="flex-1 min-w-0 overflow-y-auto max-h-24 pr-1">
+                        <div id="logHeader" class="font-bold text-xs md:text-sm text-slate-900 dark:text-slate-100 mb-0.5">Algorithm Initialized</div>
+                        <div id="logBody" class="text-slate-600 dark:text-slate-300 leading-snug text-xs font-sans">
+                            Adjacency matrix <code>D<sup>(0)</sup></code> initialized. Use the slider below, arrow keys, or press Play.
+                        </div>
+                    </div>
+                </div>
+                <div class="text-[10px] text-slate-400 text-right pt-1 border-t border-slate-100 dark:border-slate-800">
+                    Hint: use <kbd class="px-1 bg-slate-100 dark:bg-slate-800 border rounded">←</kbd> <kbd class="px-1 bg-slate-100 dark:bg-slate-800 border rounded">→</kbd> to step, <kbd class="px-1 bg-slate-100 dark:bg-slate-800 border rounded">Space</kbd> for Play/Pause
+                </div>
+            </div>
+
+        </section>
+    </main>
+
+    <!-- Bottom Control Panel -->
+    <footer class="bg-white dark:bg-slate-950 border-t border-slate-200 dark:border-slate-800 p-2.5 md:p-3 shrink-0 shadow-lg space-y-2">
+        <div class="flex flex-col sm:flex-row items-center gap-3">
+            
+            <!-- Play / Step buttons -->
+            <div class="flex items-center gap-1.5 w-full sm:w-auto justify-between sm:justify-start">
+                <button id="btnPrev" class="p-2 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 transition-colors disabled:opacity-40" title="Previous Step (Left Arrow)">
+                    <i data-lucide="chevron-left" class="w-5 h-5"></i>
+                </button>
+                
+                <button id="btnPlay" class="flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-medium text-xs md:text-sm shadow transition-colors">
+                    <i data-lucide="play" id="playIcon" class="w-4 h-4"></i> <span id="playText">Play</span>
+                </button>
+
+                <button id="btnNext" class="p-2 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 transition-colors disabled:opacity-40" title="Next Step (Right Arrow)">
+                    <i data-lucide="chevron-right" class="w-5 h-5"></i>
+                </button>
+            </div>
+
+            <!-- Wide Range Slider -->
+            <div class="flex-1 w-full flex items-center gap-3">
+                <span id="stepCounter" class="text-xs font-mono font-bold w-20 text-slate-500 dark:text-slate-400">Step 0/0</span>
+                <input type="range" id="stepSlider" min="0" max="0" value="0" class="w-full h-2.5 bg-slate-200 dark:bg-slate-800 rounded-lg appearance-none cursor-pointer accent-blue-600 focus:outline-none">
+            </div>
+
+            <!-- Skip Inactive & Speed Controls -->
+            <div class="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-end text-xs">
+                <label class="flex items-center gap-2 cursor-pointer font-medium select-none text-slate-600 dark:text-slate-300">
+                    <input type="checkbox" id="chkSkipInactive" class="w-4 h-4 text-blue-600 rounded border-slate-300 dark:border-slate-700 focus:ring-blue-500" checked>
+                    <span>Skip inactive steps</span>
+                </label>
+
+                <select id="speedSelect" class="bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded px-2 py-1 text-xs font-mono">
+                    <option value="1500">0.75x</option>
+                    <option value="800" selected>1.0x</option>
+                    <option value="400">2.0x</option>
+                    <option value="150">Fast</option>
+                </select>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Logic Script -->
+    <script>
+        // Simplified Presets
+        const PRESETS = {
+            default: {
+                nodes: 5,
+                directed: true,
+                edges: [
+                    { u: 1, v: 2, w: 3 },
+                    { u: 1, v: 3, w: 1 },
+                    { u: 2, v: 1, w: 6 },
+                    { u: 3, v: 2, w: 6 },
+                    { u: 3, v: 4, w: 5 },
+                    { u: 3, v: 5, w: 2 },
+                    { u: 4, v: 3, w: 6 }
+                ]
+            },
+            negative: {
+                nodes: 5,
+                directed: true,
+                edges: [
+                    { u: 1, v: 2, w: 3 },
+                    { u: 2, v: 3, w: 4 },
+                    { u: 2, v: 4, w: 1 },
+                    { u: 3, v: 4, w: -5 },
+                    { u: 4, v: 1, w: 2 },
+                    { u: 5, v: 1, w: -4 },
+                    { u: 5, v: 2, w: 7 }
+                ]
+            },
+            dense: {
+                nodes: 4,
+                directed: true,
+                edges: [
+                    { u: 1, v: 2, w: 2 },
+                    { u: 1, v: 3, w: 5 },
+                    { u: 1, v: 4, w: 1 },
+                    { u: 2, v: 1, w: 3 },
+                    { u: 2, v: 3, w: 2 },
+                    { u: 3, v: 2, w: 1 },
+                    { u: 3, v: 4, w: 4 },
+                    { u: 4, v: 1, w: 7 }
+                ]
+            },
+            disconnected: {
+                nodes: 5,
+                directed: true,
+                edges: [
+                    { u: 1, v: 2, w: 2 },
+                    { u: 2, v: 3, w: 4 },
+                    { u: 4, v: 5, w: 3 }
+                ]
+            }
+        };
+
+        // Application State
+        let currentGraph = null;
+        let isDirected = true;
+        let executionSteps = [];
+        let currentStepIndex = 0;
+        let isPlaying = false;
+        let playInterval = null;
+        let hoverMatrixEdge = null; // {i, j}
+
+        // Initialize App
+        window.addEventListener('DOMContentLoaded', () => {
+            lucide.createIcons();
+            initTheme();
+            parseUrlOrLoadPreset();
+            setupEventListeners();
+        });
+
+        // Theme Management
+        function initTheme() {
+            const savedTheme = localStorage.getItem('fw_theme');
+            if (savedTheme === 'dark' || (!savedTheme && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+                document.documentElement.classList.add('dark');
+            } else {
+                document.documentElement.classList.remove('dark');
+            }
+        }
+
+        document.getElementById('btnTheme').addEventListener('click', () => {
+            const isDark = document.documentElement.classList.toggle('dark');
+            localStorage.setItem('fw_theme', isDark ? 'dark' : 'light');
+            renderGraphSVG();
+            renderMiniTriangle();
+        });
+
+        // URL Parsing & Preset Loading
+        function parseUrlOrLoadPreset() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const graphData = urlParams.get('graph');
+            
+            if (graphData) {
+                try {
+                    const parsed = JSON.parse(decodeURIComponent(graphData));
+                    if (parsed.nodes && parsed.edges) {
+                        isDirected = parsed.directed !== undefined ? parsed.directed : true;
+                        updateDirectedUI();
+                        loadGraph(parsed);
+                        return;
+                    }
+                } catch(e) {
+                    console.error("URL graph parameter error", e);
+                }
+            }
+            loadPreset('default');
+        }
+
+        function loadPreset(key) {
+            if (PRESETS[key]) {
+                document.getElementById('presetSelect').value = key;
+                const p = JSON.parse(JSON.stringify(PRESETS[key]));
+                isDirected = p.directed;
+                updateDirectedUI();
+                loadGraph(p);
+            }
+        }
+
+        function generateRandomGraph() {
+            const n = Math.floor(Math.random() * 2) + 4; // 4 to 5 nodes
+            const edges = [];
+            const prob = isDirected ? 0.35 : 0.25;
+
+            for (let i = 1; i <= n; i++) {
+                for (let j = 1; j <= n; j++) {
+                    if (i !== j) {
+                        if (!isDirected && i > j) continue; // avoid duplicate in undirected loop
+                        if (Math.random() < prob) {
+                            const weight = Math.floor(Math.random() * 9) + 1;
+                            edges.push({ u: i, v: j, w: weight });
+                        }
+                    }
+                }
+            }
+            if (edges.length === 0) {
+                edges.push({ u: 1, v: 2, w: 3 }, { u: 2, v: 3, w: 2 });
+            }
+            
+            const randomGraph = { nodes: n, directed: isDirected, edges };
+            document.getElementById('presetSelect').value = 'random';
+            loadGraph(randomGraph);
+        }
+
+        function updateDirectedUI() {
+            const label = document.getElementById('directedLabel');
+            label.innerText = isDirected ? 'Directed' : 'Undirected';
+        }
+
+        function loadGraph(graph) {
+            pauseAnimation();
+            currentGraph = graph;
+            currentGraph.directed = isDirected;
+            document.getElementById('graphNodeCount').innerText = `${graph.nodes} Nodes`;
+            
+            executionSteps = generateFloydWarshallSteps(graph);
+            currentStepIndex = 0;
+            updateStepSlider();
+            renderStep(0);
+            renderGraphSVG();
+        }
+
+        // Generate Execution Steps
+        function generateFloydWarshallSteps(graph) {
+            const n = graph.nodes;
+            const steps = [];
+
+            // Adjacency Matrix D^(0)
+            let matrix = Array.from({ length: n + 1 }, () => Array(n + 1).fill(Infinity));
+            for (let i = 1; i <= n; i++) matrix[i][i] = 0;
+            
+            graph.edges.forEach(e => {
+                matrix[e.u][e.v] = Math.min(matrix[e.u][e.v], e.w);
+                if (!isDirected) {
+                    matrix[e.v][e.u] = Math.min(matrix[e.v][e.u], e.w);
+                }
+            });
+
+            const cloneMat = m => m.map(row => [...row]);
+
+            steps.push({
+                type: 'init',
+                k: 0,
+                i: null,
+                j: null,
+                matrix: cloneMat(matrix),
+                updated: false,
+                inactive: false,
+                codeLine: 1,
+                title: 'Initialization <code>D<sup>(0)</sup></code>',
+                message: `Adjacency matrix <code>D<sup>(0)</sup></code> created directly from graph edge weights.`
+            });
+
+            for (let k = 1; k <= n; k++) {
+                steps.push({
+                    type: 'k_start',
+                    k: k,
+                    i: null,
+                    j: null,
+                    matrix: cloneMat(matrix),
+                    updated: false,
+                    inactive: false,
+                    codeLine: 8,
+                    title: `Outer Loop: k = ${k}`,
+                    message: `Evaluating vertex <b>${k}</b> as an intermediate pivot node. Row ${k} and Column ${k} remain fixed.`
+                });
+
+                for (let i = 1; i <= n; i++) {
+                    const ikVal = matrix[i][k];
+                    const isRowInactive = (ikVal === Infinity);
+
+                    for (let j = 1; j <= n; j++) {
+                        const kjVal = matrix[k][j];
+                        const isColInactive = (kjVal === Infinity);
+                        const isDiagonal = (i === j);
+
+                        const currentDist = matrix[i][j];
+                        const possibleDist = (!isRowInactive && !isColInactive) ? ikVal + kjVal : Infinity;
+
+                        let inactiveReason = null;
+                        if (isRowInactive) inactiveReason = `D[${i}][${k}] = ∞ (no edge ${i} → ${k})`;
+                        else if (isColInactive) inactiveReason = `D[${k}][${j}] = ∞ (no edge ${k} → ${j})`;
+
+                        const isInactive = isRowInactive || isColInactive || isDiagonal;
+
+                        if (isInactive) {
+                            steps.push({
+                                type: 'check',
+                                k: k,
+                                i: i,
+                                j: j,
+                                matrix: cloneMat(matrix),
+                                updated: false,
+                                inactive: true,
+                                inactiveReason: inactiveReason || (isDiagonal ? 'Main diagonal (dist = 0)' : 'Inactive'),
+                                codeLine: 11,
+                                title: `Check (${i}, ${j}) via k=${k} [Skipped]`,
+                                message: `Skipping check for cell (${i}, ${j}): ${inactiveReason || 'Diagonal remains 0'}.`
+                            });
+                        } else {
+                            const isShorter = possibleDist < currentDist;
+                            if (isShorter) {
+                                matrix[i][j] = possibleDist;
+                            }
+
+                            steps.push({
+                                type: 'check',
+                                k: k,
+                                i: i,
+                                j: j,
+                                matrix: cloneMat(matrix),
+                                updated: isShorter,
+                                prevVal: currentDist,
+                                newVal: possibleDist,
+                                ikVal: ikVal,
+                                kjVal: kjVal,
+                                inactive: false,
+                                codeLine: isShorter ? 12 : 11,
+                                title: `Check (${i}, ${j}) via k=${k}`,
+                                message: isShorter 
+                                    ? `<b>Improvement found!</b> Path <code>${i} → ${k} → ${j}</code> is shorter: <span class="text-green-600 dark:text-green-400 font-bold">${ikVal} + ${kjVal} = ${possibleDist}</span> < (old ${currentDist === Infinity ? '∞' : currentDist}).`
+                                    : `No change. Path <code>${i} → ${k} → ${j}</code> (${ikVal} + ${kjVal} = ${possibleDist}) is not shorter than current (${currentDist === Infinity ? '∞' : currentDist}).`
+                            });
+                        }
+                    }
+                }
+            }
+
+            steps.push({
+                type: 'done',
+                k: n,
+                i: null,
+                j: null,
+                matrix: cloneMat(matrix),
+                updated: false,
+                inactive: false,
+                codeLine: 13,
+                title: 'Execution Complete',
+                message: `Floyd-Warshall algorithm completed. The final matrix contains all-pairs shortest path distances.`
+            });
+
+            return steps;
+        }
+
+        // Render Current Step
+        function renderStep(index) {
+            if (index < 0 || index >= executionSteps.length) return;
+            currentStepIndex = index;
+
+            const step = executionSteps[index];
+
+            renderMatrix(step);
+            highlightPseudocode(step.codeLine);
+            updateStepLog(step);
+            renderGraphSVG(step);
+            renderMiniTriangle(step);
+
+            document.getElementById('stepSlider').value = index;
+            document.getElementById('stepCounter').innerText = `Step ${index}/${executionSteps.length - 1}`;
+
+            document.getElementById('btnPrev').disabled = (index === 0);
+            document.getElementById('btnNext').disabled = (index === executionSteps.length - 1);
+        }
+
+        // Render Distance Matrix
+        function renderMatrix(step) {
+            const wrapper = document.getElementById('matrixWrapper');
+            const n = currentGraph.nodes;
+            const mat = step.matrix;
+
+            document.getElementById('matrixKLabel').innerHTML = `D<sup>(${step.k})</sup>`;
+
+            let html = `<table class="border-collapse font-mono text-xs md:text-sm text-center">`;
+            
+            // Header Row
+            html += `<tr><th class="p-1 md:p-2 text-slate-400 font-semibold border-b border-r border-slate-200 dark:border-slate-800">i\\j</th>`;
+            for (let j = 1; j <= n; j++) {
+                const isPivotCol = (j === step.k);
+                const colClass = isPivotCol ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/60 dark:text-blue-300 font-bold' : 'text-slate-500';
+                html += `<th class="p-1 md:p-2 border-b border-slate-200 dark:border-slate-800 ${colClass}">${j}</th>`;
+            }
+            html += `</tr>`;
+
+            // Matrix Rows
+            for (let i = 1; i <= n; i++) {
+                const isPivotRow = (i === step.k);
+                const rowHeaderClass = isPivotRow ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/60 dark:text-blue-300 font-bold' : 'text-slate-500';
+
+                html += `<tr>`;
+                html += `<th class="p-1 md:p-2 border-r border-slate-200 dark:border-slate-800 ${rowHeaderClass}">${i}</th>`;
+
+                for (let j = 1; j <= n; j++) {
+                    const val = mat[i][j];
+                    const valStr = val === Infinity ? '∞' : val;
+
+                    let bgClass = 'bg-white dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800';
+                    let borderClass = 'border-slate-100 dark:border-slate-800/60';
+                    let textClass = 'text-slate-700 dark:text-slate-200';
+
+                    if (step.k > 0) {
+                        if (i === step.k && j === step.k) {
+                            bgClass = 'bg-blue-200 dark:bg-blue-900 text-blue-800 dark:text-blue-200 font-bold';
+                        } else if (i === step.k || j === step.k) {
+                            bgClass = 'bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300';
+                        }
+                    }
+
+                    if (step.i === i && step.j === j) {
+                        if (step.updated) {
+                            bgClass = 'bg-emerald-500 text-white font-bold animate-pulse';
+                        } else if (step.inactive) {
+                            bgClass = 'bg-slate-200 dark:bg-slate-800 text-slate-400 line-through';
+                        } else {
+                            bgClass = 'bg-amber-400 text-slate-950 font-bold ring-2 ring-amber-500';
+                        }
+                    } else if (step.i === i && j === step.k) {
+                        bgClass = 'bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-200 font-semibold border-amber-300';
+                    } else if (i === step.k && step.j === j) {
+                        bgClass = 'bg-green-100 dark:bg-green-950/60 text-green-800 dark:text-green-200 font-semibold border-green-300';
+                    }
+
+                    if (hoverMatrixEdge && hoverMatrixEdge.i === i && hoverMatrixEdge.j === j) {
+                        bgClass += ' ring-2 ring-purple-500';
+                    }
+
+                    html += `<td data-i="${i}" data-j="${j}" class="p-2 md:p-2.5 border ${borderClass} ${bgClass} ${textClass} transition-all cursor-pointer font-mono">${valStr}</td>`;
+                }
+                html += `</tr>`;
+            }
+            html += `</table>`;
+
+            wrapper.innerHTML = html;
+
+            wrapper.querySelectorAll('td[data-i]').forEach(cell => {
+                cell.addEventListener('mouseenter', (e) => {
+                    const i = parseInt(e.target.dataset.i);
+                    const j = parseInt(e.target.dataset.j);
+                    hoverMatrixEdge = { i, j };
+                    renderGraphSVG(executionSteps[currentStepIndex]);
+                });
+                cell.addEventListener('mouseleave', () => {
+                    hoverMatrixEdge = null;
+                    renderGraphSVG(executionSteps[currentStepIndex]);
+                });
+            });
+        }
+
+        // Render Graph SVG with Enlarged Node & Edge Numbers
+        function renderGraphSVG(step = null) {
+            const svg = document.getElementById('graphSvg');
+            svg.innerHTML = '';
+
+            if (!currentGraph) return;
+
+            const n = currentGraph.nodes;
+            const width = 500;
+            const height = 450;
+            const centerX = width / 2;
+            const centerY = height / 2;
+            const radius = 155;
+
+            const nodePos = {};
+            for (let i = 1; i <= n; i++) {
+                const angle = (2 * Math.PI * (i - 1) / n) - (Math.PI / 2);
+                nodePos[i] = {
+                    x: centerX + radius * Math.cos(angle),
+                    y: centerY + radius * Math.sin(angle)
+                };
+            }
+
+            const defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
+            
+            const createMarker = (id, color) => {
+                const marker = document.createElementNS('http://www.w3.org/2000/svg', 'marker');
+                marker.setAttribute('id', id);
+                marker.setAttribute('viewBox', '0 0 10 10');
+                marker.setAttribute('refX', '26');
+                marker.setAttribute('refY', '5');
+                marker.setAttribute('markerWidth', '7');
+                marker.setAttribute('markerHeight', '7');
+                marker.setAttribute('orient', 'auto-start-reverse');
+                
+                const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                path.setAttribute('d', 'M 0 0 L 10 5 L 0 10 z');
+                path.setAttribute('fill', color);
+                marker.appendChild(path);
+                return marker;
+            };
+
+            const isDark = document.documentElement.classList.contains('dark');
+            const defaultArrowColor = isDark ? '#64748b' : '#94a3b8';
+
+            if (isDirected) {
+                defs.appendChild(createMarker('arrow-default', defaultArrowColor));
+                defs.appendChild(createMarker('arrow-active', '#f59e0b'));
+                defs.appendChild(createMarker('arrow-pivot', '#3b82f6'));
+                defs.appendChild(createMarker('arrow-updated', '#22c55e'));
+                defs.appendChild(createMarker('arrow-hover', '#a855f7'));
+            }
+            svg.appendChild(defs);
+
+            // Render Edges
+            const processedPairs = new Set();
+
+            currentGraph.edges.forEach(edge => {
+                const u = edge.u;
+                const v = edge.v;
+                const p1 = nodePos[u];
+                const p2 = nodePos[v];
+
+                const pairKey = u < v ? `${u}-${v}` : `${v}-${u}`;
+                if (!isDirected && processedPairs.has(pairKey)) return;
+                processedPairs.add(pairKey);
+
+                const hasReverse = isDirected && currentGraph.edges.some(e => e.u === v && e.v === u);
+                const curveOffset = hasReverse ? 26 : 0;
+
+                const dx = p2.x - p1.x;
+                const dy = p2.y - p1.y;
+                const dist = Math.sqrt(dx * dx + dy * dy);
+
+                const nx = -dy / dist;
+                const ny = dx / dist;
+
+                const controlX = (p1.x + p2.x) / 2 + nx * curveOffset;
+                const controlY = (p1.y + p2.y) / 2 + ny * curveOffset;
+
+                const pathData = curveOffset === 0
+                    ? `M ${p1.x} ${p1.y} L ${p2.x} ${p2.y}`
+                    : `M ${p1.x} ${p1.y} Q ${controlX} ${controlY} ${p2.x} ${p2.y}`;
+
+                let strokeColor = defaultArrowColor;
+                let strokeWidth = '2.5';
+                let markerId = isDirected ? 'arrow-default' : '';
+
+                if (step) {
+                    if (step.k && (u === step.k || v === step.k)) {
+                        strokeColor = '#3b82f6';
+                        if (isDirected) markerId = 'arrow-pivot';
+                    }
+                    if ((step.i === u && step.k === v) || (!isDirected && step.i === v && step.k === u)) {
+                        strokeColor = '#f59e0b';
+                        strokeWidth = '4';
+                        if (isDirected) markerId = 'arrow-active';
+                    }
+                    if ((step.k === u && step.j === v) || (!isDirected && step.k === v && step.j === u)) {
+                        strokeColor = '#22c55e';
+                        strokeWidth = '4';
+                        if (isDirected) markerId = 'arrow-updated';
+                    }
+                    if ((step.i === u && step.j === v) || (!isDirected && step.i === v && step.j === u)) {
+                        if (!step.k) {
+                            strokeColor = '#f59e0b';
+                            strokeWidth = '4';
+                            if (isDirected) markerId = 'arrow-active';
+                        }
+                    }
+                }
+
+                if (hoverMatrixEdge && ((hoverMatrixEdge.i === u && hoverMatrixEdge.j === v) || (!isDirected && hoverMatrixEdge.i === v && hoverMatrixEdge.j === u))) {
+                    strokeColor = '#a855f7';
+                    strokeWidth = '4.5';
+                    if (isDirected) markerId = 'arrow-hover';
+                }
+
+                const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                path.setAttribute('d', pathData);
+                path.setAttribute('fill', 'none');
+                path.setAttribute('stroke', strokeColor);
+                path.setAttribute('stroke-width', strokeWidth);
+                if (isDirected) path.setAttribute('marker-end', `url(#${markerId})`);
+                path.setAttribute('class', 'transition-all duration-200');
+                svg.appendChild(path);
+
+                // Edge Weight Label
+                const labelX = curveOffset === 0 ? (p1.x + p2.x) / 2 : (p1.x + p2.x) / 2 + nx * (curveOffset * 0.75);
+                const labelY = curveOffset === 0 ? (p1.y + p2.y) / 2 : (p1.y + p2.y) / 2 + ny * (curveOffset * 0.75);
+
+                const textBg = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+                textBg.setAttribute('cx', labelX);
+                textBg.setAttribute('cy', labelY);
+                textBg.setAttribute('r', '13');
+                textBg.setAttribute('class', 'fill-white dark:fill-slate-900 stroke-slate-300 dark:stroke-slate-700 shadow-sm');
+                svg.appendChild(textBg);
+
+                const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                text.setAttribute('x', labelX);
+                text.setAttribute('y', labelY + 4.5);
+                text.setAttribute('text-anchor', 'middle');
+                text.setAttribute('font-size', '13');
+                text.setAttribute('font-weight', 'bold');
+                text.setAttribute('fill', 'currentColor');
+                text.textContent = edge.w;
+                svg.appendChild(text);
+            });
+
+            // Draw Nodes
+            for (let i = 1; i <= n; i++) {
+                const pos = nodePos[i];
+                const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+
+                let fillColor = isDark ? '#1e293b' : '#ffffff';
+                let strokeColor = isDark ? '#475569' : '#94a3b8';
+                let textColor = 'currentColor';
+                let strokeWidth = '2.5';
+
+                if (step) {
+                    if (step.k === i) {
+                        fillColor = '#3b82f6';
+                        strokeColor = '#1d4ed8';
+                        textColor = '#ffffff';
+                        strokeWidth = '3.5';
+                    } else if (step.i === i) {
+                        fillColor = '#f59e0b';
+                        strokeColor = '#d97706';
+                        textColor = '#ffffff';
+                        strokeWidth = '3';
+                    } else if (step.j === i) {
+                        fillColor = '#22c55e';
+                        strokeColor = '#15803d';
+                        textColor = '#ffffff';
+                        strokeWidth = '3';
+                    }
+                }
+
+                if (hoverMatrixEdge && (hoverMatrixEdge.i === i || hoverMatrixEdge.j === i)) {
+                    strokeColor = '#a855f7';
+                    strokeWidth = '4';
+                }
+
+                const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+                circle.setAttribute('cx', pos.x);
+                circle.setAttribute('cy', pos.y);
+                circle.setAttribute('r', '22');
+                circle.setAttribute('fill', fillColor);
+                circle.setAttribute('stroke', strokeColor);
+                circle.setAttribute('stroke-width', strokeWidth);
+                circle.setAttribute('class', 'transition-all duration-200');
+
+                const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                text.setAttribute('x', pos.x);
+                text.setAttribute('y', pos.y + 6);
+                text.setAttribute('text-anchor', 'middle');
+                text.setAttribute('font-size', '17');
+                text.setAttribute('font-weight', 'bold');
+                text.setAttribute('fill', textColor);
+                text.textContent = i;
+
+                g.appendChild(circle);
+                g.appendChild(text);
+                svg.appendChild(g);
+            }
+        }
+
+        // Render Mini Diagram for 3 active nodes (i -> k -> j vs i -> j)
+        function renderMiniTriangle(step = null) {
+            const svg = document.getElementById('miniTriangleSvg');
+            svg.innerHTML = '';
+
+            const isDark = document.documentElement.classList.contains('dark');
+
+            if (!step || !step.i || !step.j || !step.k || step.i === step.j) {
+                svg.innerHTML = `<text x="160" y="45" text-anchor="middle" font-size="12" fill="${isDark ? '#64748b' : '#94a3b8'}">Awaiting vertex evaluation (i, k, j)...</text>`;
+                return;
+            }
+
+            const i = step.i;
+            const j = step.j;
+            const k = step.k;
+
+            const ikVal = step.ikVal !== undefined ? (step.ikVal === Infinity ? 'INF' : step.ikVal) : '---';
+            const kjVal = step.kjVal !== undefined ? (step.kjVal === Infinity ? 'INF' : step.kjVal) : '---';
+            const ijVal = step.prevVal !== undefined ? (step.prevVal === Infinity ? 'INF' : step.prevVal) : '---';
+
+            const defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
+            const createMarker = (id, color) => {
+                const marker = document.createElementNS('http://www.w3.org/2000/svg', 'marker');
+                marker.setAttribute('id', id);
+                marker.setAttribute('viewBox', '0 0 10 10');
+                marker.setAttribute('refX', '20');
+                marker.setAttribute('refY', '5');
+                marker.setAttribute('markerWidth', '6');
+                marker.setAttribute('markerHeight', '6');
+                marker.setAttribute('orient', 'auto-start-reverse');
+                const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                path.setAttribute('d', 'M 0 0 L 10 5 L 0 10 z');
+                path.setAttribute('fill', color);
+                marker.appendChild(path);
+                return marker;
+            };
+
+            defs.appendChild(createMarker('mini-arrow-ik', '#0d9488'));
+            defs.appendChild(createMarker('mini-arrow-kj', '#9333ea'));
+            defs.appendChild(createMarker('mini-arrow-ij', '#ef4444'));
+            svg.appendChild(defs);
+
+            const pos = {
+                i: { x: 45, y: 55 },
+                k: { x: 160, y: 22 },
+                j: { x: 275, y: 55 }
+            };
+
+            // Curved path i -> k
+            const pathIK = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+            pathIK.setAttribute('d', `M ${pos.i.x} ${pos.i.y} Q 100 20 ${pos.k.x} ${pos.k.y}`);
+            pathIK.setAttribute('fill', 'none');
+            pathIK.setAttribute('stroke', '#0d9488');
+            pathIK.setAttribute('stroke-width', '2.5');
+            pathIK.setAttribute('marker-end', 'url(#mini-arrow-ik)');
+            svg.appendChild(pathIK);
+
+            // Curved path k -> j
+            const pathKJ = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+            pathKJ.setAttribute('d', `M ${pos.k.x} ${pos.k.y} Q 220 20 ${pos.j.x} ${pos.j.y}`);
+            pathKJ.setAttribute('fill', 'none');
+            pathKJ.setAttribute('stroke', '#9333ea');
+            pathKJ.setAttribute('stroke-width', '2.5');
+            pathKJ.setAttribute('marker-end', 'url(#mini-arrow-kj)');
+            svg.appendChild(pathKJ);
+
+            // Direct path i -> j
+            const pathIJ = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+            pathIJ.setAttribute('d', `M ${pos.i.x} ${pos.i.y} L ${pos.j.x} ${pos.j.y}`);
+            pathIJ.setAttribute('fill', 'none');
+            pathIJ.setAttribute('stroke', '#ef4444');
+            pathIJ.setAttribute('stroke-width', '2.5');
+            pathIJ.setAttribute('marker-end', 'url(#mini-arrow-ij)');
+            svg.appendChild(pathIJ);
+
+            const drawTextLabel = (x, y, textStr, color) => {
+                const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                text.setAttribute('x', x);
+                text.setAttribute('y', y);
+                text.setAttribute('text-anchor', 'middle');
+                text.setAttribute('font-size', '12');
+                text.setAttribute('font-weight', 'bold');
+                text.setAttribute('fill', color);
+                text.textContent = textStr;
+                svg.appendChild(text);
+            };
+
+            drawTextLabel(95, 20, ikVal, '#0d9488');
+            drawTextLabel(225, 20, kjVal, '#9333ea');
+            drawTextLabel(160, 72, ijVal, '#ef4444');
+
+            const drawMiniNode = (nodePos, label, color) => {
+                const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+                circle.setAttribute('cx', nodePos.x);
+                circle.setAttribute('cy', nodePos.y);
+                circle.setAttribute('r', '15');
+                circle.setAttribute('fill', color);
+                circle.setAttribute('stroke', '#ffffff');
+                circle.setAttribute('stroke-width', '2');
+
+                const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                text.setAttribute('x', nodePos.x);
+                text.setAttribute('y', nodePos.y + 4.5);
+                text.setAttribute('text-anchor', 'middle');
+                text.setAttribute('font-size', '13');
+                text.setAttribute('font-weight', 'bold');
+                text.setAttribute('fill', '#ffffff');
+                text.textContent = label;
+
+                svg.appendChild(circle);
+                svg.appendChild(text);
+            };
+
+            drawMiniNode(pos.i, i, '#f59e0b');
+            drawMiniNode(pos.k, k, '#3b82f6');
+            drawMiniNode(pos.j, j, '#22c55e');
+        }
+
+        // Highlight Pseudocode Line with Semi-Transparent Yellow Background
+        function highlightPseudocode(lineNum) {
+            for (let l = 1; l <= 13; l++) {
+                const el = document.getElementById(`code-line-${l}`);
+                if (el) {
+                    if (l === lineNum) {
+                        el.classList.add('bg-yellow-400/20', 'dark:bg-yellow-400/15', 'border-yellow-400');
+                        el.classList.remove('border-transparent');
+                    } else {
+                        el.classList.remove('bg-yellow-400/20', 'dark:bg-yellow-400/15', 'border-yellow-400');
+                        el.classList.add('border-transparent');
+                    }
+                }
+            }
+        }
+
+        // Update Explanation Log Box
+        function updateStepLog(step) {
+            const header = document.getElementById('logHeader');
+            const body = document.getElementById('logBody');
+            const iconContainer = document.getElementById('logIcon');
+
+            header.innerHTML = step.title;
+            body.innerHTML = step.message;
+
+            if (step.updated) {
+                iconContainer.className = 'mt-0.5 p-1 rounded bg-green-100 dark:bg-green-900/50 text-green-600 dark:text-green-400 shrink-0';
+                iconContainer.innerHTML = `<i data-lucide="check-circle" class="w-4 h-4"></i>`;
+            } else if (step.inactive) {
+                iconContainer.className = 'mt-0.5 p-1 rounded bg-slate-200 dark:bg-slate-800 text-slate-500 shrink-0';
+                iconContainer.innerHTML = `<i data-lucide="minus-circle" class="w-4 h-4"></i>`;
+            } else {
+                iconContainer.className = 'mt-0.5 p-1 rounded bg-blue-100 dark:bg-blue-900/50 text-blue-600 dark:text-blue-400 shrink-0';
+                iconContainer.innerHTML = `<i data-lucide="info" class="w-4 h-4"></i>`;
+            }
+            lucide.createIcons();
+        }
+
+        // Setup Event Listeners & Shortcuts
+        function setupEventListeners() {
+            const btnPlay = document.getElementById('btnPlay');
+            const btnPrev = document.getElementById('btnPrev');
+            const btnNext = document.getElementById('btnNext');
+            const slider = document.getElementById('stepSlider');
+
+            btnPlay.addEventListener('click', togglePlay);
+            
+            btnPrev.addEventListener('click', () => {
+                pauseAnimation();
+                stepBack();
+            });
+
+            btnNext.addEventListener('click', () => {
+                pauseAnimation();
+                stepForward();
+            });
+
+            // Slider Scrubbing with Skipping
+            slider.addEventListener('input', (e) => {
+                pauseAnimation();
+                const targetIdx = parseInt(e.target.value);
+                const chkSkip = document.getElementById('chkSkipInactive').checked;
+
+                if (chkSkip && executionSteps[targetIdx] && executionSteps[targetIdx].inactive) {
+                    let nearest = targetIdx;
+                    for (let delta = 1; delta < executionSteps.length; delta++) {
+                        if (targetIdx + delta < executionSteps.length && !executionSteps[targetIdx + delta].inactive) {
+                            nearest = targetIdx + delta;
+                            break;
+                        }
+                        if (targetIdx - delta >= 0 && !executionSteps[targetIdx - delta].inactive) {
+                            nearest = targetIdx - delta;
+                            break;
+                        }
+                    }
+                    renderStep(nearest);
+                } else {
+                    renderStep(targetIdx);
+                }
+            });
+
+            // Keyboard Navigation (Arrow Left, Right, Space)
+            window.addEventListener('keydown', (e) => {
+                if (e.key === 'ArrowRight') {
+                    e.preventDefault();
+                    pauseAnimation();
+                    stepForward();
+                } else if (e.key === 'ArrowLeft') {
+                    e.preventDefault();
+                    pauseAnimation();
+                    stepBack();
+                } else if (e.key === ' ') {
+                    e.preventDefault();
+                    togglePlay();
+                }
+            });
+
+            // Toggle Directed
+            document.getElementById('btnToggleDirected').addEventListener('click', () => {
+                isDirected = !isDirected;
+                updateDirectedUI();
+                loadGraph(currentGraph);
+            });
+
+            // Preset Select
+            document.getElementById('presetSelect').addEventListener('change', (e) => {
+                if (e.target.value === 'random') {
+                    generateRandomGraph();
+                } else {
+                    loadPreset(e.target.value);
+                }
+            });
+
+            document.getElementById('btnRandom').addEventListener('click', generateRandomGraph);
+
+            // Share URL via Fallback Copying
+            document.getElementById('btnShare').addEventListener('click', () => {
+                const graphToShare = { ...currentGraph, directed: isDirected };
+                const encoded = encodeURIComponent(JSON.stringify(graphToShare));
+                const url = `${window.location.origin}${window.location.pathname}?graph=${encoded}`;
+                
+                copyToClipboard(url);
+            });
+        }
+
+        // Copy Helper for Iframe Restrictions
+        function copyToClipboard(text) {
+            const textArea = document.createElement("textarea");
+            textArea.value = text;
+            textArea.style.position = "fixed";
+            textArea.style.top = "0";
+            textArea.style.left = "0";
+            textArea.style.opacity = "0";
+            document.body.appendChild(textArea);
+            textArea.focus();
+            textArea.select();
+
+            let successful = false;
+            try {
+                successful = document.execCommand('copy');
+            } catch (err) {
+                successful = false;
+            }
+            document.body.removeChild(textArea);
+
+            /*if (successful) {
+                alert('Shareable URL copied to clipboard!');
+            } else {
+                prompt('Copy this URL manually to share:', text);
+            }*/
+        }
+
+        function updateStepSlider() {
+            const slider = document.getElementById('stepSlider');
+            slider.max = executionSteps.length - 1;
+        }
+
+        function stepForward() {
+            const chkSkip = document.getElementById('chkSkipInactive').checked;
+            let nextIdx = currentStepIndex + 1;
+
+            if (chkSkip) {
+                while (nextIdx < executionSteps.length - 1 && executionSteps[nextIdx].inactive) {
+                    nextIdx++;
+                }
+            }
+
+            if (nextIdx < executionSteps.length) {
+                renderStep(nextIdx);
+            } else {
+                pauseAnimation();
+            }
+        }
+
+        function stepBack() {
+            const chkSkip = document.getElementById('chkSkipInactive').checked;
+            let prevIdx = currentStepIndex - 1;
+
+            if (chkSkip) {
+                while (prevIdx > 0 && executionSteps[prevIdx].inactive) {
+                    prevIdx--;
+                }
+            }
+
+            if (prevIdx >= 0) {
+                renderStep(prevIdx);
+            }
+        }
+
+        function togglePlay() {
+            if (isPlaying) {
+                pauseAnimation();
+            } else {
+                startAnimation();
+            }
+        }
+
+        function startAnimation() {
+            if (currentStepIndex >= executionSteps.length - 1) {
+                currentStepIndex = 0;
+            }
+            isPlaying = true;
+            document.getElementById('playText').innerText = 'Pause';
+            document.getElementById('playIcon').setAttribute('data-lucide', 'pause');
+            lucide.createIcons();
+
+            const speed = parseInt(document.getElementById('speedSelect').value);
+            playInterval = setInterval(() => {
+                if (currentStepIndex < executionSteps.length - 1) {
+                    stepForward();
+                } else {
+                    pauseAnimation();
+                }
+            }, speed);
+        }
+
+        function pauseAnimation() {
+            isPlaying = false;
+            if (playInterval) clearInterval(playInterval);
+            document.getElementById('playText').innerText = 'Play';
+            document.getElementById('playIcon').setAttribute('data-lucide', 'play');
+            lucide.createIcons();
+        }
+    </script>
+</body>
+</html>
