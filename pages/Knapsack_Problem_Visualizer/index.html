@@ -1,0 +1,1299 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Knapsack Visualizer</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#f0f9ff',
+                            100: '#e0f2fe',
+                            500: '#0284c7',
+                            600: '#0284c7',
+                            700: '#0369a1',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- MathJax for rendering LaTeX expressions -->
+    <script>
+        window.MathJax = {
+            tex: {
+                inlineMath: [['$', '$'], ['\\(', '\\)']],
+                displayMath: [['$$', '$$'], ['\\[', '\\]']]
+            },
+            svg: { fontCache: 'global' }
+        };
+    </script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
+    <style>
+        /* Quick scaling to 110% */
+        header,
+        main {
+            zoom: 1.1;
+        }
+        .highlight-line {
+            background-color: rgba(234, 179, 8, 0.25);
+            border-left: 4px solid #eab308;
+            font-weight: 600;
+        }
+        .dp-cell {
+            box-sizing: border-box;
+            border: 1px solid rgba(148, 163, 184, 0.2);
+            transition: background-color 0.15s ease, box-shadow 0.15s ease;
+            min-width: 2.2rem;
+            height: 2.2rem;
+        }
+        .cell-active {
+            box-shadow: inset 0 0 0 2px #3b82f6 !important;
+            background-color: rgba(59, 130, 246, 0.25) !important;
+        }
+        .cell-dep-1 {
+            box-shadow: inset 0 0 0 2px #22c55e !important;
+            background-color: rgba(34, 197, 94, 0.25) !important;
+        }
+        .cell-dep-2 {
+            box-shadow: inset 0 0 0 2px #a855f7 !important;
+            background-color: rgba(168, 85, 247, 0.25) !important;
+        }
+        .cell-backtrack {
+            box-shadow: inset 0 0 0 2px #f97316 !important;
+            background-color: rgba(249, 115, 22, 0.35) !important;
+        }
+        .cell-optimal {
+            box-shadow: inset 0 0 0 2px #eab308, 0 0 8px rgba(234, 179, 8, 0.5) !important;
+            background-color: rgba(234, 179, 8, 0.3) !important;
+            font-weight: 800 !important;
+            color: #d97706 !important;
+        }
+        .dark .cell-optimal {
+            color: #fbbf24 !important;
+        }
+
+        /* Pseudocode Syntax Highlighting */
+        .code-kw { color: #f472b6; font-weight: 600; } /* keywords */
+        .code-fn { color: #38bdf8; font-weight: 600; } /* function names */
+        .code-cm { color: #94a3b8; font-style: italic; } /* comments */
+        .code-num { color: #fbbf24; } /* numbers */
+
+        pre code {
+            font-family: 'Fira Code', 'Courier New', Courier, monospace;
+        }
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.05);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(150, 150, 150, 0.5);
+            border-radius: 3px;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-100 min-h-screen flex flex-col font-sans transition-colors duration-200">
+
+    <!-- Header Navigation -->
+    <header class="bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 px-4 py-2.5 shrink-0">
+        <div class="max-w-7xl mx-auto flex items-center justify-between gap-2 overflow-x-auto">
+            <!-- Logo & Title -->
+            <div class="flex items-center space-x-2 shrink-0">
+                <div class="p-1.5 bg-blue-600 text-white rounded-lg shadow-sm flex items-center justify-center">
+                    <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M4 10a4 4 0 0 1 4-4h8a4 4 0 0 1 4 4v9a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-9z"/>
+                        <path d="M9 6V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"/>
+                        <path d="M8 21v-4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v4"/>
+                        <path d="M12 10v2"/>
+                    </svg>
+                </div>
+                <div>
+                    <h1 class="text-base font-bold leading-none">Knapsack Visualizer</h1>
+                    <span class="text-[11px] text-slate-500 dark:text-slate-400">DP with Unbounded and 0/1 Knapsack</span>
+                </div>
+            </div>
+
+            <!-- Algorithm Switcher -->
+            <div class="flex items-center gap-1 bg-slate-100 dark:bg-slate-700/80 p-1 rounded-xl shrink-0">
+                <button id="btn-unbounded" onclick="setAlgorithm('unbounded')" class="px-2.5 py-1 text-xs font-medium rounded-lg transition-all shadow-sm bg-white dark:bg-slate-800 text-blue-600 dark:text-blue-400">
+                    Unbounded Knapsack
+                </button>
+                <button id="btn-zero-one" onclick="setAlgorithm('01')" class="px-2.5 py-1 text-xs font-medium rounded-lg transition-all text-slate-600 dark:text-slate-300 hover:text-slate-900">
+                    0/1 Knapsack
+                </button>
+            </div>
+
+            <!-- Header Action Controls -->
+            <div class="flex items-center gap-1.5 shrink-0">
+                <!-- Mode Toggle for Unbounded -->
+                <div id="unbounded-mode-container" class="flex items-center gap-1 bg-slate-100 dark:bg-slate-700/80 p-1 rounded-xl text-xs">
+                    <button id="btn-mode-std" onclick="setUnboundedMode('standard')" class="px-2 py-1 rounded-lg font-medium text-blue-600 dark:text-blue-400 bg-white dark:bg-slate-800 shadow-sm" title="Standard Recurrence">
+                        Standard
+                    </button>
+                    <button id="btn-mode-choice" onclick="setUnboundedMode('choice')" class="px-2 py-1 rounded-lg font-medium text-slate-600 dark:text-slate-300 hover:text-slate-900" title="Explicit Choice Array">
+                        Choice Array
+                    </button>
+                </div>
+
+                <button onclick="toggleTheme()" id="btn-theme" title="Toggle Theme" class="p-1.5 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg border border-slate-300 dark:border-slate-600">
+                    <i data-lucide="sun" class="w-4 h-4 hidden dark:block"></i>
+                    <i data-lucide="moon" class="w-4 h-4 block dark:hidden"></i>
+                </button>
+                <button onclick="loadSampleData()" class="px-2 py-1.5 text-xs font-medium border border-slate-300 dark:border-slate-600 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 flex items-center gap-1">
+                    <i data-lucide="file-text" class="w-3.5 h-3.5"></i> Preset
+                </button>
+                <button onclick="generateRandomData()" class="px-2 py-1.5 text-xs font-medium border border-slate-300 dark:border-slate-600 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 flex items-center gap-1">
+                    <i data-lucide="shuffle" class="w-3.5 h-3.5"></i> Random
+                </button>
+                <button onclick="shareConfiguration()" id="btn-share" title="Copy configuration URL" class="p-1.5 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg border border-slate-300 dark:border-slate-600">
+                    <i data-lucide="share-2" class="w-4 h-4"></i>
+                </button>
+                <button onclick="toggleConfigModal()" class="px-2 py-1.5 text-xs font-medium bg-slate-800 text-white dark:bg-slate-200 dark:text-slate-800 rounded-lg hover:opacity-90 flex items-center gap-1">
+                    <i data-lucide="settings" class="w-3.5 h-3.5"></i> Edit Input
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content Grid -->
+    <main class="flex-1 max-w-7xl w-full mx-auto p-3 sm:p-4 grid grid-cols-1 lg:grid-cols-12 gap-4 overflow-hidden">
+        
+        <!-- Left Panel: Table Layout & Computation Math -->
+        <section class="lg:col-span-7 flex flex-col gap-3 min-h-0">
+            
+            <!-- Items Table & DP Table Row (Side-by-Side for Unbounded) -->
+            <div id="left-tables-row" class="grid grid-cols-1 md:grid-cols-12 gap-3 items-stretch">
+                
+                <!-- Side Items Table (Unbounded Only) -->
+                <div id="side-items-container" class="md:col-span-3 bg-white dark:bg-slate-800 p-3 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 flex flex-col justify-between">
+                    <div>
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Items List</span>
+                            <span class="text-xs font-bold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/40 px-2 py-0.5 rounded border border-blue-200 dark:border-blue-800">
+                                Capacity: <span id="display-w-side">10</span>
+                            </span>
+                        </div>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-xs text-center border-collapse">
+                                <thead>
+                                    <tr class="bg-slate-100 dark:bg-slate-700/60 border-b border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400">
+                                        <th class="px-1.5 py-1 border-r border-slate-200 dark:border-slate-700">Itm</th>
+                                        <th class="px-1.5 py-1 border-r border-slate-200 dark:border-slate-700">Wt $w$</th>
+                                        <th class="px-1.5 py-1">Val $v$</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="items-table-body" class="divide-y divide-slate-200 dark:divide-slate-700">
+                                    <!-- Dynamic rows -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Main DP Table Container -->
+                <div id="dp-table-wrapper" class="md:col-span-9 bg-white dark:bg-slate-800 p-3 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 flex flex-col">
+                    <div class="flex justify-between items-center mb-2">
+                        <h2 class="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
+                            <i data-lucide="table" class="w-4 h-4"></i> DP Table
+                        </h2>
+                        <div id="table-legend" class="flex flex-wrap items-center gap-2 text-[11px]"></div>
+                    </div>
+                    
+                    <div class="overflow-x-auto border border-slate-200 dark:border-slate-700 rounded-lg max-h-[260px]" id="table-container">
+                        <!-- Rendered DP Table -->
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Subproblem Math Calculation Box -->
+            <div class="bg-slate-900 text-slate-100 p-3.5 rounded-xl shadow-sm border border-slate-800 font-mono text-sm flex flex-col shrink-0 min-h-[160px] flex-1">
+                <div class="flex justify-between items-center text-slate-400 border-b border-slate-800 pb-1.5 mb-2">
+                    <span class="font-bold flex items-center gap-1.5 text-blue-400 text-xs uppercase tracking-wider">
+                        <i data-lucide="calculator" class="w-4 h-4"></i> Computation & Subproblem Breakdown
+                    </span>
+                    <span id="step-phase" class="text-[11px] px-2 py-0.5 rounded bg-slate-800 text-amber-400 border border-amber-500/30">
+                        Initialization
+                    </span>
+                </div>
+                <div id="math-explanation" class="flex-1 overflow-auto space-y-1.5 text-slate-200 leading-relaxed">
+                    <!-- Dynamic Math Operations -->
+                </div>
+            </div>
+
+        </section>
+
+        <!-- Right Panel: Pseudocode & Reconstructed Overlay -->
+        <section class="lg:col-span-5 flex flex-col gap-3 min-h-0 relative">
+            
+            <!-- Pseudocode Container -->
+            <div class="bg-slate-950 text-slate-200 p-4 rounded-xl shadow-sm border border-slate-800 flex-1 flex flex-col min-h-[380px] overflow-hidden">
+                <div class="flex justify-between items-center border-b border-slate-800 pb-2 mb-2">
+                    <h2 class="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+                        <i data-lucide="code" class="w-4 h-4 text-emerald-400"></i> Algorithm Pseudocode
+                    </h2>
+                    <span id="algo-type-label" class="text-[11px] text-slate-400">Unbounded Knapsack</span>
+                </div>
+                
+                <div class="flex-1 overflow-auto text-xs leading-relaxed" id="pseudocode-container">
+                    <!-- Lines inserted by JS -->
+                </div>
+            </div>
+
+            <!-- Reconstructed Solution Panel (Aligned at Page Bottom Overlaying upward over code) -->
+            <div id="reconstructed-solution-panel" class="absolute bottom-0 left-0 right-0 bg-white/95 dark:bg-slate-800/95 backdrop-blur-md p-3.5 rounded-xl shadow-2xl border border-blue-500/30 shrink-0 hidden transition-all duration-200 z-10">
+                <h3 class="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1.5 flex items-center justify-between">
+                    <span class="flex items-center gap-1.5">
+                        <i data-lucide="check-circle-2" class="w-4 h-4 text-emerald-500"></i> Reconstructed Solution
+                    </span>
+                    <span id="sol-tag" class="text-[10px] px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 font-mono">Backtracking</span>
+                </h3>
+                <div id="reconstructed-solution" class="text-xs min-h-[36px] flex items-center">
+                    <!-- Dynamic solution breakdown -->
+                </div>
+            </div>
+
+        </section>
+
+    </main>
+
+    <!-- Controls Bar -->
+    <footer class="bg-white dark:bg-slate-800 border-t border-slate-200 dark:border-slate-700 p-3 shrink-0 shadow-lg">
+        <div class="max-w-7xl mx-auto flex flex-col sm:flex-row items-center gap-3">
+            
+            <div class="flex items-center gap-1.5">
+                <button onclick="resetExecution()" title="Reset" class="p-2 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg">
+                    <i data-lucide="rotate-ccw" class="w-4 h-4"></i>
+                </button>
+                <button onclick="stepPrev()" title="Step Back (Left Arrow)" class="p-2 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg">
+                    <i data-lucide="skip-back" class="w-4 h-4"></i>
+                </button>
+                <button id="btn-play" onclick="togglePlay()" title="Play / Pause (Spacebar)" class="p-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl shadow-sm transition-transform active:scale-95">
+                    <i id="icon-play" data-lucide="play" class="w-5 h-5"></i>
+                </button>
+                <button onclick="stepNext()" title="Step Forward (Right Arrow)" class="p-2 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg">
+                    <i data-lucide="skip-forward" class="w-4 h-4"></i>
+                </button>
+            </div>
+
+            <div class="flex-1 w-full flex items-center gap-3 px-2">
+                <span class="text-xs font-mono text-slate-500 dark:text-slate-400 shrink-0 w-16 text-right">
+                    Step <span id="current-step-label">0</span>/<span id="total-steps-label">0</span>
+                </span>
+                <input id="step-slider" type="range" min="0" max="0" value="0" oninput="onSliderInput(this.value)"
+                       class="w-full h-2 bg-slate-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer accent-blue-600">
+            </div>
+
+            <div class="flex items-center gap-2 shrink-0 border-t sm:border-t-0 sm:border-l border-slate-200 dark:border-slate-700 pt-2 sm:pt-0 sm:pl-3">
+                <span class="text-xs text-slate-500 dark:text-slate-400">Speed:</span>
+                <select id="speed-select" onchange="changeSpeed(this.value)" class="text-xs bg-slate-100 dark:bg-slate-700 border-none rounded-lg px-2 py-1 text-slate-700 dark:text-slate-200 font-medium">
+                    <option value="1200">0.5x</option>
+                    <option value="600" selected>1.0x</option>
+                    <option value="300">2.0x</option>
+                    <option value="100">5.0x</option>
+                </select>
+            </div>
+
+        </div>
+    </footer>
+
+    <!-- Configuration Modal -->
+    <div id="config-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-xl max-w-md w-full p-5 border border-slate-200 dark:border-slate-700">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-base font-bold flex items-center gap-2">
+                    <i data-lucide="sliders" class="w-5 h-5 text-blue-500"></i> Edit Problem Data
+                </h3>
+                <button onclick="toggleConfigModal()" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+
+            <div class="space-y-4 text-xs">
+                <div>
+                    <label class="block font-semibold mb-1">Knapsack Capacity (W):</label>
+                    <input id="input-capacity" type="number" min="1" max="25" value="10" 
+                           class="w-full px-3 py-2 bg-slate-100 dark:bg-slate-700 rounded-lg border border-slate-300 dark:border-slate-600 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+
+                <div>
+                    <label class="block font-semibold mb-1">Items List (Format: weight,value per line):</label>
+                    <textarea id="input-items" rows="5" 
+                              class="w-full px-3 py-2 bg-slate-100 dark:bg-slate-700 rounded-lg border border-slate-300 dark:border-slate-600 font-mono focus:outline-none focus:ring-2 focus:ring-blue-500"
+                              placeholder="6,30&#10;3,14&#10;4,16&#10;2,9"></textarea>
+                    <span class="text-[11px] text-slate-400 mt-1 block">Example: <code>6,30</code> means weight=6, value=30</span>
+                </div>
+            </div>
+
+            <div class="flex justify-end gap-2 mt-6">
+                <button onclick="toggleConfigModal()" class="px-3 py-2 rounded-lg font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700">
+                    Cancel
+                </button>
+                <button onclick="applyCustomData()" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium shadow-sm">
+                    Apply Changes
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Application Script -->
+    <script>
+        let currentAlgo = 'unbounded'; // 'unbounded' or '01'
+        let unboundedMode = 'standard'; // 'standard' (dynamic recurrence) or 'choice'
+        let W = 10;
+        let items = [
+            { id: 1, name: 'Item 1', w: 6, v: 30 },
+            { id: 2, name: 'Item 2', w: 3, v: 14 },
+            { id: 3, name: 'Item 3', w: 4, v: 16 },
+            { id: 4, name: 'Item 4', w: 2, v: 9 }
+        ];
+
+        let executionSteps = [];
+        let currentStepIdx = 0;
+        let isPlaying = false;
+        let playInterval = null;
+        let playSpeed = 600;
+
+        // Pseudocode Definitions
+        const pseudocodeUnboundedStandard = [
+            { line: 1, text: `<span class="code-fn">Unbounded_Knapsack</span>(W, n, w, v)` },
+            { line: 2, text: `  min := <span class="code-kw">min</span>_{i ∈ [1..n]} { w_i }` },
+            { line: 3, text: `  <span class="code-kw">for</span> w := <span class="code-num">0</span> <span class="code-kw">to</span> min - <span class="code-num">1</span> <span class="code-kw">do</span>` },
+            { line: 4, text: `    K[w] := <span class="code-num">0</span>` },
+            { line: 5, text: `  <span class="code-kw">for</span> w := min <span class="code-kw">to</span> W <span class="code-kw">do</span>` },
+            { line: 6, text: `    K[w] := <span class="code-kw">max</span>_{i : w_i <= w} { v_i + K[w - w_i] }` },
+            { line: 7, text: `  <span class="code-kw">return</span> K[W]` },
+            { line: 8, text: `<span class="code-cm">// Backtracking solution</span>` },
+            { line: 9, text: `<span class="code-fn">Reconstruct_Solution</span>(W, n, w, v, K)` },
+            { line: 10, text: `  cap := W` },
+            { line: 11, text: `  solution := []` },
+            { line: 12, text: `  <span class="code-kw">while</span> cap > <span class="code-num">0</span> <span class="code-kw">do</span>` },
+            { line: 13, text: `    <span class="code-kw">for</span> i := <span class="code-num">1</span> <span class="code-kw">to</span> n <span class="code-kw">do</span>` },
+            { line: 14, text: `      <span class="code-kw">if</span> w_i <= cap <span class="code-kw">and</span> K[cap] == v_i + K[cap - w_i] <span class="code-kw">then</span>` },
+            { line: 15, text: `        solution.add(i)` },
+            { line: 16, text: `        cap := cap - w_i` },
+            { line: 17, text: `        <span class="code-kw">break</span>` },
+            { line: 18, text: `  <span class="code-kw">return</span> solution` }
+        ];
+
+        const pseudocodeUnboundedChoice = [
+            { line: 1, text: `<span class="code-fn">Unbounded_Knapsack_Choice</span>(W, n, w, v)` },
+            { line: 2, text: `  min := <span class="code-kw">min</span>_{i ∈ [1..n]} { w_i }` },
+            { line: 3, text: `  <span class="code-kw">for</span> w := <span class="code-num">0</span> <span class="code-kw">to</span> min - <span class="code-num">1</span> <span class="code-kw">do</span>` },
+            { line: 4, text: `    K[w] := <span class="code-num">0</span>; choice[w] := <span class="code-num">0</span>` },
+            { line: 5, text: `  <span class="code-kw">for</span> w := min <span class="code-kw">to</span> W <span class="code-kw">do</span>` },
+            { line: 6, text: `    K[w] := <span class="code-num">0</span>; choice[w] := <span class="code-num">0</span>` },
+            { line: 7, text: `    <span class="code-kw">for</span> i := <span class="code-num">1</span> <span class="code-kw">to</span> n <span class="code-kw">do</span>` },
+            { line: 8, text: `      <span class="code-kw">if</span> w_i <= w <span class="code-kw">and</span> (v_i + K[w - w_i] > K[w]) <span class="code-kw">then</span>` },
+            { line: 9, text: `        K[w] := v_i + K[w - w_i]` },
+            { line: 10, text: `        choice[w] := i` },
+            { line: 11, text: `  <span class="code-kw">return</span> K[W], choice` },
+            { line: 12, text: `<span class="code-cm">// Backtracking with choice array</span>` },
+            { line: 13, text: `<span class="code-fn">Reconstruct_Solution</span>(W, w, choice)` },
+            { line: 14, text: `  cap := W; solution := []` },
+            { line: 15, text: `  <span class="code-kw">while</span> cap > <span class="code-num">0</span> <span class="code-kw">and</span> choice[cap] != <span class="code-num">0</span> <span class="code-kw">do</span>` },
+            { line: 16, text: `    i := choice[cap]` },
+            { line: 17, text: `    solution.add(i)` },
+            { line: 18, text: `    cap := cap - w_i` },
+            { line: 19, text: `  <span class="code-kw">return</span> solution` }
+        ];
+
+        const pseudocode01 = [
+            { line: 1, text: `<span class="code-fn">Knapsack_01_Max_Val</span>(n, W, w, v)` },
+            { line: 2, text: `  <span class="code-kw">for</span> w := <span class="code-num">0</span> <span class="code-kw">to</span> W <span class="code-kw">do</span> K[<span class="code-num">0</span>, w] := <span class="code-num">0</span>` },
+            { line: 3, text: `  <span class="code-kw">for</span> j := <span class="code-num">0</span> <span class="code-kw">to</span> n <span class="code-kw">do</span> K[j, <span class="code-num">0</span>] := <span class="code-num">0</span>` },
+            { line: 4, text: `  <span class="code-kw">for</span> j := <span class="code-num">1</span> <span class="code-kw">to</span> n <span class="code-kw">do</span>` },
+            { line: 5, text: `    <span class="code-kw">for</span> w := <span class="code-num">1</span> <span class="code-kw">to</span> W <span class="code-kw">do</span>` },
+            { line: 6, text: `      <span class="code-kw">if</span> w_j > w <span class="code-kw">then</span>` },
+            { line: 7, text: `        K[j, w] := K[j-<span class="code-num">1</span>, w]` },
+            { line: 8, text: `      <span class="code-kw">else</span>` },
+            { line: 9, text: `        K[j, w] := <span class="code-kw">max</span>(K[j-<span class="code-num">1</span>, w], v_j + K[j-<span class="code-num">1</span>, w - w_j])` },
+            { line: 10, text: `  <span class="code-kw">return</span> K[n, W]` },
+            { line: 11, text: `<span class="code-cm">// Backtracking solution (0/1)</span>` },
+            { line: 12, text: `<span class="code-fn">Reconstruct_Solution_01</span>(n, W, K)` },
+            { line: 13, text: `  j := n; cap := W; solution := []` },
+            { line: 14, text: `  <span class="code-kw">while</span> j > <span class="code-num">0</span> <span class="code-kw">and</span> cap > <span class="code-num">0</span> <span class="code-kw">do</span>` },
+            { line: 15, text: `    <span class="code-kw">if</span> K[j, cap] != K[j-<span class="code-num">1</span>, cap] <span class="code-kw">then</span>` },
+            { line: 16, text: `      solution.add(j)` },
+            { line: 17, text: `      cap := cap - w_j` },
+            { line: 18, text: `    j := j - <span class="code-num">1</span>` },
+            { line: 19, text: `  <span class="code-kw">return</span> solution` }
+        ];
+
+        window.onload = function() {
+            lucide.createIcons();
+            initTheme();
+            loadConfigurationFromUrl();
+            renderItemTable();
+            setAlgorithm(currentAlgo);
+            window.addEventListener('keydown', handleKeyPress);
+        };
+
+        function handleKeyPress(e) {
+            if (e.key === 'ArrowRight' || e.key === 'Right') stepNext();
+            else if (e.key === 'ArrowLeft' || e.key === 'Left') stepPrev();
+            else if (e.key === ' ' || e.code === 'Space') {
+                e.preventDefault();
+                togglePlay();
+            }
+        }
+
+        function initTheme() {
+            if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+                document.documentElement.classList.add('dark');
+            } else {
+                document.documentElement.classList.remove('dark');
+            }
+        }
+
+        function toggleTheme() {
+            document.documentElement.classList.toggle('dark');
+        }
+
+        function loadConfigurationFromUrl() {
+            const params = new URLSearchParams(window.location.search);
+            const capacity = parseInt(params.get('w'), 10);
+            const algorithm = params.get('algo');
+            const mode = params.get('mode');
+            const encodedItems = params.get('items');
+
+            if (!Number.isInteger(capacity) || capacity < 1 || !encodedItems) return;
+
+            const parsedItems = encodedItems.split(';').map((entry, index) => {
+                const [weightText, valueText] = entry.split(',');
+                const weight = parseInt(weightText, 10);
+                const value = parseInt(valueText, 10);
+                if (!Number.isInteger(weight) || !Number.isInteger(value) || weight < 1 || value < 0) return null;
+                return { id: index + 1, name: `Item ${index + 1}`, w: weight, v: value };
+            });
+
+            if (parsedItems.length === 0 || parsedItems.some(item => item === null)) return;
+
+            W = capacity;
+            items = parsedItems;
+            if (algorithm === '01' || algorithm === 'unbounded') currentAlgo = algorithm;
+            if (mode === 'choice' || mode === 'standard') unboundedMode = mode;
+        }
+
+        function shareConfiguration() {
+            const params = new URLSearchParams({
+                algo: currentAlgo,
+                mode: unboundedMode,
+                w: String(W),
+                items: items.map(item => `${item.w},${item.v}`).join(';')
+            });
+            const shareUrl = `${window.location.href.split('?')[0]}?${params.toString()}`;
+            const button = document.getElementById('btn-share');
+            const originalTitle = button.title;
+
+            const copied = () => {
+                button.title = 'Configuration URL copied';
+                setTimeout(() => { button.title = originalTitle; }, 1600);
+            };
+
+            if (navigator.clipboard && window.isSecureContext) {
+                navigator.clipboard.writeText(shareUrl).then(copied);
+                return;
+            }
+
+            const textArea = document.createElement('textarea');
+            textArea.value = shareUrl;
+            textArea.style.position = 'fixed';
+            textArea.style.opacity = '0';
+            document.body.appendChild(textArea);
+            textArea.select();
+            document.execCommand('copy');
+            textArea.remove();
+            copied();
+        }
+
+        function setAlgorithm(algo) {
+            currentAlgo = algo;
+            const btnUnbounded = document.getElementById('btn-unbounded');
+            const btnZeroOne = document.getElementById('btn-zero-one');
+            const algoLabel = document.getElementById('algo-type-label');
+            const modeContainer = document.getElementById('unbounded-mode-container');
+            const sideItems = document.getElementById('side-items-container');
+            const dpWrapper = document.getElementById('dp-table-wrapper');
+
+            if (algo === 'unbounded') {
+                btnUnbounded.className = "px-2.5 py-1 text-xs font-medium rounded-lg transition-all shadow-sm bg-white dark:bg-slate-800 text-blue-600 dark:text-blue-400";
+                btnZeroOne.className = "px-2.5 py-1 text-xs font-medium rounded-lg transition-all text-slate-600 dark:text-slate-300 hover:text-slate-900";
+                algoLabel.innerText = unboundedMode === 'choice' ? "Unbounded Knapsack (Choice Array)" : "Unbounded Knapsack (Standard Recurrence)";
+                modeContainer.classList.remove('hidden');
+
+                // Show side items table and adjust grid
+                sideItems.classList.remove('hidden');
+                dpWrapper.className = "md:col-span-9 bg-white dark:bg-slate-800 p-3 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 flex flex-col";
+            } else {
+                btnZeroOne.className = "px-2.5 py-1 text-xs font-medium rounded-lg transition-all shadow-sm bg-white dark:bg-slate-800 text-blue-600 dark:text-blue-400";
+                btnUnbounded.className = "px-2.5 py-1 text-xs font-medium rounded-lg transition-all text-slate-600 dark:text-slate-300 hover:text-slate-900";
+                algoLabel.innerText = "0/1 Knapsack (2D DP Table)";
+                modeContainer.classList.add('hidden');
+
+                // Hide side items table and make 2D DP full width
+                sideItems.classList.add('hidden');
+                dpWrapper.className = "md:col-span-12 bg-white dark:bg-slate-800 p-3 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 flex flex-col";
+            }
+
+            renderPseudocode();
+            buildExecutionSteps();
+            resetExecution();
+        }
+
+        function setUnboundedMode(mode) {
+            unboundedMode = mode;
+            const btnStd = document.getElementById('btn-mode-std');
+            const btnChoice = document.getElementById('btn-mode-choice');
+            
+            if (mode === 'standard') {
+                btnStd.className = "px-2 py-1 rounded-lg font-medium text-blue-600 dark:text-blue-400 bg-white dark:bg-slate-800 shadow-sm";
+                btnChoice.className = "px-2 py-1 rounded-lg font-medium text-slate-600 dark:text-slate-300 hover:text-slate-900";
+            } else {
+                btnChoice.className = "px-2 py-1 rounded-lg font-medium text-blue-600 dark:text-blue-400 bg-white dark:bg-slate-800 shadow-sm";
+                btnStd.className = "px-2 py-1 rounded-lg font-medium text-slate-600 dark:text-slate-300 hover:text-slate-900";
+            }
+
+            if (currentAlgo === 'unbounded') {
+                document.getElementById('algo-type-label').innerText = mode === 'choice' ? "Unbounded Knapsack (Choice Array)" : "Unbounded Knapsack (Standard Recurrence)";
+                renderPseudocode();
+                buildExecutionSteps();
+                resetExecution();
+            }
+        }
+
+        function renderItemTable() {
+            const container = document.getElementById('items-table-body');
+            document.getElementById('display-w-side').innerText = W;
+
+            container.innerHTML = items.map((it, idx) => `
+                <tr class="hover:bg-slate-100 dark:hover:bg-slate-700/50 transition-colors">
+                    <td class="px-1.5 py-1 border-r border-slate-200 dark:border-slate-700 font-bold text-blue-600 dark:text-blue-400">${idx + 1}</td>
+                    <td class="px-1.5 py-1 border-r border-slate-200 dark:border-slate-700 font-medium">${it.w}</td>
+                    <td class="px-1.5 py-1 font-medium text-emerald-600 dark:text-emerald-400">${it.v}</td>
+                </tr>
+            `).join('');
+            triggerMathJax();
+        }
+
+        function renderPseudocode() {
+            const container = document.getElementById('pseudocode-container');
+            let lines = pseudocode01;
+            if (currentAlgo === 'unbounded') {
+                lines = unboundedMode === 'choice' ? pseudocodeUnboundedChoice : pseudocodeUnboundedStandard;
+            }
+
+            container.innerHTML = lines.map(l => `
+                <div id="code-line-${l.line}" class="px-2 py-0.5 rounded transition-colors flex">
+                    <span class="w-7 text-slate-600 dark:text-slate-500 shrink-0 text-right mr-3 select-none">${l.line}</span>
+                    <pre class="font-mono text-slate-300"><code>${l.text}</code></pre>
+                </div>
+            `).join('');
+        }
+
+        function triggerMathJax() {
+            if (window.MathJax && window.MathJax.typesetPromise) {
+                window.MathJax.typesetPromise();
+            }
+        }
+
+        // --- Step Generation Engine ---
+
+        function buildExecutionSteps() {
+            executionSteps = [];
+            if (currentAlgo === 'unbounded') {
+                generateUnboundedSteps();
+            } else {
+                generate01Steps();
+            }
+
+            document.getElementById('total-steps-label').innerText = executionSteps.length - 1;
+            document.getElementById('step-slider').max = executionSteps.length - 1;
+        }
+
+        function generateUnboundedSteps() {
+            const minW = Math.min(...items.map(it => it.w));
+            let K = new Array(W + 1).fill(null);
+            let choice = new Array(W + 1).fill(null);
+            let choicesAll = new Array(W + 1).fill().map(() => []);
+
+            executionSteps.push({
+                phase: "Initialization",
+                line: 1,
+                K: [...K],
+                choice: [...choice],
+                choicesAll: JSON.parse(JSON.stringify(choicesAll)),
+                activeCell: null,
+                deps: [],
+                optimalCell: null,
+                isBacktracking: false,
+                mathHtml: `Initialized empty DP array $K$ of capacity size $${W+1}$.`
+            });
+
+            for (let w = 0; w < minW; w++) {
+                K[w] = 0;
+                choice[w] = 0;
+                executionSteps.push({
+                    phase: "Base Cases",
+                    line: 4,
+                    K: [...K],
+                    choice: [...choice],
+                    choicesAll: JSON.parse(JSON.stringify(choicesAll)),
+                    activeCell: { w },
+                    deps: [],
+                    optimalCell: null,
+                    isBacktracking: false,
+                    mathHtml: `Capacity $w = ${w} < \\text{min}(w_i) = ${minW} \\implies K[${w}] = 0$.`
+                });
+            }
+
+            for (let w = minW; w <= W; w++) {
+                let maxVal = 0;
+                let bestItems = [];
+
+                executionSteps.push({
+                    phase: `Computing K[${w}]`,
+                    line: unboundedMode === 'choice' ? 6 : 5,
+                    K: [...K],
+                    choice: [...choice],
+                    choicesAll: JSON.parse(JSON.stringify(choicesAll)),
+                    activeCell: { w },
+                    deps: [],
+                    optimalCell: null,
+                    isBacktracking: false,
+                    mathHtml: `<b>Evaluating capacity $w = ${w}$:</b><br>Formula: $$K[${w}] = \\max_{i : w_i \\le ${w}} \\{ v_i + K[${w} - w_i] \\}$$`
+                });
+
+                let latexCases = [];
+
+                for (let i = 0; i < items.length; i++) {
+                    const item = items[i];
+                    if (item.w <= w) {
+                        const subVal = K[w - item.w];
+                        const totalVal = item.v + subVal;
+                        const isBetter = totalVal > maxVal;
+                        const isEqual = totalVal === maxVal && totalVal > 0;
+
+                        if (isBetter) {
+                            maxVal = totalVal;
+                            bestItems = [i + 1];
+                        } else if (isEqual) {
+                            bestItems.push(i + 1);
+                        }
+
+                        latexCases.push(`v_{${i+1}} + K[${w}-${item.w}] = ${item.v} + ${subVal} = \\mathbf{${totalVal}}`);
+
+                        executionSteps.push({
+                            phase: `Evaluating Item ${i+1} for w=${w}`,
+                            line: unboundedMode === 'choice' ? 8 : 6,
+                            K: [...K],
+                            choice: [...choice],
+                            choicesAll: JSON.parse(JSON.stringify(choicesAll)),
+                            activeCell: { w },
+                            deps: [{ w: w - item.w, type: 'dep-1' }],
+                            optimalCell: null,
+                            isBacktracking: false,
+                            mathHtml: `
+                                <b>Capacity $w = ${w}$, Item ${i+1}</b> ($w=${item.w}, v=${item.v}$):<br>
+                                Candidate: $v_{${i+1}} + K[${w - item.w}] = ${item.v} + ${subVal} = \\mathbf{${totalVal}}$<br>
+                                Current max value: $\\mathbf{${maxVal}}$
+                            `
+                        });
+                    }
+                }
+
+                K[w] = maxVal;
+                choice[w] = bestItems.length > 0 ? bestItems[0] : 0;
+                choicesAll[w] = [...bestItems];
+
+                let mathBracketStr = `$$K[${w}] = \\max \\begin{cases} ` + latexCases.join(' \\\\ ') + ` \\end{cases} = \\mathbf{${maxVal}}$$`;
+
+                executionSteps.push({
+                    phase: `Updated K[${w}]`,
+                    line: unboundedMode === 'choice' ? 9 : 6,
+                    K: [...K],
+                    choice: [...choice],
+                    choicesAll: JSON.parse(JSON.stringify(choicesAll)),
+                    activeCell: { w },
+                    deps: [],
+                    optimalCell: (w === W) ? { w: W } : null,
+                    isBacktracking: false,
+                    mathHtml: `
+                        <b>Result for $w = ${w}$:</b><br>
+                        ${mathBracketStr}
+                        Chosen item(s): <b>${bestItems.length > 0 ? bestItems.join(' or ') : 'None'}</b>
+                    `
+                });
+            }
+
+            // Backtracking Engine
+            let cap = W;
+            let path = [];
+
+            if (unboundedMode === 'standard') {
+                // Dynamic Backtracking without choice array
+                while (cap > 0) {
+                    let found = false;
+                    for (let i = 0; i < items.length; i++) {
+                        const item = items[i];
+                        if (item.w <= cap && K[cap] === item.v + K[cap - item.w]) {
+                            path.push({ cap, itemIdx: i, item });
+
+                            executionSteps.push({
+                                phase: "Backtracking Solution",
+                                line: 14,
+                                K: [...K],
+                                choice: [...choice],
+                                choicesAll: JSON.parse(JSON.stringify(choicesAll)),
+                                activeCell: { w: cap },
+                                backtrackPath: [...path],
+                                deps: [{ w: cap - item.w, type: 'dep-1' }],
+                                optimalCell: { w: W },
+                                isBacktracking: true,
+                                mathHtml: `
+                                    <b>Backtracking at Capacity $w = ${cap}$:</b><br>
+                                    Found Item ${i+1} ($w=${item.w}, v=${item.v}$) satisfying $K[${cap}] (${K[cap]}) == v_{${i+1}} + K[${cap - item.w}] (${item.v} + ${K[cap - item.w]})$<br>
+                                    Next residual capacity: $${cap} - ${item.w} = \\mathbf{${cap - item.w}}$
+                                `
+                            });
+
+                            cap -= item.w;
+                            found = true;
+                            break;
+                        }
+                    }
+                    if (!found) break;
+                }
+            } else {
+                // Choice array backtracking
+                while (cap > 0 && choice[cap] !== 0) {
+                    let chosenItemIdx = choice[cap] - 1;
+                    let item = items[chosenItemIdx];
+                    path.push({ cap, itemIdx: chosenItemIdx, item });
+
+                    executionSteps.push({
+                        phase: "Backtracking Solution",
+                        line: 16,
+                        K: [...K],
+                        choice: [...choice],
+                        choicesAll: JSON.parse(JSON.stringify(choicesAll)),
+                        activeCell: { w: cap },
+                        backtrackPath: [...path],
+                        deps: [],
+                        optimalCell: { w: W },
+                        isBacktracking: true,
+                        mathHtml: `
+                            <b>Backtracking at Capacity $w = ${cap}$:</b><br>
+                            $choice[${cap}] = \\text{Item } ${chosenItemIdx + 1}$ ($w=${item.w}, v=${item.v}$)<br>
+                            Next residual capacity: $w - w_{${chosenItemIdx + 1}} = ${cap} - ${item.w} = \\mathbf{${cap - item.w}}$
+                        `
+                    });
+
+                    cap -= item.w;
+                }
+            }
+
+            executionSteps.push({
+                phase: "Execution Finished",
+                line: unboundedMode === 'choice' ? 19 : 18,
+                K: [...K],
+                choice: [...choice],
+                choicesAll: JSON.parse(JSON.stringify(choicesAll)),
+                activeCell: null,
+                backtrackPath: [...path],
+                deps: [],
+                optimalCell: { w: W },
+                isBacktracking: true,
+                mathHtml: `<b>Completed!</b> Optimal max value $K[${W}] = \\mathbf{${K[W]}}$ achieved.`
+            });
+        }
+
+        function generate01Steps() {
+            const n = items.length;
+            let K = Array.from({ length: n + 1 }, () => new Array(W + 1).fill(null));
+
+            executionSteps.push({
+                phase: "Initialization",
+                line: 1,
+                K2D: JSON.parse(JSON.stringify(K)),
+                activeCell: null,
+                deps: [],
+                optimalCell: null,
+                isBacktracking: false,
+                mathHtml: `Initialized empty 2D DP Table $K[0..${n}, 0..${W}]$.`
+            });
+
+            for (let w = 0; w <= W; w++) {
+                K[0][w] = 0;
+                executionSteps.push({
+                    phase: "Initialize Row 0",
+                    line: 2,
+                    K2D: JSON.parse(JSON.stringify(K)),
+                    activeCell: { j: 0, w },
+                    deps: [],
+                    optimalCell: null,
+                    isBacktracking: false,
+                    mathHtml: `<b>Row 0 Base Case (0 items available):</b><br>$K[0, ${w}] = 0$`
+                });
+            }
+
+            for (let j = 1; j <= n; j++) {
+                K[j][0] = 0;
+                executionSteps.push({
+                    phase: "Initialize Column 0",
+                    line: 3,
+                    K2D: JSON.parse(JSON.stringify(K)),
+                    activeCell: { j, w: 0 },
+                    deps: [],
+                    optimalCell: null,
+                    isBacktracking: false,
+                    mathHtml: `<b>Column 0 Base Case (0 capacity):</b><br>$K[${j}, 0] = 0$`
+                });
+            }
+
+            for (let j = 1; j <= n; j++) {
+                const item = items[j - 1];
+                for (let w = 1; w <= W; w++) {
+
+                    if (item.w > w) {
+                        K[j][w] = K[j - 1][w];
+                        executionSteps.push({
+                            phase: `Item ${j} too heavy for w=${w}`,
+                            line: 7,
+                            K2D: JSON.parse(JSON.stringify(K)),
+                            activeCell: { j, w },
+                            deps: [{ j: j - 1, w, type: 'dep-1' }],
+                            optimalCell: null,
+                            isBacktracking: false,
+                            mathHtml: `
+                                <b>Item ${j} ($w_${j}=${item.w}$) > $w=${w}$:</b><br>
+                                Cannot include Item ${j}. Copy value from cell above:<br>
+                                $K[${j}, ${w}] = K[${j-1}, ${w}] = \\mathbf{${K[j][w]}}$
+                            `
+                        });
+                    } else {
+                        const valExcl = K[j - 1][w];
+                        const valIncl = item.v + K[j - 1][w - item.w];
+                        const maxVal = Math.max(valExcl, valIncl);
+                        K[j][w] = maxVal;
+
+                        executionSteps.push({
+                            phase: `Evaluating Item ${j} for w=${w}`,
+                            line: 9,
+                            K2D: JSON.parse(JSON.stringify(K)),
+                            activeCell: { j, w },
+                            deps: [
+                                { j: j - 1, w, type: 'dep-1' },
+                                { j: j - 1, w: w - item.w, type: 'dep-2' }
+                            ],
+                            optimalCell: (j === n && w === W) ? { j: n, w: W } : null,
+                            isBacktracking: false,
+                            mathHtml: `
+                                <b>Evaluating Cell $K[${j}, ${w}]$ (Item ${j}: $w=${item.w}, v=${item.v}$):</b><br>
+                                $$K[${j}, ${w}] = \\max \\begin{cases} K[${j-1}, ${w}] = \\mathbf{${valExcl}} \\\\ v_${j} + K[${j-1}, ${w}-${item.w}] = ${item.v} + ${K[j-1][w - item.w]} = \\mathbf{${valIncl}} \\end{cases} = \\mathbf{${maxVal}}$$
+                            `
+                        });
+                    }
+                }
+            }
+
+            let j = n;
+            let cap = W;
+            let path = [];
+
+            while (j > 0 && cap > 0) {
+                if (K[j][cap] !== K[j - 1][cap]) {
+                    const item = items[j - 1];
+                    path.push({ j, cap, item });
+                    executionSteps.push({
+                        phase: "Backtracking Solution",
+                        line: 15,
+                        K2D: JSON.parse(JSON.stringify(K)),
+                        activeCell: { j, w: cap },
+                        backtrackPath: [...path],
+                        deps: [],
+                        optimalCell: { j: n, w: W },
+                        isBacktracking: true,
+                        mathHtml: `
+                            <b>Backtracking at Item ${j}, Capacity $w = ${cap}$:</b><br>
+                            $K[${j}, ${cap}] (${K[j][cap]}) \\neq K[${j-1}, ${cap}] (${K[j-1][cap]}) \\implies \\text{Item } ${j}$ WAS included!<br>
+                            Residual capacity: $${cap} - ${item.w} = \\mathbf{${cap - item.w}}$
+                        `
+                    });
+                    cap -= item.w;
+                } else {
+                    executionSteps.push({
+                        phase: "Backtracking Solution",
+                        line: 18,
+                        K2D: JSON.parse(JSON.stringify(K)),
+                        activeCell: { j, w: cap },
+                        backtrackPath: [...path],
+                        deps: [],
+                        optimalCell: { j: n, w: W },
+                        isBacktracking: true,
+                        mathHtml: `
+                            <b>Backtracking at Item ${j}, Capacity $w = ${cap}$:</b><br>
+                            $K[${j}, ${cap}] == K[${j-1}, ${cap}] \\implies \\text{Item } ${j}$ was NOT included. Move to $j - 1$.
+                        `
+                    });
+                }
+                j--;
+            }
+
+            executionSteps.push({
+                phase: "Execution Finished",
+                line: 19,
+                K2D: JSON.parse(JSON.stringify(K)),
+                activeCell: null,
+                backtrackPath: [...path],
+                deps: [],
+                optimalCell: { j: n, w: W },
+                isBacktracking: true,
+                mathHtml: `<b>Completed!</b> Optimal max value $K[${n}, ${W}] = \\mathbf{${K[n][W]}}$ achieved.`
+            });
+        }
+
+        // --- Render UI Step State ---
+
+        function renderStep(stepIdx) {
+            currentStepIdx = stepIdx;
+            const step = executionSteps[stepIdx];
+
+            document.getElementById('current-step-label').innerText = stepIdx;
+            document.getElementById('step-slider').value = stepIdx;
+            document.getElementById('step-phase').innerText = step.phase;
+            document.getElementById('math-explanation').innerHTML = step.mathHtml;
+
+            document.querySelectorAll('#pseudocode-container > div').forEach(el => el.classList.remove('highlight-line'));
+            if (step.line) {
+                const lineEl = document.getElementById(`code-line-${step.line}`);
+                if (lineEl) {
+                    lineEl.classList.add('highlight-line');
+                    lineEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                }
+            }
+
+            renderDPTable(step);
+
+            const solPanel = document.getElementById('reconstructed-solution-panel');
+            if (step.isBacktracking) {
+                solPanel.classList.remove('hidden');
+                renderSolutionSummary(step, stepIdx);
+            } else {
+                solPanel.classList.add('hidden');
+            }
+
+            triggerMathJax();
+        }
+
+        function renderDPTable(step) {
+            const container = document.getElementById('table-container');
+            const legend = document.getElementById('table-legend');
+
+            if (currentAlgo === 'unbounded') {
+                let legendHtml = `
+                    <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded bg-blue-500/30 border border-blue-500 inline-block"></span> Current K[w]</span>
+                    <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded bg-green-500/30 border border-green-500 inline-block"></span> K[w - w_i]</span>
+                    <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded bg-orange-500/30 border border-orange-500 inline-block"></span> Backtrack Path</span>
+                    <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded bg-amber-500/30 border border-amber-500 inline-block"></span> Optimal Max</span>
+                `;
+                legend.innerHTML = legendHtml;
+
+                let html = `<table class="w-full text-center border-collapse text-xs font-mono">
+                    <thead>
+                        <tr class="bg-slate-100 dark:bg-slate-700/60 border-b border-slate-200 dark:border-slate-700">
+                            <th class="p-1.5 border-r border-slate-200 dark:border-slate-700 font-bold text-slate-500">w</th>`;
+                for (let w = 0; w <= W; w++) {
+                    html += `<th class="p-1.5 border-r border-slate-200 dark:border-slate-700 ${step.activeCell && step.activeCell.w === w ? 'text-blue-500 font-bold' : ''}">${w}</th>`;
+                }
+                html += `</tr></thead><tbody>`;
+
+                // Row 1: K[w]
+                html += `<tr class="border-b border-slate-200 dark:border-slate-700">
+                    <td class="p-1.5 font-bold bg-slate-50 dark:bg-slate-800 border-r border-slate-200 dark:border-slate-700">K[w]</td>`;
+                for (let w = 0; w <= W; w++) {
+                    let cellClass = "dp-cell";
+                    if (step.optimalCell && step.optimalCell.w === w) cellClass += " cell-optimal";
+                    else if (step.activeCell && step.activeCell.w === w) cellClass += " cell-active";
+                    else if (step.deps && step.deps.some(d => d.w === w)) cellClass += " cell-dep-1";
+                    else if (step.backtrackPath && step.backtrackPath.some(bp => bp.cap === w)) cellClass += " cell-backtrack";
+
+                    const val = (step.K[w] !== null && step.K[w] !== undefined) ? step.K[w] : "";
+                    html += `<td class="p-1.5 border-r border-slate-200 dark:border-slate-700 ${cellClass}">${val}</td>`;
+                }
+                html += `</tr>`;
+
+                // Row 2: choice[w] (Only in choice mode)
+                if (unboundedMode === 'choice') {
+                    html += `<tr>
+                        <td class="p-1.5 font-bold bg-slate-50 dark:bg-slate-800 border-r border-slate-200 dark:border-slate-700 text-amber-500">choice</td>`;
+                    for (let w = 0; w <= W; w++) {
+                        let cellClass = "dp-cell";
+                        if (step.optimalCell && step.optimalCell.w === w) cellClass += " cell-optimal";
+                        else if (step.activeCell && step.activeCell.w === w) cellClass += " cell-active";
+                        else if (step.backtrackPath && step.backtrackPath.some(bp => bp.cap === w)) cellClass += " cell-backtrack";
+
+                        let choiceText = "";
+                        if (step.choicesAll && step.choicesAll[w] && step.choicesAll[w].length > 0) {
+                            choiceText = step.choicesAll[w].join('/');
+                        } else if (step.choice && step.choice[w] > 0) {
+                            choiceText = step.choice[w];
+                        } else if (step.choice && step.choice[w] === 0) {
+                            choiceText = "-";
+                        }
+
+                        html += `<td class="p-1.5 border-r border-slate-200 dark:border-slate-700 text-amber-500 font-semibold ${cellClass}">${choiceText}</td>`;
+                    }
+                    html += `</tr>`;
+                }
+
+                html += `</tbody></table>`;
+                container.innerHTML = html;
+
+            } else {
+                // 0/1 Knapsack 2D Table with Integrated Items
+                legend.innerHTML = `
+                    <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded bg-blue-500/30 border border-blue-500 inline-block"></span> Current Cell</span>
+                    <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded bg-green-500/30 border border-green-500 inline-block"></span> K[j-1, w]</span>
+                    <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded bg-purple-500/30 border border-purple-500 inline-block"></span> K[j-1, w-w_j]</span>
+                    <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded bg-orange-500/30 border border-orange-500 inline-block"></span> Backtrack Path</span>
+                    <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded bg-amber-500/30 border border-amber-500 inline-block"></span> Optimal Max</span>
+                `;
+
+                let html = `<table class="w-full text-center border-collapse text-xs font-mono">
+                    <thead>
+                        <tr class="bg-slate-100 dark:bg-slate-700/60 border-b border-slate-200 dark:border-slate-700">
+                            <th class="p-1.5 border-r border-slate-200 dark:border-slate-700 text-slate-400">i</th>
+                            <th class="p-1.5 border-r border-slate-200 dark:border-slate-700 text-slate-400">item</th>
+                            <th class="p-1.5 border-r border-slate-200 dark:border-slate-700 text-slate-400">val</th>
+                            <th class="p-1.5 border-r border-slate-200 dark:border-slate-700 text-slate-400">wt</th>`;
+                for (let w = 0; w <= W; w++) {
+                    html += `<th class="p-1.5 border-r border-slate-200 dark:border-slate-700">${w}</th>`;
+                }
+                html += `</tr></thead><tbody>`;
+
+                for (let j = 0; j <= items.length; j++) {
+                    const item = j > 0 ? items[j - 1] : { name: '-', v: 0, w: 0 };
+                    html += `<tr class="border-b border-slate-200 dark:border-slate-700">
+                        <td class="p-1.5 border-r border-slate-200 dark:border-slate-700 font-bold bg-slate-50 dark:bg-slate-800">${j}</td>
+                        <td class="p-1.5 border-r border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-blue-500 font-semibold">${j > 0 ? 'Item ' + j : '-'}</td>
+                        <td class="p-1.5 border-r border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-emerald-500">${j > 0 ? item.v : 0}</td>
+                        <td class="p-1.5 border-r border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-amber-500">${j > 0 ? item.w : 0}</td>`;
+
+                    for (let w = 0; w <= W; w++) {
+                        let cellClass = "dp-cell";
+                        if (step.optimalCell && step.optimalCell.j === j && step.optimalCell.w === w) {
+                            cellClass += " cell-optimal";
+                        } else if (step.activeCell && step.activeCell.j === j && step.activeCell.w === w) {
+                            cellClass += " cell-active";
+                        }
+                        if (step.deps) {
+                            step.deps.forEach(d => {
+                                if (d.j === j && d.w === w) {
+                                    cellClass += d.type === 'dep-1' ? " cell-dep-1" : " cell-dep-2";
+                                }
+                            });
+                        }
+                        if (step.backtrackPath && step.backtrackPath.some(bp => bp.j === j && bp.cap === w)) {
+                            cellClass += " cell-backtrack";
+                        }
+
+                        const rawVal = step.K2D ? step.K2D[j][w] : null;
+                        const val = (rawVal !== null && rawVal !== undefined) ? rawVal : "";
+                        html += `<td class="p-1.5 border-r border-slate-200 dark:border-slate-700 ${cellClass}">${val}</td>`;
+                    }
+                    html += `</tr>`;
+                }
+                html += `</tbody></table>`;
+                container.innerHTML = html;
+            }
+        }
+
+        function renderSolutionSummary(step, stepIdx) {
+            const container = document.getElementById('reconstructed-solution');
+
+            if (!step.backtrackPath || step.backtrackPath.length === 0) {
+                if (stepIdx === executionSteps.length - 1) {
+                    container.innerHTML = `<span class="text-amber-500 font-medium">Optimal Value is 0 (No items fit in capacity W=${W}).</span>`;
+                } else {
+                    container.innerHTML = `<span class="text-slate-400 italic font-mono text-xs">Backtracking solution in progress...</span>`;
+                }
+                return;
+            }
+
+            let counts = {};
+            let totalVal = 0;
+            let totalWt = 0;
+
+            if (currentAlgo === 'unbounded') {
+                step.backtrackPath.forEach(bp => {
+                    const id = bp.itemIdx + 1;
+                    counts[id] = (counts[id] || 0) + 1;
+                    totalVal += bp.item.v;
+                    totalWt += bp.item.w;
+                });
+            } else {
+                step.backtrackPath.forEach(bp => {
+                    const id = bp.j;
+                    counts[id] = 1;
+                    totalVal += bp.item.v;
+                    totalWt += bp.item.w;
+                });
+            }
+
+            let itemsStr = Object.keys(counts).map(id => `<b>${counts[id]}&times; Item ${id}</b>`).join(', ');
+
+            container.innerHTML = `
+                <div class="flex flex-wrap items-center justify-between w-full gap-2">
+                    <div class="bg-emerald-50 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 px-2.5 py-1 rounded-lg border border-emerald-200 dark:border-emerald-800 text-xs">
+                        Selected: ${itemsStr}
+                    </div>
+                    <div class="text-slate-600 dark:text-slate-300 font-medium text-xs">
+                        Weight: <b>${totalWt} / ${W}</b> | Value: <b class="text-amber-500 dark:text-amber-400 font-extrabold text-sm">${totalVal}</b>
+                    </div>
+                </div>
+            `;
+        }
+
+        // --- Playback Controls ---
+
+        function togglePlay() {
+            isPlaying = !isPlaying;
+            const icon = document.getElementById('icon-play');
+            if (isPlaying) {
+                icon.setAttribute('data-lucide', 'pause');
+                lucide.createIcons();
+                if (currentStepIdx >= executionSteps.length - 1) currentStepIdx = 0;
+                playInterval = setInterval(() => {
+                    if (currentStepIdx < executionSteps.length - 1) {
+                        stepNext();
+                    } else {
+                        togglePlay();
+                    }
+                }, playSpeed);
+            } else {
+                icon.setAttribute('data-lucide', 'play');
+                lucide.createIcons();
+                clearInterval(playInterval);
+            }
+        }
+
+        function stepNext() {
+            if (currentStepIdx < executionSteps.length - 1) renderStep(currentStepIdx + 1);
+        }
+
+        function stepPrev() {
+            if (currentStepIdx > 0) renderStep(currentStepIdx - 1);
+        }
+
+        function resetExecution() {
+            if (isPlaying) togglePlay();
+            renderStep(0);
+        }
+
+        function onSliderInput(val) {
+            if (isPlaying) togglePlay();
+            renderStep(parseInt(val, 10));
+        }
+
+        function changeSpeed(val) {
+            playSpeed = parseInt(val, 10);
+            if (isPlaying) {
+                togglePlay();
+                togglePlay();
+            }
+        }
+
+        // --- Configuration Modal Actions ---
+
+        function toggleConfigModal() {
+            const modal = document.getElementById('config-modal');
+            modal.classList.toggle('hidden');
+
+            if (!modal.classList.contains('hidden')) {
+                document.getElementById('input-capacity').value = W;
+                document.getElementById('input-items').value = items.map(it => `${it.w},${it.v}`).join('\n');
+            }
+        }
+
+        function applyCustomData() {
+            const cap = parseInt(document.getElementById('input-capacity').value, 10);
+            const text = document.getElementById('input-items').value.trim();
+
+            if (isNaN(cap) || cap < 1) {
+                alert("Please enter a valid positive capacity W.");
+                return;
+            }
+
+            const lines = text.split('\n');
+            let newItems = [];
+            for (let i = 0; i < lines.length; i++) {
+                const parts = lines[i].split(',');
+                if (parts.length === 2) {
+                    const w = parseInt(parts[0].trim(), 10);
+                    const v = parseInt(parts[1].trim(), 10);
+                    if (!isNaN(w) && !isNaN(v) && w > 0 && v >= 0) {
+                        newItems.push({ id: i + 1, name: `Item ${i+1}`, w, v });
+                    }
+                }
+            }
+
+            if (newItems.length === 0) {
+                alert("Please enter valid item weight,value pairs.");
+                return;
+            }
+
+            W = cap;
+            items = newItems;
+            toggleConfigModal();
+            renderItemTable();
+            buildExecutionSteps();
+            resetExecution();
+        }
+
+        function loadSampleData() {
+            W = 10;
+            items = [
+                { id: 1, name: 'Item 1', w: 6, v: 30 },
+                { id: 2, name: 'Item 2', w: 3, v: 14 },
+                { id: 3, name: 'Item 3', w: 4, v: 16 },
+                { id: 4, name: 'Item 4', w: 2, v: 9 }
+            ];
+            renderItemTable();
+            buildExecutionSteps();
+            resetExecution();
+        }
+
+        function generateRandomData() {
+            W = Math.floor(Math.random() * 6) + 8;
+            const itemCount = Math.floor(Math.random() * 3) + 3;
+            items = [];
+
+            for (let i = 1; i <= itemCount; i++) {
+                items.push({
+                    id: i,
+                    name: `Item ${i}`,
+                    w: Math.floor(Math.random() * 5) + 2,
+                    v: Math.floor(Math.random() * 25) + 10
+                });
+            }
+
+            renderItemTable();
+            buildExecutionSteps();
+            resetExecution();
+        }
+    </script>
+</body>
+</html>
