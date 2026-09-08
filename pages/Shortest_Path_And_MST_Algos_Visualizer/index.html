@@ -283,6 +283,101 @@
         .dark .syn-function { color: #60a5fa; }
         .dark .syn-const { color: #f87171; }
         .dark .syn-comment { color: #94a3b8; }
+
+        .prim-prev-value {
+            color: #db2777;
+            font-weight: 700;
+        }
+
+        .dark .prim-prev-value {
+            color: #f472b6;
+        }
+
+        #start-node-control.prim-start-control {
+            color: #b45309;
+        }
+
+        .dark #start-node-control.prim-start-control {
+            color: #fcd34d;
+        }
+
+        #start-node-input.prim-start-input {
+            background-color: #fffbeb;
+            border-color: #fbbf24;
+        }
+
+        .dark #start-node-input.prim-start-input {
+            background-color: rgba(120, 53, 15, 0.4);
+            border-color: #b45309;
+        }
+
+        #start-node-input.prim-start-input:focus {
+            --tw-ring-color: #f59e0b;
+        }
+
+        .start-node-help {
+            position: relative;
+            display: inline-flex;
+        }
+
+        .start-node-help-button {
+            width: 16px;
+            height: 16px;
+            border: 1px solid currentColor;
+            border-radius: 9999px;
+            font-size: 10px;
+            line-height: 1;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            cursor: help;
+        }
+
+        .start-node-tooltip {
+            position: absolute;
+            top: calc(100% + 8px);
+            right: 0;
+            z-index: 40;
+            width: min(360px, calc(100vw - 24px));
+            padding: 10px 12px;
+            border: 1px solid #fbbf24;
+            border-radius: 8px;
+            background: #fffbeb;
+            color: #78350f;
+            box-shadow: 0 8px 20px rgba(15, 23, 42, 0.18);
+            font-size: 11px;
+            font-weight: 500;
+            line-height: 1.45;
+            white-space: normal;
+            visibility: hidden;
+            opacity: 0;
+            transform: translateY(-4px);
+            transition: opacity 0.15s ease, transform 0.15s ease, visibility 0.15s ease;
+            pointer-events: none;
+        }
+
+        .dark .start-node-tooltip {
+            border-color: #b45309;
+            background: #451a03;
+            color: #fef3c7;
+        }
+
+        .start-node-tooltip strong {
+            font-weight: 700;
+        }
+
+        .start-node-tooltip ul {
+            margin: 5px 0 0 15px;
+            padding: 0;
+            list-style: disc;
+        }
+
+        .start-node-help:hover .start-node-tooltip,
+        .start-node-help:focus-within .start-node-tooltip {
+            visibility: visible;
+            opacity: 1;
+            transform: translateY(0);
+        }
         
         /* Custom scrollbars */
         ::-webkit-scrollbar { width: 6px; height: 6px; }
@@ -293,7 +388,7 @@
 </head>
 <body class="h-screen flex flex-col overflow-hidden bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-100 min-w-0">
 
-    <header class="bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 shadow-sm z-10 flex-shrink-0 px-3 py-2 sm:px-4 sm:py-2.5 flex items-center justify-between gap-2 sm:gap-3">
+    <header class="bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 shadow-sm z-50 flex-shrink-0 px-3 py-2 sm:px-4 sm:py-2.5 flex items-center justify-between gap-2 sm:gap-3">
         <div class="flex items-center gap-2 sm:gap-3 shrink-0">
             <div class="bg-blue-600 text-white p-1.5 sm:p-2 rounded-lg flex items-center justify-center">
                 <i class="fa-solid fa-route text-base sm:text-lg"></i>
@@ -312,9 +407,19 @@
             </select>
         </div>
 
-        <label id="start-node-control" class="hidden items-center gap-1.5 text-xs font-semibold text-slate-600 dark:text-slate-300 whitespace-nowrap" title="Starting node">
+        <label id="start-node-control" class="hidden items-center gap-1.5 text-xs font-semibold text-slate-600 dark:text-slate-300 whitespace-nowrap">
             <span class="hidden lg:inline">Starting node</span>
             <input id="start-node-input" type="number" min="1" step="1" class="w-12 sm:w-14 bg-slate-100 dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-md px-1.5 py-1 text-center text-slate-900 dark:text-slate-100 outline-none focus:ring-2 focus:ring-blue-500" aria-label="Starting node">
+            <span class="start-node-help">
+                <button type="button" class="start-node-help-button" aria-label="Explain how the starting node affects Prim's algorithm" aria-describedby="start-node-tooltip">?</button>
+                <span id="start-node-tooltip" class="start-node-tooltip" role="tooltip">
+                    <strong>MSTs do not have a starting node.</strong> We choose one here so Prim's result is deterministic when equal-weight edges allow multiple valid MSTs.
+                    <ul>
+                        <li><strong>Unique edge weights:</strong> A connected graph with all distinct edge weights has exactly one MST, so every starting node produces the same tree.</li>
+                        <li><strong>Duplicate edge weights:</strong> Multiple valid MSTs may exist, but they all have the same total weight.</li>
+                    </ul>
+                </span>
+            </span>
         </label>
 
         <div class="flex items-center gap-1.5 sm:gap-2 shrink-0">
@@ -437,6 +542,10 @@
                 
                 <div id="graph-container" class="flex-1 overflow-auto flex items-center justify-center p-2 relative min-w-0">
                     <!-- SVG injected here -->
+                    <div id="prim-legend" class="hidden absolute bottom-2 right-2 z-10 items-center gap-1.5 rounded-md border border-slate-200 bg-white/95 px-2 py-1 text-[11px] font-semibold text-slate-700 shadow-sm dark:border-slate-700 dark:bg-slate-800/95 dark:text-slate-200">
+                        <span class="h-3 w-3 rounded-sm bg-pink-500"></span>
+                        <span>Pink: candidate arc (prev[v])</span>
+                    </div>
                 </div>
 
                 <div id="solution-feedback" class="hidden absolute bottom-4 left-1/2 transform -translate-x-1/2 px-4 py-2 rounded-full font-bold shadow-lg text-white transition-opacity duration-300 text-xs sm:text-sm z-30">
@@ -618,10 +727,10 @@
                 { id: 'pr-2', text: '  for all v ∈ V do', box: 'init', boxLabel: 'Initialize' },
                 { id: 'pr-3', text: '    cost[v] := ∞', box: 'init' },
                 { id: 'pr-4', text: '    prev[v] := NIL', box: 'init' },
-                { id: 'pr-5', text: '    S[v] := 0', box: 'init' },
+                { id: 'pr-5', text: '    S[v] := 0 // vertex not yet in MST', box: 'init' },
                 { id: 'pr-6', text: '  choose a vertex s ∈ V', box: null },
                 { id: 'pr-7', text: '  cost[s] := 0', box: null },
-                { id: 'pr-8', text: '  S[s] := 1', box: null },
+                { id: 'pr-8', text: '  S[s] := 1 // add the start vertex to MST', box: null },
                 { id: 'pr-9', text: '  Q := make_priority_queue({(v,cost[v])|v = 1,2,...,n})', box: null },
                 { id: 'pr-10', text: '  while NOT is_empty_queue(Q) do', box: null },
                 { id: 'pr-11', text: '    u := DeQueue(Q)', box: null },
@@ -670,6 +779,7 @@
             dotInput: document.getElementById('dot-input'),
             btnApplyDot: document.getElementById('btn-apply-dot'),
             graphContainer: document.getElementById('graph-container'),
+            primLegend: document.getElementById('prim-legend'),
             editorOverlay: document.getElementById('editor-overlay'),
             leftPanel: document.getElementById('left-panel'),
             rightPanel: document.getElementById('right-panel'),
@@ -733,6 +843,13 @@
                 return '<span class="text-slate-400 dark:text-slate-500 font-mono opacity-60 italic text-xs">NIL</span>';
             }
             return `<span class="font-bold text-slate-800 dark:text-slate-100">${val}</span>`;
+        }
+
+        function formatPrevVal(val, isPrim) {
+            if (!isPrim || val === 'NIL' || val === null || val === undefined) {
+                return formatVal(val);
+            }
+            return `<span class="prim-prev-value">${val}</span>`;
         }
 
         function parseDotGraph(dot) {
@@ -1186,6 +1303,7 @@
                 const svgElement = vizInstance.renderSVGElement(currentState.dot);
                 els.graphContainer.innerHTML = '';
                 els.graphContainer.appendChild(svgElement);
+                els.graphContainer.appendChild(els.primLegend);
 
                 attachEdgeListeners();
                 updateAnimationUI();
@@ -1551,7 +1669,7 @@
                     }
 
                     // Prev full history
-                    let prevCell = formatVal(currentPrev);
+                    let prevCell = formatPrevVal(currentPrev, isPrim);
                     if (history && history.length > 0) {
                         const pastPrevs = [];
                         history.forEach(entry => {
@@ -1563,10 +1681,11 @@
                         });
 
                         if (pastPrevs.length > 1) {
-                            const slashed = pastPrevs.slice(0, -1).map(p => `<span class="line-through text-slate-400 dark:text-slate-500 mr-1.5 text-xs">${p}</span>`).join('');
-                            prevCell = slashed + formatVal(pastPrevs[pastPrevs.length - 1]);
+                            const previousValueClass = isPrim ? 'prim-prev-value' : 'text-slate-400 dark:text-slate-500';
+                            const slashed = pastPrevs.slice(0, -1).map(p => `<span class="line-through ${previousValueClass} mr-1.5 text-xs">${p}</span>`).join('');
+                            prevCell = slashed + formatPrevVal(pastPrevs[pastPrevs.length - 1], isPrim);
                         } else if (pastPrevs.length === 1) {
-                            prevCell = formatVal(pastPrevs[0]);
+                            prevCell = formatPrevVal(pastPrevs[0], isPrim);
                         }
                     }
 
@@ -1692,9 +1811,14 @@
             }
 
             els.exerciseType.value = type;
+            els.primLegend.classList.toggle('hidden', type !== 'prim');
+            els.primLegend.classList.toggle('flex', type === 'prim');
             const supportsStart = Boolean(ex.startNode);
+            const isPrim = type === 'prim';
             els.startNodeControl.classList.toggle('hidden', !supportsStart);
             els.startNodeControl.classList.toggle('flex', supportsStart);
+            els.startNodeControl.classList.toggle('prim-start-control', isPrim);
+            els.startNodeInput.classList.toggle('prim-start-input', isPrim);
             if (supportsStart) els.startNodeInput.value = currentState.startNode;
             els.dotInput.value = currentState.dot;
 
