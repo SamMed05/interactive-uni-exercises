@@ -1128,9 +1128,10 @@
 
                 const Q = [...nodes];
                 const treeEdges = [];
+                const frontierEdges = {};
                 const visitedNodes = [start];
 
-                steps.push({ lineId: 'pr-9', msg: `Initialize cost[v]=∞, prev[v]=NIL, S[v]=0. Set cost[${start}]=0, S[${start}]=1. Build Q.`, dist: {...cost}, prev: {...prev}, S_visited: {...S_visited}, nodeHist: JSON.parse(JSON.stringify(nodeHist)), Q: Q.map(n => ({ node: n, priority: cost[n] })), activeNode: start, activeEdge: null, treeEdges: [], visitedNodes: [...visitedNodes] });
+                steps.push({ lineId: 'pr-9', msg: `Initialize cost[v]=∞, prev[v]=NIL, S[v]=0. Set cost[${start}]=0, S[${start}]=1. Build Q.`, dist: {...cost}, prev: {...prev}, S_visited: {...S_visited}, nodeHist: JSON.parse(JSON.stringify(nodeHist)), Q: Q.map(n => ({ node: n, priority: cost[n] })), activeNode: start, activeEdge: null, reviewEdges: [], treeEdges: [], visitedNodes: [...visitedNodes] });
 
                 while (Q.length > 0) {
                     Q.sort((a, b) => cost[a] !== cost[b] ? cost[a] - cost[b] : a.localeCompare(b, undefined, {numeric: true}));
@@ -1142,29 +1143,30 @@
                         const edgeKey = u < prev[u] ? `${u}--${prev[u]}` : `${prev[u]}--${u}`;
                         if (!treeEdges.includes(edgeKey)) treeEdges.push(edgeKey);
                     }
+                    delete frontierEdges[u];
 
-                    steps.push({ lineId: 'pr-11', msg: `DeQueue(Q): u = ${u} (cost[${u}] = ${cost[u] === Infinity ? '∞' : cost[u]}); S[${u}] := 1.`, dist: {...cost}, prev: {...prev}, S_visited: {...S_visited}, nodeHist: JSON.parse(JSON.stringify(nodeHist)), Q: Q.map(n => ({ node: n, priority: cost[n] })), activeNode: u, activeEdge: null, treeEdges: [...treeEdges], visitedNodes: [...visitedNodes] });
+                    steps.push({ lineId: 'pr-11', msg: `DeQueue(Q): u = ${u} (cost[${u}] = ${cost[u] === Infinity ? '∞' : cost[u]}); S[${u}] := 1.`, dist: {...cost}, prev: {...prev}, S_visited: {...S_visited}, nodeHist: JSON.parse(JSON.stringify(nodeHist)), Q: Q.map(n => ({ node: n, priority: cost[n] })), activeNode: u, activeEdge: null, reviewEdges: Object.values(frontierEdges), treeEdges: [...treeEdges], visitedNodes: [...visitedNodes] });
 
                     const adjEdges = edges.filter(e => e.u === u || e.v === u).sort((a, b) => {
                         const aV = a.u === u ? a.v : a.u;
                         const bV = b.u === u ? b.v : b.u;
                         return aV.localeCompare(bV, undefined, {numeric: true});
                     });
-                    const reviewEdges = adjEdges.map(edge => edge.key);
                     for (const edge of adjEdges) {
                         const v = edge.u === u ? edge.v : edge.u;
                         if (S_visited[v] === 0) {
                             const curCostV = cost[v] === Infinity ? '∞' : cost[v];
                             if (cost[v] > edge.weight) {
-                                steps.push({ lineId: 'pr-14', msg: `Check neighbor v=${v}: S[${v}]=0 AND cost[${v}]=${curCostV} > c(${u},${v})=${edge.weight} → update.`, dist: {...cost}, prev: {...prev}, S_visited: {...S_visited}, nodeHist: JSON.parse(JSON.stringify(nodeHist)), Q: Q.map(n => ({ node: n, priority: cost[n] })), activeNode: u, activeEdge: edge.key, reviewEdges, treeEdges: [...treeEdges], visitedNodes: [...visitedNodes] });
+                                steps.push({ lineId: 'pr-14', msg: `Check neighbor v=${v}: S[${v}]=0 AND cost[${v}]=${curCostV} > c(${u},${v})=${edge.weight} → update.`, dist: {...cost}, prev: {...prev}, S_visited: {...S_visited}, nodeHist: JSON.parse(JSON.stringify(nodeHist)), Q: Q.map(n => ({ node: n, priority: cost[n] })), activeNode: u, activeEdge: edge.key, reviewEdges: Object.values(frontierEdges), treeEdges: [...treeEdges], visitedNodes: [...visitedNodes] });
 
                                 cost[v] = edge.weight;
                                 prev[v] = u;
+                                frontierEdges[v] = edge.key;
                                 nodeHist[v].push({ dist: cost[v], prev: u });
 
-                                steps.push({ lineId: 'pr-15', msg: `Updated cost[${v}] := ${edge.weight}, prev[${v}] := ${u}.`, dist: {...cost}, prev: {...prev}, S_visited: {...S_visited}, nodeHist: JSON.parse(JSON.stringify(nodeHist)), Q: Q.map(n => ({ node: n, priority: cost[n] })), activeNode: u, activeEdge: edge.key, reviewEdges, treeEdges: [...treeEdges], visitedNodes: [...visitedNodes] });
+                                steps.push({ lineId: 'pr-15', msg: `Updated cost[${v}] := ${edge.weight}, prev[${v}] := ${u}.`, dist: {...cost}, prev: {...prev}, S_visited: {...S_visited}, nodeHist: JSON.parse(JSON.stringify(nodeHist)), Q: Q.map(n => ({ node: n, priority: cost[n] })), activeNode: u, activeEdge: edge.key, reviewEdges: Object.values(frontierEdges), treeEdges: [...treeEdges], visitedNodes: [...visitedNodes] });
                             } else {
-                                steps.push({ lineId: 'pr-14', msg: `Check neighbor v=${v}: S[${v}]=0 AND cost[${v}]=${curCostV} ≤ c(${u},${v})=${edge.weight} → no change.`, dist: {...cost}, prev: {...prev}, S_visited: {...S_visited}, nodeHist: JSON.parse(JSON.stringify(nodeHist)), Q: Q.map(n => ({ node: n, priority: cost[n] })), activeNode: u, activeEdge: edge.key, reviewEdges, treeEdges: [...treeEdges], visitedNodes: [...visitedNodes] });
+                                steps.push({ lineId: 'pr-14', msg: `Check neighbor v=${v}: S[${v}]=0 AND cost[${v}]=${curCostV} ≤ c(${u},${v})=${edge.weight} → no change.`, dist: {...cost}, prev: {...prev}, S_visited: {...S_visited}, nodeHist: JSON.parse(JSON.stringify(nodeHist)), Q: Q.map(n => ({ node: n, priority: cost[n] })), activeNode: u, activeEdge: edge.key, reviewEdges: Object.values(frontierEdges), treeEdges: [...treeEdges], visitedNodes: [...visitedNodes] });
                             }
                         }
                     }
