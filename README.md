@@ -8,3 +8,6 @@ A collection of self-contained interactive visualizations and exercises for Comp
 > The interactive demos in this repo are heavily vibecoded as a way for me to quickly have a live visualization of concepts as I'm studying them for university, especially if no suitable alternative already exists online or I need something more specific.
 Although I verify the correctness and try to keep the code reasonably clean and simple, these projects are not intended as examples of best practices or production-quality implementations. I also don't guarantee that they're free of mistakes.
 Still, if you spot an issue, find an error, or have an idea for an improvement, feel free to open an Issue or submit a Pull Request. I'll do my best to review and respond whenever I can!
+
+> [!CAUTION]
+> The pages currently use the Tailwind CSS CDN so that each visualizer can remain a standalone single-file HTML page without a build step. This is convenient for development and sharing, but using the CDN is not recommended for production or fully offline use. A locally compiled Tailwind stylesheet would be a way more robust approach.
