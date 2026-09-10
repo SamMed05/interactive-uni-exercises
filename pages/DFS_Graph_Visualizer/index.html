@@ -1,0 +1,1441 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DFS Graph Visualizer - Edge Types & Pre/Post Timestamps</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#f0f9ff',
+                            100: '#e0f2fe',
+                            500: '#0284c7',
+                            600: '#0369a1',
+                            900: '#0c4a6e',
+                        },
+                        edge: {
+                            tree: '#10b981',    /* Green */
+                            back: '#ef4444',    /* Red */
+                            forward: '#3b82f6', /* Blue */
+                            cross: '#f59e0b',   /* Amber */
+                            unvisited: '#64748b'
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', 'sans-serif'],
+                        mono: ['Fira Code', 'Monaco', 'monospace'],
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+
+        .code-font {
+            font-family: 'Fira Code', monospace;
+        }
+
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.05);
+        }
+        .dark ::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.05);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(156, 163, 175, 0.5);
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(107, 114, 128, 0.8);
+        }
+
+        /* Highlight animation for active code lines */
+        .line-active {
+            background-color: rgba(14, 165, 233, 0.25) !important;
+            border-left: 4px solid #0284c7 !important;
+            font-weight: 600;
+        }
+        .dark .line-active {
+            background-color: rgba(56, 189, 248, 0.2) !important;
+            border-left: 4px solid #38bdf8 !important;
+        }
+
+        /* Edge animation pulse (only affects stroke-width, markers stay fixed via userSpaceOnUse) */
+        @keyframes pulse-edge {
+            0%, 100% { stroke-width: 3.5px; opacity: 1; }
+            50% { stroke-width: 5.5px; opacity: 0.85; }
+        }
+        .edge-active {
+            animation: pulse-edge 1.2s infinite ease-in-out;
+        }
+
+        /* Canvas pattern grid */
+        .grid-bg-light {
+            background-color: #f8fafc;
+            background-image: radial-gradient(#94a3b8 1.2px, transparent 1.2px);
+            background-size: 20px 20px;
+        }
+        .grid-bg-dark {
+            background-color: #0f172a;
+            background-image: radial-gradient(#334155 1.2px, transparent 1.2px);
+            background-size: 20px 20px;
+        }
+
+        /* SVG text shadow for readability */
+        .svg-text-shadow {
+            text-shadow: 0px 1px 3px rgba(0, 0, 0, 0.8);
+        }
+        .light .svg-text-shadow {
+            text-shadow: 0px 1px 2px rgba(255, 255, 255, 0.9);
+        }
+
+        /* Notification Toast */
+        #toast {
+            transition: transform 0.3s ease, opacity 0.3s ease;
+        }
+    </style>
+</head>
+<body class="bg-slate-100 text-slate-800 dark:bg-slate-900 dark:text-slate-100 min-h-screen flex flex-col transition-colors duration-200">
+
+    <header class="bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 px-4 py-2.5 sticky top-0 z-30 shadow-sm">
+        <div class="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-3">
+            <!-- Brand & Title -->
+            <div class="flex items-center space-x-3">
+                <div class="p-2 bg-brand-500 text-white rounded-lg shadow-md shadow-brand-500/20">
+                    <i class="fa-solid fa-diagram-project text-xl"></i>
+                </div>
+                <div>
+                    <h1 class="font-bold text-lg leading-tight tracking-tight text-slate-900 dark:text-white flex items-center gap-2">
+                        DFS Graph Visualizer
+                    </h1>
+                    <p class="text-xs text-slate-500 dark:text-slate-400">Classify Edge Types & Pre/Post Timestamps</p>
+                </div>
+            </div>
+
+            <!-- Mode Selector Tabs -->
+            <div class="flex items-center bg-slate-100 dark:bg-slate-900 p-1 rounded-xl border border-slate-200 dark:border-slate-700">
+                <button id="mode-edge-btn" onclick="setMode('edge')" class="px-3 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center gap-1.5 bg-white dark:bg-slate-800 text-brand-600 dark:text-brand-400 shadow-sm">
+                    <i class="fa-solid fa-palette text-xs"></i>
+                    <span>Edge Types Mode</span>
+                </button>
+                <button id="mode-time-btn" onclick="setMode('time')" class="px-3 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center gap-1.5 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white">
+                    <i class="fa-solid fa-clock text-xs"></i>
+                    <span>Pre/Post Values Mode</span>
+                </button>
+            </div>
+
+            <!-- Header Action Controls -->
+            <div class="flex items-center space-x-2">
+                <!-- Preset Dropdown -->
+                <select id="preset-select" onchange="loadPreset(this.value)" class="text-xs bg-slate-100 dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg px-2.5 py-1.5 font-medium text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500">
+                    <option value="" disabled selected>Presets...</option>
+                    <option value="classic">Classic Multi-Edge Graph</option>
+                    <option value="dag">Directed Acyclic Graph (DAG)</option>
+                    <option value="cycles">Deep Cycles Graph</option>
+                    <option value="components">Disconnected Graph</option>
+                    <option value="tree">Tree Structure</option>
+                </select>
+
+                <!-- Randomize Button -->
+                <button onclick="generateRandomGraph()" title="Generate Random Graph" class="p-2 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg border border-slate-200 dark:border-slate-700 transition flex items-center justify-center">
+                    <i class="fa-solid fa-dice text-sm"></i>
+                </button>
+
+                <!-- Share Link Button -->
+                <button onclick="shareGraphURL()" title="Share Link with URL Params" class="p-2 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg border border-slate-200 dark:border-slate-700 transition flex items-center justify-center">
+                    <i class="fa-solid fa-share-nodes text-sm"></i>
+                </button>
+
+                <!-- Theme Toggle Button -->
+                <button onclick="toggleTheme()" id="theme-toggle-btn" title="Toggle Dark/Light Theme" class="p-2 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg border border-slate-200 dark:border-slate-700 transition flex items-center justify-center">
+                    <i class="fa-solid fa-moon dark:hidden text-sm"></i>
+                    <i class="fa-solid fa-sun hidden dark:block text-sm"></i>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main class="flex-1 max-w-7xl w-full mx-auto p-3 sm:p-4 grid grid-cols-1 lg:grid-cols-12 gap-4">
+
+        <!-- Left Column: Streamlined Single-Line Controls & Interactive Graph View (7-8 cols) -->
+        <section class="lg:col-span-7 xl:col-span-8 flex flex-col space-y-3">
+
+            <!-- Streamlined Single-Line Control Bar -->
+            <div class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-2.5 shadow-sm flex flex-wrap items-center justify-between gap-2">
+                <!-- Playback Buttons -->
+                <div class="flex items-center space-x-1 shrink-0">
+                    <button onclick="resetSimulation()" title="Reset to Start" class="w-8 h-8 flex items-center justify-center text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition">
+                        <i class="fa-solid fa-rotate-left text-xs"></i>
+                    </button>
+                    <button onclick="stepPrevious()" title="Step Back" class="w-8 h-8 flex items-center justify-center text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition">
+                        <i class="fa-solid fa-backward-step text-xs"></i>
+                    </button>
+                    <button id="play-btn" onclick="togglePlayPause()" title="Play / Pause" class="w-8 h-8 flex items-center justify-center bg-brand-500 hover:bg-brand-600 text-white rounded-lg shadow-sm transition">
+                        <i id="play-icon" class="fa-solid fa-play text-xs"></i>
+                    </button>
+                    <button onclick="stepNext()" title="Step Forward" class="w-8 h-8 flex items-center justify-center text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition">
+                        <i class="fa-solid fa-forward-step text-xs"></i>
+                    </button>
+                </div>
+
+                <!-- Timeline Slider & Step Badge -->
+                <div class="flex-1 flex items-center space-x-2 min-w-[160px] px-1">
+                    <span id="step-counter" class="text-[11px] font-mono font-bold px-2 py-0.5 bg-slate-100 dark:bg-slate-900 text-slate-700 dark:text-slate-300 rounded border border-slate-200 dark:border-slate-700 whitespace-nowrap">
+                        Step 0/0
+                    </span>
+                    <input type="range" id="step-slider" min="0" max="0" value="0" oninput="onSliderChange(this.value)" class="w-full h-1.5 bg-slate-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer accent-brand-500">
+                </div>
+
+                <!-- Cycle Speed & Start Node Select -->
+                <div class="flex items-center space-x-2 text-xs shrink-0">
+                    <!-- Single Toggle Speed Button -->
+                    <button id="speed-cycle-btn" onclick="cycleSpeed()" title="Click to Cycle Playback Speed" class="px-2.5 py-1 rounded-lg font-mono font-bold text-xs bg-slate-100 dark:bg-slate-700 text-brand-600 dark:text-brand-400 border border-slate-200 dark:border-slate-600 hover:bg-slate-200 dark:hover:bg-slate-600 transition flex items-center gap-1">
+                        <i class="fa-solid fa-gauge text-[10px]"></i> <span id="speed-text">1.0x</span>
+                    </button>
+
+                    <div class="flex items-center space-x-1.5 pl-1 border-l border-slate-200 dark:border-slate-700">
+                        <label for="start-node-select" class="text-xs font-semibold text-slate-500 dark:text-slate-400 flex items-center gap-1">
+                            <i class="fa-solid fa-flag text-brand-500 text-[11px]"></i> Start:
+                        </label>
+                        <select id="start-node-select" onchange="changeStartNode(this.value)" class="text-xs bg-slate-100 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 font-bold rounded-lg px-2 py-1 text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-brand-500">
+                            <!-- Populated dynamically -->
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Graph SVG Canvas Container with Integrated Step Info Box -->
+            <div class="relative bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden flex-1 min-h-[440px] flex flex-col justify-between">
+                
+                <!-- Graph Editor Tool Ribbon -->
+                <div class="absolute top-3 left-3 z-10 flex items-center space-x-1.5 bg-white/90 dark:bg-slate-900/90 backdrop-blur border border-slate-200 dark:border-slate-700 p-1.5 rounded-xl shadow-sm text-xs">
+                    <button id="tool-select" onclick="setTool('select')" class="px-2.5 py-1 rounded-lg font-medium flex items-center gap-1.5 bg-brand-500 text-white shadow-xs">
+                        <i class="fa-solid fa-hand-pointer"></i> Move / Inspect
+                    </button>
+                    <button id="tool-add-node" onclick="setTool('add-node')" class="px-2.5 py-1 rounded-lg font-medium flex items-center gap-1.5 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800">
+                        <i class="fa-solid fa-circle-plus"></i> + Node
+                    </button>
+                    <button id="tool-add-edge" onclick="setTool('add-edge')" class="px-2.5 py-1 rounded-lg font-medium flex items-center gap-1.5 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800">
+                        <i class="fa-solid fa-arrow-right font-bold"></i> + Edge
+                    </button>
+                    <button onclick="clearGraph()" title="Clear Graph Canvas" class="p-1 px-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 rounded-lg">
+                        <i class="fa-solid fa-trash-can"></i>
+                    </button>
+                </div>
+
+                <!-- Canvas Visual Mode Badge / Banner -->
+                <div id="mode-badge" class="absolute top-3 right-3 z-10 px-3 py-1 rounded-full text-xs font-semibold backdrop-blur border shadow-xs flex items-center gap-1.5 bg-emerald-500/10 text-emerald-600 border-emerald-500/20 dark:text-emerald-400">
+                    <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                    <span id="mode-badge-text">Mode: Edge Classification</span>
+                </div>
+
+                <!-- SVG Canvas -->
+                <svg id="graph-svg" class="w-full h-full min-h-[380px] grid-bg-dark cursor-grab active:cursor-grabbing select-none" onclick="onCanvasClick(event)">
+                    <!-- Defs for arrowheads with userSpaceOnUse to maintain fixed tip scale -->
+                    <defs>
+                        <marker id="arrow-default" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="13" markerHeight="13" orient="auto-start-reverse" markerUnits="userSpaceOnUse">
+                            <path d="M 0 1 L 10 5 L 0 9 z" fill="#64748b"/>
+                        </marker>
+                        <marker id="arrow-active" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="17" markerHeight="17" orient="auto-start-reverse" markerUnits="userSpaceOnUse">
+                            <path d="M 0 1 L 10 5 L 0 9 z" fill="#8b5cf6"/>
+                        </marker>
+                        <marker id="arrow-tree" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="17" markerHeight="17" orient="auto-start-reverse" markerUnits="userSpaceOnUse">
+                            <path d="M 0 1 L 10 5 L 0 9 z" fill="#10b981"/>
+                        </marker>
+                        <marker id="arrow-back" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="17" markerHeight="17" orient="auto-start-reverse" markerUnits="userSpaceOnUse">
+                            <path d="M 0 1 L 10 5 L 0 9 z" fill="#ef4444"/>
+                        </marker>
+                        <marker id="arrow-forward" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="17" markerHeight="17" orient="auto-start-reverse" markerUnits="userSpaceOnUse">
+                            <path d="M 0 1 L 10 5 L 0 9 z" fill="#3b82f6"/>
+                        </marker>
+                        <marker id="arrow-cross" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="17" markerHeight="17" orient="auto-start-reverse" markerUnits="userSpaceOnUse">
+                            <path d="M 0 1 L 10 5 L 0 9 z" fill="#f59e0b"/>
+                        </marker>
+                    </defs>
+
+                    <!-- Group for Rendering Edges -->
+                    <g id="edges-group"></g>
+                    <!-- Group for Rendering Nodes -->
+                    <g id="nodes-group"></g>
+                </svg>
+
+                <!-- Integrated Step Info Box Banner (Moved to Bottom Left of Graph View) -->
+                <div class="m-3 p-2.5 bg-slate-900/95 dark:bg-slate-900/95 backdrop-blur text-slate-100 border border-slate-700/80 rounded-xl text-xs flex items-start space-x-2.5 shadow-md">
+                    <i id="log-icon" class="fa-solid fa-circle-info text-brand-400 mt-0.5 text-sm shrink-0"></i>
+                    <div id="step-log-text" class="leading-relaxed flex-1">
+                        Click <span class="font-bold text-white">Play</span> or scrub slider to begin Depth-First Search exploration.
+                    </div>
+                </div>
+            </div>
+
+            <!-- Legend and Info Panels Grid -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                
+                <!-- Edge Classification Legend -->
+                <div class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-3 shadow-sm">
+                    <h3 class="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-2 flex items-center justify-between">
+                        <span>Edge Types Legend</span>
+                        <span id="edge-counts-summary" class="text-[10px] font-normal normal-case text-slate-400">Total Edges: 0</span>
+                    </h3>
+                    <div class="grid grid-cols-2 gap-2 text-xs">
+                        <div class="flex items-center space-x-2 p-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-700 dark:text-emerald-300">
+                            <span class="w-3 h-3 rounded-full bg-emerald-500 shrink-0"></span>
+                            <div class="flex-1 overflow-hidden">
+                                <div class="font-bold leading-none">Tree Edge</div>
+                                <div class="text-[10px] opacity-80 truncate">pre[v] = 0</div>
+                            </div>
+                            <span id="count-tree" class="font-mono font-bold text-xs bg-emerald-500/20 px-1.5 py-0.5 rounded">0</span>
+                        </div>
+
+                        <div class="flex items-center space-x-2 p-1.5 rounded-lg bg-red-500/10 border border-red-500/20 text-red-700 dark:text-red-300">
+                            <span class="w-3 h-3 rounded-full bg-red-500 shrink-0"></span>
+                            <div class="flex-1 overflow-hidden">
+                                <div class="font-bold leading-none">Back Edge</div>
+                                <div class="text-[10px] opacity-80 truncate">post[v] = 0</div>
+                            </div>
+                            <span id="count-back" class="font-mono font-bold text-xs bg-red-500/20 px-1.5 py-0.5 rounded">0</span>
+                        </div>
+
+                        <div class="flex items-center space-x-2 p-1.5 rounded-lg bg-blue-500/10 border border-blue-500/20 text-blue-700 dark:text-blue-300">
+                            <span class="w-3 h-3 rounded-full bg-blue-500 shrink-0"></span>
+                            <div class="flex-1 overflow-hidden">
+                                <div class="font-bold leading-none">Forward Edge</div>
+                                <div class="text-[10px] opacity-80 truncate">pre[v] &gt; pre[u]</div>
+                            </div>
+                            <span id="count-forward" class="font-mono font-bold text-xs bg-blue-500/20 px-1.5 py-0.5 rounded">0</span>
+                        </div>
+
+                        <div class="flex items-center space-x-2 p-1.5 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-700 dark:text-amber-300">
+                            <span class="w-3 h-3 rounded-full bg-amber-500 shrink-0"></span>
+                            <div class="flex-1 overflow-hidden">
+                                <div class="font-bold leading-none">Cross Edge</div>
+                                <div class="text-[10px] opacity-80 truncate">pre[v] &lt; pre[u]</div>
+                            </div>
+                            <span id="count-cross" class="font-mono font-bold text-xs bg-amber-500/20 px-1.5 py-0.5 rounded">0</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Sorted Adjacency Lists Inspector -->
+                <div class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-3 shadow-sm flex flex-col">
+                    <h3 class="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-2 flex items-center justify-between">
+                        <span>Sorted Adjacency Lists</span>
+                        <span class="text-[10px] font-normal normal-case text-slate-400"><i class="fa-solid fa-arrow-down-short-wide"></i> Ascending Order</span>
+                    </h3>
+                    <div id="adj-list-container" class="flex-1 max-h-28 overflow-y-auto space-y-1 pr-1 font-mono text-xs">
+                        <!-- Populated dynamically -->
+                    </div>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- Right Column: Collapsible Pseudocode & Execution Inspector (4-5 cols) -->
+        <section class="lg:col-span-5 xl:col-span-4 flex flex-col space-y-3">
+
+            <!-- Collapsible Pseudocode Display Panel -->
+            <div class="bg-slate-900 text-slate-100 rounded-2xl border border-slate-800 p-3.5 shadow-md flex flex-col transition-all duration-300">
+                <div class="flex items-center justify-between border-b border-slate-800 pb-2 mb-2">
+                    <div class="flex items-center space-x-2">
+                        <i class="fa-solid fa-code text-brand-400 text-sm"></i>
+                        <h2 class="font-bold text-sm tracking-tight text-white">DFS Pseudocode</h2>
+                    </div>
+                    <!-- Collapse Toggle Button -->
+                    <button onclick="togglePseudocode()" title="Toggle Pseudocode Visibility" class="p-1 px-2 text-slate-400 hover:text-white bg-slate-800 hover:bg-slate-700 rounded-lg text-xs transition flex items-center gap-1">
+                        <i id="pseudo-toggle-icon" class="fa-solid fa-chevron-up text-[10px]"></i>
+                        <span id="pseudo-toggle-text" class="text-[10px]">Collapse</span>
+                    </button>
+                </div>
+
+                <!-- Code Block with Tight Lineheight -->
+                <div id="pseudocode-body" class="code-font text-xs leading-tight space-y-0.5 overflow-x-auto transition-all">
+                    <div id="line-1" class="px-2 py-[2px] rounded transition-colors text-slate-300">
+                        <span class="text-purple-400 font-bold">DFS</span>(G):
+                    </div>
+                    <div id="line-2" class="px-2 py-[2px] rounded transition-colors text-slate-400 pl-4">
+                        pre[1..n] = new array(0)
+                    </div>
+                    <div id="line-3" class="px-2 py-[2px] rounded transition-colors text-slate-400 pl-4">
+                        post[1..n] = new array(0)
+                    </div>
+                    <div id="line-4" class="px-2 py-[2px] rounded transition-colors text-slate-400 pl-4">
+                        time = 0
+                    </div>
+                    <div id="line-5" class="px-2 py-[2px] rounded transition-colors text-slate-300 pl-4">
+                        <span class="text-pink-400 font-bold">for all</span> u &in; V <span class="text-slate-500">(root first)</span>:
+                    </div>
+                    <div id="line-6" class="px-2 py-[2px] rounded transition-colors text-slate-300 pl-8">
+                        <span class="text-pink-400 font-bold">if</span> pre[u] == 0:
+                    </div>
+                    <div id="line-7" class="px-2 py-[2px] rounded transition-colors text-brand-300 font-semibold pl-12">
+                        DFS-Visit(G, u)
+                    </div>
+                    
+                    <div class="my-1.5 border-b border-slate-800/80"></div>
+
+                    <div id="line-9" class="px-2 py-[2px] rounded transition-colors text-slate-300">
+                        <span class="text-purple-400 font-bold">DFS-Visit</span>(G, u):
+                    </div>
+                    <div id="line-10" class="px-2 py-[2px] rounded transition-colors text-slate-300 pl-4">
+                        time = time + 1
+                    </div>
+                    <div id="line-11" class="px-2 py-[2px] rounded transition-colors text-emerald-400 font-medium pl-4">
+                        pre[u] = time <span class="text-slate-500 text-[10px]">// start visit u</span>
+                    </div>
+                    <div id="line-12" class="px-2 py-[2px] rounded transition-colors text-slate-300 pl-4">
+                        <span class="text-pink-400 font-bold">for all</span> (u, v) &in; E <span class="text-slate-500">(sorted v)</span>:
+                    </div>
+                    <div id="line-13" class="px-2 py-[2px] rounded transition-colors text-slate-300 pl-8">
+                        <span class="text-pink-400 font-bold">if</span> pre[v] == 0:
+                    </div>
+                    <div id="line-14" class="px-2 py-[2px] rounded transition-colors text-emerald-300 font-semibold pl-12 flex items-center gap-1">
+                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0"></span> edge (u,v) is TREE
+                    </div>
+                    <div id="line-15" class="px-2 py-[2px] rounded transition-colors text-brand-300 font-semibold pl-12">
+                        DFS-Visit(G, v)
+                    </div>
+                    <div id="line-16" class="px-2 py-[2px] rounded transition-colors text-slate-300 pl-8">
+                        <span class="text-pink-400 font-bold">else</span>:
+                    </div>
+                    <div id="line-17" class="px-2 py-[2px] rounded transition-colors text-slate-300 pl-12">
+                        <span class="text-pink-400 font-bold">if</span> post[v] == 0:
+                    </div>
+                    <div id="line-18" class="px-2 py-[2px] rounded transition-colors text-red-400 font-semibold pl-16 flex items-center gap-1">
+                        <span class="w-1.5 h-1.5 rounded-full bg-red-500 shrink-0"></span> edge (u,v) is BACK
+                    </div>
+                    <div id="line-19" class="px-2 py-[2px] rounded transition-colors text-slate-300 pl-12">
+                        <span class="text-pink-400 font-bold">else if</span> pre[v] &gt; pre[u]:
+                    </div>
+                    <div id="line-20" class="px-2 py-[2px] rounded transition-colors text-blue-400 font-semibold pl-16 flex items-center gap-1">
+                        <span class="w-1.5 h-1.5 rounded-full bg-blue-500 shrink-0"></span> edge (u,v) is FORWARD
+                    </div>
+                    <div id="line-21" class="px-2 py-[2px] rounded transition-colors text-slate-300 pl-12">
+                        <span class="text-pink-400 font-bold">else</span>:
+                    </div>
+                    <div id="line-22" class="px-2 py-[2px] rounded transition-colors text-amber-400 font-semibold pl-16 flex items-center gap-1">
+                        <span class="w-1.5 h-1.5 rounded-full bg-amber-500 shrink-0"></span> edge (u,v) is CROSS
+                    </div>
+                    <div id="line-23" class="px-2 py-[2px] rounded transition-colors text-slate-300 pl-4">
+                        time = time + 1
+                    </div>
+                    <div id="line-24" class="px-2 py-[2px] rounded transition-colors text-emerald-400 font-medium pl-4">
+                        post[u] = time <span class="text-slate-500 text-[10px]">// end visit u</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Call Stack & Timestamps Table Inspector -->
+            <div class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-3 shadow-sm space-y-3">
+                <!-- Call Stack -->
+                <div>
+                    <h3 class="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1 flex items-center justify-between">
+                        <span>Recursion Call Stack</span>
+                        <span id="stack-size-badge" class="text-[10px] font-mono px-1.5 py-0.2 bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 rounded">Depth: 0</span>
+                    </h3>
+                    <div id="call-stack-container" class="flex items-center space-x-1.5 overflow-x-auto py-1 min-h-[34px]">
+                        <span class="text-xs text-slate-400 italic">Stack empty</span>
+                    </div>
+                </div>
+
+                <!-- Pre/Post Timestamps Table -->
+                <div>
+                    <h3 class="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1 flex items-center justify-between">
+                        <span>Node Timestamps (pre / post)</span>
+                        <span id="current-time-badge" class="text-[10px] font-mono px-1.5 py-0.2 bg-brand-500/10 text-brand-600 dark:text-brand-400 rounded">time = 0</span>
+                    </h3>
+                    <div class="overflow-x-auto border border-slate-200 dark:border-slate-700 rounded-xl">
+                        <table class="w-full text-left border-collapse text-xs">
+                            <thead>
+                                <tr class="bg-slate-50 dark:bg-slate-900/50 text-slate-500 dark:text-slate-400 font-mono text-[11px] border-b border-slate-200 dark:border-slate-700">
+                                    <th class="py-1 px-2.5 font-semibold">Node (v)</th>
+                                    <th class="py-1 px-2.5 font-semibold text-emerald-600 dark:text-emerald-400">pre[v]</th>
+                                    <th class="py-1 px-2.5 font-semibold text-sky-600 dark:text-sky-400">post[v]</th>
+                                    <th class="py-1 px-2.5 font-semibold">Status</th>
+                                </tr>
+                            </thead>
+                            <tbody id="timestamp-table-body" class="divide-y divide-slate-200 dark:divide-slate-700/60 font-mono">
+                                <!-- Populated dynamically -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+        </section>
+
+    </main>
+
+    <!-- Notification Toast -->
+    <div id="toast" class="fixed bottom-5 right-5 z-50 transform translate-y-20 opacity-0 pointer-events-none bg-slate-900 text-white dark:bg-white dark:text-slate-900 px-4 py-2.5 rounded-xl shadow-xl flex items-center space-x-2 text-xs font-medium border border-slate-700 dark:border-slate-200">
+        <i id="toast-icon" class="fa-solid fa-check-circle text-emerald-400 dark:text-emerald-600"></i>
+        <span id="toast-message">Message here</span>
+    </div>
+
+    <script>
+        /**
+         * DFS Graph Visualizer Logic & State Engine
+         */
+
+        // App State
+        let nodes = [];
+        let edges = []; // Array of { u: id, v: id }
+        let startNodeId = 1;
+        let mode = 'edge'; // 'edge' or 'time'
+        let currentTool = 'select'; // 'select', 'add-node', 'add-edge'
+        let selectedEdgeSource = null;
+        let isPseudocodeCollapsed = false;
+
+        // Simulation State
+        let simulationSteps = [];
+        let currentStepIndex = 0;
+        let isPlaying = false;
+        let playInterval = null;
+        let playSpeed = 1.0;
+        const SPEED_STEPS = [0.5, 1.0, 2.0];
+
+        // Interactive Dragging State
+        let draggingNodeId = null;
+        let dragOffset = { x: 0, y: 0 };
+
+        // Presets Definition (Ensured all Y coordinates start at y >= 85 so node 1 is never obscured)
+        const PRESETS = {
+            classic: {
+                startNodeId: 1,
+                nodes: [
+                    { id: 1, x: 260, y: 85 },
+                    { id: 2, x: 420, y: 85 },
+                    { id: 3, x: 120, y: 210 },
+                    { id: 4, x: 280, y: 210 },
+                    { id: 5, x: 440, y: 210 },
+                    { id: 6, x: 200, y: 340 },
+                    { id: 7, x: 360, y: 340 }
+                ],
+                edges: [
+                    { u: 1, v: 2 },
+                    { u: 1, v: 3 },
+                    { u: 2, v: 4 },
+                    { u: 2, v: 5 },
+                    { u: 3, v: 6 },
+                    { u: 4, v: 1 }, // Back edge
+                    { u: 4, v: 6 },
+                    { u: 4, v: 7 },
+                    { u: 1, v: 4 }, // Forward edge
+                    { u: 5, v: 7 },
+                    { u: 6, v: 4 }  // Cross/Back edge
+                ]
+            },
+            dag: {
+                startNodeId: 1,
+                nodes: [
+                    { id: 1, x: 120, y: 130 },
+                    { id: 2, x: 270, y: 90 },
+                    { id: 3, x: 270, y: 270 },
+                    { id: 4, x: 420, y: 130 },
+                    { id: 5, x: 420, y: 290 },
+                    { id: 6, x: 540, y: 210 }
+                ],
+                edges: [
+                    { u: 1, v: 2 },
+                    { u: 1, v: 3 },
+                    { u: 2, v: 4 },
+                    { u: 3, v: 4 },
+                    { u: 3, v: 5 },
+                    { u: 4, v: 6 },
+                    { u: 5, v: 6 },
+                    { u: 1, v: 4 }
+                ]
+            },
+            cycles: {
+                startNodeId: 1,
+                nodes: [
+                    { id: 1, x: 180, y: 100 },
+                    { id: 2, x: 380, y: 100 },
+                    { id: 3, x: 460, y: 260 },
+                    { id: 4, x: 280, y: 340 },
+                    { id: 5, x: 120, y: 260 }
+                ],
+                edges: [
+                    { u: 1, v: 2 },
+                    { u: 2, v: 3 },
+                    { u: 3, v: 4 },
+                    { u: 4, v: 5 },
+                    { u: 5, v: 1 },
+                    { u: 2, v: 5 },
+                    { u: 3, v: 1 }
+                ]
+            },
+            components: {
+                startNodeId: 1,
+                nodes: [
+                    { id: 1, x: 140, y: 120 },
+                    { id: 2, x: 280, y: 120 },
+                    { id: 3, x: 210, y: 260 },
+                    { id: 4, x: 390, y: 230 },
+                    { id: 5, x: 510, y: 120 },
+                    { id: 6, x: 530, y: 290 }
+                ],
+                edges: [
+                    { u: 1, v: 2 },
+                    { u: 2, v: 3 },
+                    { u: 3, v: 1 },
+                    { u: 5, v: 4 },
+                    { u: 4, v: 6 },
+                    { u: 6, v: 5 }
+                ]
+            },
+            tree: {
+                startNodeId: 1,
+                nodes: [
+                    { id: 1, x: 320, y: 85 },
+                    { id: 2, x: 200, y: 180 },
+                    { id: 3, x: 440, y: 180 },
+                    { id: 4, x: 130, y: 300 },
+                    { id: 5, x: 250, y: 300 },
+                    { id: 6, x: 380, y: 300 },
+                    { id: 7, x: 500, y: 300 }
+                ],
+                edges: [
+                    { u: 1, v: 2 },
+                    { u: 1, v: 3 },
+                    { u: 2, v: 4 },
+                    { u: 2, v: 5 },
+                    { u: 3, v: 6 },
+                    { u: 3, v: 7 }
+                ]
+            }
+        };
+
+        window.addEventListener('DOMContentLoaded', () => {
+            initApp();
+        });
+
+        function initApp() {
+            if (!loadFromURL()) {
+                loadPreset('classic');
+            }
+            
+            window.addEventListener('resize', renderCanvas);
+            setupCanvasDragEvents();
+            updateModeUI();
+        }
+
+        function loadFromURL() {
+            try {
+                const params = new URLSearchParams(window.location.search);
+                const graphData = params.get('graph');
+                if (!graphData) return false;
+
+                const decoded = JSON.parse(atob(graphData));
+                if (decoded && Array.isArray(decoded.nodes) && Array.isArray(decoded.edges)) {
+                    nodes = decoded.nodes;
+                    edges = decoded.edges;
+                    startNodeId = decoded.startNodeId || (nodes[0] ? nodes[0].id : 1);
+                    if (decoded.mode) mode = decoded.mode;
+                    
+                    rebuildSimulation();
+                    showToast('Graph loaded from URL parameter!');
+                    return true;
+                }
+            } catch (e) {
+                console.error('Failed to parse URL graph param:', e);
+            }
+            return false;
+        }
+
+        function shareGraphURL() {
+            const data = { nodes, edges, startNodeId, mode };
+            const encoded = btoa(JSON.stringify(data));
+            const url = new URL(window.location.href);
+            url.searchParams.set('graph', encoded);
+
+            const tempInput = document.createElement('input');
+            tempInput.value = url.toString();
+            document.body.appendChild(tempInput);
+            tempInput.select();
+            document.execCommand('copy');
+            document.body.removeChild(tempInput);
+
+            showToast('Shareable link copied to clipboard!');
+        }
+
+        function showToast(msg) {
+            const toast = document.getElementById('toast');
+            document.getElementById('toast-message').innerText = msg;
+            toast.classList.remove('translate-y-20', 'opacity-0', 'pointer-events-none');
+            setTimeout(() => {
+                toast.classList.add('translate-y-20', 'opacity-0', 'pointer-events-none');
+            }, 3000);
+        }
+
+        /**
+         * Deterministic DFS Simulation Engine
+         * Adjacency lists MUST be sorted numerically ascending by v
+         */
+        function generateDFSSimulation() {
+            const steps = [];
+            const nodeMap = new Map();
+            nodes.forEach(n => nodeMap.set(n.id, n));
+
+            const adj = new Map();
+            nodes.forEach(n => adj.set(n.id, []));
+            edges.forEach(e => {
+                if (adj.has(e.u)) adj.get(e.u).push(e.v);
+            });
+
+            adj.forEach((neighbors) => {
+                neighbors.sort((a, b) => a - b);
+            });
+
+            const pre = {};
+            const post = {};
+            nodes.forEach(n => {
+                pre[n.id] = 0;
+                post[n.id] = 0;
+            });
+
+            let time = 0;
+            const callStack = [];
+            const edgeClassifications = {};
+
+            function recordStep(line, description, activeNode = null, activeEdge = null) {
+                steps.push({
+                    stepIndex: steps.length,
+                    line,
+                    description,
+                    time,
+                    pre: { ...pre },
+                    post: { ...post },
+                    stack: [...callStack],
+                    activeNode,
+                    activeEdge,
+                    edgeTypes: { ...edgeClassifications }
+                });
+            }
+
+            recordStep(1, "Initialize DFS algorithm. All pre[v] and post[v] set to 0, time = 0.");
+
+            function dfsVisit(u) {
+                time++;
+                pre[u] = time;
+                callStack.push(u);
+
+                recordStep(11, `DFS-Visit(${u}): Started visiting node ${u}. Set pre[${u}] = ${time}.`, u);
+
+                const neighbors = adj.get(u) || [];
+                for (let i = 0; i < neighbors.length; i++) {
+                    const v = neighbors[i];
+                    const edgeKey = `${u}-${v}`;
+
+                    recordStep(12, `DFS-Visit(${u}): Examining outgoing edge (${u}, ${v}).`, u, { u, v });
+
+                    if (pre[v] === 0) {
+                        edgeClassifications[edgeKey] = 'tree';
+                        recordStep(14, `Edge (${u}, ${v}) is a TREE EDGE because node ${v} is unvisited (pre[${v}] = 0).`, u, { u, v });
+                        recordStep(15, `Recursively calling DFS-Visit(${v}).`, u, { u, v });
+                        dfsVisit(v);
+                    } else {
+                        if (post[v] === 0) {
+                            edgeClassifications[edgeKey] = 'back';
+                            recordStep(18, `Edge (${u}, ${v}) is a BACK EDGE because node ${v} is currently active in call stack (post[${v}] = 0).`, u, { u, v });
+                        } else if (pre[v] > pre[u]) {
+                            edgeClassifications[edgeKey] = 'forward';
+                            recordStep(20, `Edge (${u}, ${v}) is a FORWARD EDGE because node ${v} is finished and was started after ${u} (pre[${v}] = ${pre[v]} > pre[${u}] = ${pre[u]}).`, u, { u, v });
+                        } else {
+                            edgeClassifications[edgeKey] = 'cross';
+                            recordStep(22, `Edge (${u}, ${v}) is a CROSS EDGE because node ${v} was visited and finished before ${u} (pre[${v}] = ${pre[v]} < pre[${u}] = ${pre[u]}).`, u, { u, v });
+                        }
+                    }
+                }
+
+                time++;
+                post[u] = time;
+                recordStep(24, `DFS-Visit(${u}): Finished visiting node ${u}. Set post[${u}] = ${time}. Pop node ${u} from call stack.`, u);
+                callStack.pop();
+            }
+
+            const sortedNodes = nodes.map(n => n.id).sort((a, b) => a - b);
+            const visitOrder = [];
+            
+            if (nodeMap.has(startNodeId)) {
+                visitOrder.push(startNodeId);
+            }
+            sortedNodes.forEach(id => {
+                if (id !== startNodeId) visitOrder.push(id);
+            });
+
+            for (let i = 0; i < visitOrder.length; i++) {
+                const u = visitOrder[i];
+                recordStep(5, `Checking outer loop for node ${u}.`);
+                if (pre[u] === 0) {
+                    recordStep(7, `Node ${u} is unvisited (pre[${u}] = 0). Initiating DFS-Visit(${u}).`);
+                    dfsVisit(u);
+                }
+            }
+
+            recordStep(1, "DFS Exploration Complete! All reachable nodes and edge types processed.");
+
+            return steps;
+        }
+
+        function rebuildSimulation() {
+            pauseSimulation();
+            simulationSteps = generateDFSSimulation();
+            currentStepIndex = 0;
+            
+            const slider = document.getElementById('step-slider');
+            slider.max = Math.max(0, simulationSteps.length - 1);
+            slider.value = 0;
+
+            updateStartNodeDropdown();
+            renderStep(currentStepIndex);
+            renderAdjacencyList();
+        }
+
+        function renderStep(index) {
+            if (!simulationSteps || simulationSteps.length === 0) return;
+
+            const step = simulationSteps[index];
+
+            document.getElementById('step-slider').value = index;
+            document.getElementById('step-counter').innerText = `Step ${index}/${simulationSteps.length - 1}`;
+
+            document.querySelectorAll('[id^="line-"]').forEach(el => el.classList.remove('line-active'));
+            if (step.line) {
+                const activeEl = document.getElementById(`line-${step.line}`);
+                if (activeEl) {
+                    activeEl.classList.add('line-active');
+                    activeEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                }
+            }
+
+            document.getElementById('step-log-text').innerText = step.description;
+
+            const stackContainer = document.getElementById('call-stack-container');
+            document.getElementById('stack-size-badge').innerText = `Depth: ${step.stack.length}`;
+            
+            if (step.stack.length === 0) {
+                stackContainer.innerHTML = `<span class="text-xs text-slate-400 italic">Stack empty</span>`;
+            } else {
+                stackContainer.innerHTML = step.stack.map((nodeId, idx) => `
+                    <div class="px-2 py-0.5 rounded-md text-xs font-mono font-bold border flex items-center gap-1 shrink-0 ${
+                        idx === step.stack.length - 1 
+                        ? 'bg-brand-500 text-white border-brand-400 shadow-xs' 
+                        : 'bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 border-slate-300 dark:border-slate-600'
+                    }">
+                        <span>Visit(${nodeId})</span>
+                        ${idx < step.stack.length - 1 ? '<i class="fa-solid fa-chevron-right text-[9px] opacity-60"></i>' : ''}
+                    </div>
+                `).join('');
+            }
+
+            document.getElementById('current-time-badge').innerText = `time = ${step.time}`;
+            const tableBody = document.getElementById('timestamp-table-body');
+            
+            const sortedNodeIds = nodes.map(n => n.id).sort((a, b) => a - b);
+            tableBody.innerHTML = sortedNodeIds.map(u => {
+                const preVal = step.pre[u] !== undefined ? step.pre[u] : 0;
+                const postVal = step.post[u] !== undefined ? step.post[u] : 0;
+                const isActive = step.activeNode === u;
+
+                let statusBadge = '<span class="text-slate-400">Unvisited</span>';
+                if (postVal > 0) {
+                    statusBadge = '<span class="text-emerald-500 font-semibold">Finished</span>';
+                } else if (preVal > 0) {
+                    statusBadge = '<span class="text-brand-400 font-semibold animate-pulse">Visiting...</span>';
+                }
+
+                return `
+                    <tr class="${isActive ? 'bg-brand-500/10 dark:bg-brand-500/20 font-bold' : ''}">
+                        <td class="py-1 px-2.5 flex items-center space-x-1.5">
+                            <span class="w-5 h-5 rounded-full flex items-center justify-center text-[10px] ${u === startNodeId ? 'bg-amber-500 text-white font-bold' : 'bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200'}">${u}</span>
+                            ${u === startNodeId ? '<span class="text-[9px] px-1 bg-amber-500/20 text-amber-600 dark:text-amber-400 rounded">Root</span>' : ''}
+                        </td>
+                        <td class="py-1 px-2.5 font-mono ${preVal > 0 ? 'text-emerald-600 dark:text-emerald-400 font-bold' : 'text-slate-400'}">${preVal}</td>
+                        <td class="py-1 px-2.5 font-mono ${postVal > 0 ? 'text-sky-600 dark:text-sky-400 font-bold' : 'text-slate-400'}">${postVal}</td>
+                        <td class="py-1 px-2.5">${statusBadge}</td>
+                    </tr>
+                `;
+            }).join('');
+
+            let countTree = 0, countBack = 0, countForward = 0, countCross = 0;
+            Object.values(step.edgeTypes).forEach(type => {
+                if (type === 'tree') countTree++;
+                if (type === 'back') countBack++;
+                if (type === 'forward') countForward++;
+                if (type === 'cross') countCross++;
+            });
+            document.getElementById('count-tree').innerText = countTree;
+            document.getElementById('count-back').innerText = countBack;
+            document.getElementById('count-forward').innerText = countForward;
+            document.getElementById('count-cross').innerText = countCross;
+            document.getElementById('edge-counts-summary').innerText = `Total Edges: ${edges.length}`;
+
+            renderCanvas();
+        }
+
+        /**
+         * Precise Canvas & SVG Rendering Engine
+         * Solves curved edge vector tangents so arrow tips touch node perimeter exactly
+         */
+        function renderCanvas() {
+            const svg = document.getElementById('graph-svg');
+            const edgesGroup = document.getElementById('edges-group');
+            const nodesGroup = document.getElementById('nodes-group');
+
+            edgesGroup.innerHTML = '';
+            nodesGroup.innerHTML = '';
+
+            // Dynamic background grid class for Light vs Dark mode
+            const isDark = document.documentElement.classList.contains('dark');
+            svg.setAttribute('class', `w-full h-full min-h-[380px] ${isDark ? 'grid-bg-dark' : 'grid-bg-light'} cursor-grab active:cursor-grabbing select-none`);
+
+            const currentStep = simulationSteps[currentStepIndex] || {
+                pre: {}, post: {}, stack: [], edgeTypes: {}, activeNode: null, activeEdge: null
+            };
+
+            const nodeRadius = 24;
+            const nodeMap = new Map();
+            nodes.forEach(n => nodeMap.set(n.id, n));
+
+            function getEdgeGeometry(edge) {
+                const src = nodeMap.get(edge.u);
+                const tgt = nodeMap.get(edge.v);
+
+                if (!src || !tgt) return null;
+
+                // Self Loop Edge
+                if (edge.u === edge.v) {
+                    const x = src.x;
+                    const y = src.y;
+                    return {
+                        isSelf: true,
+                        path: `M ${x - 12} ${y - nodeRadius + 2} C ${x - 36} ${y - nodeRadius - 45}, ${x + 36} ${y - nodeRadius - 45}, ${x + 12} ${y - nodeRadius + 2}`,
+                        midX: x,
+                        midY: y - nodeRadius - 32
+                    };
+                }
+
+                // Check for bidirectional edge pair
+                const hasReverse = edges.some(e => e.u === edge.v && e.v === edge.u);
+
+                const dx = tgt.x - src.x;
+                const dy = tgt.y - src.y;
+                const dist = Math.hypot(dx, dy);
+
+                if (dist === 0) return null;
+
+                const normX = dx / dist;
+                const normY = dy / dist;
+                const perpX = -normY;
+                const perpY = normX;
+
+                // Curve Offset
+                const curveOffset = hasReverse ? 28 : 10;
+                const midX = (src.x + tgt.x) / 2 + perpX * curveOffset;
+                const midY = (src.y + tgt.y) / 2 + perpY * curveOffset;
+
+                // Compute exact tangent vector at target node boundary (circle radius r = 24)
+                // Curve end tangent vector at t = 1 is (tgt - mid)
+                const tanX = tgt.x - midX;
+                const tanY = tgt.y - midY;
+                const tanLen = Math.hypot(tanX, tanY);
+
+                if (tanLen === 0) return null;
+
+                const unitTanX = tanX / tanLen;
+                const unitTanY = tanY / tanLen;
+
+                // Target intersection point on node perimeter
+                const targetX = tgt.x - unitTanX * nodeRadius;
+                const targetY = tgt.y - unitTanY * nodeRadius;
+
+                // Source intersection point on source node perimeter
+                const srcTanX = midX - src.x;
+                const srcTanY = midY - src.y;
+                const srcTanLen = Math.hypot(srcTanX, srcTanY);
+                const unitSrcX = srcTanLen > 0 ? srcTanX / srcTanLen : normX;
+                const unitSrcY = srcTanLen > 0 ? srcTanY / srcTanLen : normY;
+
+                const startX = src.x + unitSrcX * nodeRadius;
+                const startY = src.y + unitSrcY * nodeRadius;
+
+                const path = `M ${startX} ${startY} Q ${midX} ${midY} ${targetX} ${targetY}`;
+
+                return { isSelf: false, path, midX, midY };
+            }
+
+            // Draw Edges
+            edges.forEach(edge => {
+                const key = `${edge.u}-${edge.v}`;
+                const geom = getEdgeGeometry(edge);
+                if (!geom) return;
+
+                const edgeType = currentStep.edgeTypes[key] || 'unvisited';
+                const isActiveEdge = currentStep.activeEdge && currentStep.activeEdge.u === edge.u && currentStep.activeEdge.v === edge.v;
+
+                let strokeColor = isDark ? '#64748b' : '#94a3b8';
+                let markerId = 'arrow-default';
+
+                if (isActiveEdge) {
+                    strokeColor = '#8b5cf6';
+                    markerId = 'arrow-active';
+                } else if (edgeType === 'tree') {
+                    strokeColor = '#10b981';
+                    markerId = 'arrow-tree';
+                } else if (edgeType === 'back') {
+                    strokeColor = '#ef4444';
+                    markerId = 'arrow-back';
+                } else if (edgeType === 'forward') {
+                    strokeColor = '#3b82f6';
+                    markerId = 'arrow-forward';
+                } else if (edgeType === 'cross') {
+                    strokeColor = '#f59e0b';
+                    markerId = 'arrow-cross';
+                }
+
+                const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+
+                const pathEl = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                pathEl.setAttribute('d', geom.path);
+                pathEl.setAttribute('fill', 'none');
+                pathEl.setAttribute('stroke', strokeColor);
+                pathEl.setAttribute('stroke-width', isActiveEdge ? '4' : '2.5');
+                pathEl.setAttribute('marker-end', `url(#${markerId})`);
+                if (isActiveEdge) pathEl.classList.add('edge-active');
+                
+                g.appendChild(pathEl);
+
+                // Floating edge type label badge in Edge Mode
+                if (mode === 'edge' && edgeType !== 'unvisited') {
+                    const textBadge = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                    textBadge.setAttribute('x', geom.midX);
+                    textBadge.setAttribute('y', geom.midY);
+                    textBadge.setAttribute('text-anchor', 'middle');
+                    textBadge.setAttribute('dominant-baseline', 'central');
+                    textBadge.setAttribute('font-size', '10');
+                    textBadge.setAttribute('font-weight', 'bold');
+                    textBadge.setAttribute('fill', strokeColor);
+                    textBadge.classList.add('code-font', 'svg-text-shadow');
+                    textBadge.textContent = edgeType.toUpperCase().substring(0, 4);
+                    g.appendChild(textBadge);
+                }
+
+                edgesGroup.appendChild(g);
+            });
+
+            // Draw Nodes with theme-aware styling
+            nodes.forEach(node => {
+                const preVal = currentStep.pre[node.id] || 0;
+                const postVal = currentStep.post[node.id] || 0;
+                const isActive = currentStep.activeNode === node.id;
+                const isInStack = currentStep.stack && currentStep.stack.includes(node.id);
+
+                const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+                g.setAttribute('transform', `translate(${node.x}, ${node.y})`);
+                g.setAttribute('class', 'cursor-pointer');
+                g.setAttribute('data-node-id', node.id);
+
+                g.addEventListener('mousedown', (e) => onNodeMouseDown(e, node.id));
+
+                // Theme-aware node background & stroke
+                let fillColor = isDark ? '#1e293b' : '#ffffff';
+                let strokeColor = isDark ? '#475569' : '#cbd5e1';
+                let textColor = isDark ? '#ffffff' : '#0f172a';
+                let strokeWidth = '2.5';
+
+                if (isActive) {
+                    strokeColor = '#38bdf8';
+                    fillColor = isDark ? '#0c4a6e' : '#e0f2fe';
+                    textColor = isDark ? '#ffffff' : '#0369a1';
+                    strokeWidth = '4';
+                } else if (isInStack) {
+                    strokeColor = '#10b981';
+                    fillColor = isDark ? '#064e3b' : '#d1fae5';
+                    textColor = isDark ? '#ffffff' : '#065f46';
+                    strokeWidth = '3';
+                } else if (postVal > 0) {
+                    strokeColor = '#0284c7';
+                    fillColor = isDark ? '#1e3a8a' : '#dbeafe';
+                    textColor = isDark ? '#ffffff' : '#1e40af';
+                }
+
+                // Base Node Circle
+                const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+                circle.setAttribute('r', nodeRadius);
+                circle.setAttribute('fill', fillColor);
+                circle.setAttribute('stroke', strokeColor);
+                circle.setAttribute('stroke-width', strokeWidth);
+                g.appendChild(circle);
+
+                // Root/Start Node Highlight Ring
+                if (node.id === startNodeId) {
+                    const startRing = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+                    startRing.setAttribute('r', nodeRadius + 5);
+                    startRing.setAttribute('fill', 'none');
+                    startRing.setAttribute('stroke', '#f59e0b');
+                    startRing.setAttribute('stroke-width', '2');
+                    startRing.setAttribute('stroke-dasharray', '4,3');
+                    g.appendChild(startRing);
+                }
+
+                // Node ID Label
+                const label = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                label.setAttribute('text-anchor', 'middle');
+                label.setAttribute('dominant-baseline', 'central');
+                label.setAttribute('font-size', '14');
+                label.setAttribute('font-weight', 'bold');
+                label.setAttribute('fill', textColor);
+                label.classList.add('code-font');
+                label.textContent = node.id;
+                g.appendChild(label);
+
+                // Mode 2: Pre / Post Timestamp Badges
+                if (mode === 'time' || preVal > 0) {
+                    const badgeText = `${preVal > 0 ? preVal : '-'}/${postVal > 0 ? postVal : '-'}`;
+                    
+                    const badgeGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+                    badgeGroup.setAttribute('transform', 'translate(0, 36)');
+
+                    const badgeRect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+                    badgeRect.setAttribute('x', '-24');
+                    badgeRect.setAttribute('y', '-10');
+                    badgeRect.setAttribute('width', '48');
+                    badgeRect.setAttribute('height', '18');
+                    badgeRect.setAttribute('rx', '6');
+                    badgeRect.setAttribute('fill', preVal > 0 ? '#0284c7' : (isDark ? '#334155' : '#cbd5e1'));
+                    badgeRect.setAttribute('opacity', '0.95');
+
+                    const badgeVal = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                    badgeVal.setAttribute('text-anchor', 'middle');
+                    badgeVal.setAttribute('dominant-baseline', 'central');
+                    badgeVal.setAttribute('font-size', '11');
+                    badgeVal.setAttribute('font-weight', 'bold');
+                    badgeVal.setAttribute('fill', preVal > 0 ? '#ffffff' : (isDark ? '#94a3b8' : '#334155'));
+                    badgeVal.classList.add('code-font');
+                    badgeVal.textContent = badgeText;
+
+                    badgeGroup.appendChild(badgeRect);
+                    badgeGroup.appendChild(badgeVal);
+                    g.appendChild(badgeGroup);
+                }
+
+                nodesGroup.appendChild(g);
+            });
+        }
+
+        function togglePlayPause() {
+            if (isPlaying) {
+                pauseSimulation();
+            } else {
+                playSimulation();
+            }
+        }
+
+        function playSimulation() {
+            if (currentStepIndex >= simulationSteps.length - 1) {
+                currentStepIndex = 0;
+            }
+            isPlaying = true;
+            document.getElementById('play-icon').className = 'fa-solid fa-pause text-xs';
+            
+            clearInterval(playInterval);
+            playInterval = setInterval(() => {
+                if (currentStepIndex < simulationSteps.length - 1) {
+                    currentStepIndex++;
+                    renderStep(currentStepIndex);
+                } else {
+                    pauseSimulation();
+                }
+            }, 1000 / playSpeed);
+        }
+
+        function pauseSimulation() {
+            isPlaying = false;
+            document.getElementById('play-icon').className = 'fa-solid fa-play text-xs';
+            clearInterval(playInterval);
+        }
+
+        function stepNext() {
+            pauseSimulation();
+            if (currentStepIndex < simulationSteps.length - 1) {
+                currentStepIndex++;
+                renderStep(currentStepIndex);
+            }
+        }
+
+        function stepPrevious() {
+            pauseSimulation();
+            if (currentStepIndex > 0) {
+                currentStepIndex--;
+                renderStep(currentStepIndex);
+            }
+        }
+
+        function resetSimulation() {
+            pauseSimulation();
+            currentStepIndex = 0;
+            renderStep(currentStepIndex);
+        }
+
+        function onSliderChange(val) {
+            pauseSimulation();
+            currentStepIndex = parseInt(val, 10);
+            renderStep(currentStepIndex);
+        }
+
+        function cycleSpeed() {
+            const curIdx = SPEED_STEPS.indexOf(playSpeed);
+            const nextIdx = (curIdx + 1) % SPEED_STEPS.length;
+            playSpeed = SPEED_STEPS[nextIdx];
+
+            document.getElementById('speed-text').innerText = `${playSpeed.toFixed(1)}x`;
+
+            if (isPlaying) {
+                playSimulation();
+            }
+        }
+
+        function setMode(newMode) {
+            mode = newMode;
+            updateModeUI();
+            renderStep(currentStepIndex);
+        }
+
+        function updateModeUI() {
+            const edgeBtn = document.getElementById('mode-edge-btn');
+            const timeBtn = document.getElementById('mode-time-btn');
+            const badgeText = document.getElementById('mode-badge-text');
+
+            if (mode === 'edge') {
+                edgeBtn.className = 'px-3 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center gap-1.5 bg-white dark:bg-slate-800 text-brand-600 dark:text-brand-400 shadow-sm';
+                timeBtn.className = 'px-3 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center gap-1.5 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white';
+                badgeText.innerText = 'Mode: 4 Edge Types Classification';
+            } else {
+                timeBtn.className = 'px-3 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center gap-1.5 bg-white dark:bg-slate-800 text-brand-600 dark:text-brand-400 shadow-sm';
+                edgeBtn.className = 'px-3 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center gap-1.5 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white';
+                badgeText.innerText = 'Mode: Progressive Pre/Post Values';
+            }
+        }
+
+        function changeStartNode(newId) {
+            startNodeId = parseInt(newId, 10);
+            rebuildSimulation();
+        }
+
+        function updateStartNodeDropdown() {
+            const select = document.getElementById('start-node-select');
+            select.innerHTML = nodes.map(n => `
+                <option value="${n.id}" ${n.id === startNodeId ? 'selected' : ''}>Node ${n.id}</option>
+            `).join('');
+        }
+
+        function togglePseudocode() {
+            isPseudocodeCollapsed = !isPseudocodeCollapsed;
+            const body = document.getElementById('pseudocode-body');
+            const icon = document.getElementById('pseudo-toggle-icon');
+            const text = document.getElementById('pseudo-toggle-text');
+
+            if (isPseudocodeCollapsed) {
+                body.classList.add('hidden');
+                icon.className = 'fa-solid fa-chevron-down text-[10px]';
+                text.innerText = 'Expand';
+            } else {
+                body.classList.remove('hidden');
+                icon.className = 'fa-solid fa-chevron-up text-[10px]';
+                text.innerText = 'Collapse';
+            }
+        }
+
+        function setTool(tool) {
+            currentTool = tool;
+            selectedEdgeSource = null;
+
+            ['select', 'add-node', 'add-edge'].forEach(t => {
+                const btn = document.getElementById(`tool-${t}`);
+                if (t === tool) {
+                    btn.className = 'px-2.5 py-1 rounded-lg font-medium flex items-center gap-1.5 bg-brand-500 text-white shadow-xs';
+                } else {
+                    btn.className = 'px-2.5 py-1 rounded-lg font-medium flex items-center gap-1.5 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800';
+                }
+            });
+        }
+
+        function onCanvasClick(e) {
+            if (e.target.tagName !== 'svg') return;
+
+            if (currentTool === 'add-node') {
+                const rect = e.currentTarget.getBoundingClientRect();
+                const x = Math.round(e.clientX - rect.left);
+                const y = Math.round(e.clientY - rect.top);
+
+                const nextId = nodes.length > 0 ? Math.max(...nodes.map(n => n.id)) + 1 : 1;
+                nodes.push({ id: nextId, x, y });
+                
+                rebuildSimulation();
+                showToast(`Node ${nextId} added`);
+            }
+        }
+
+        function setupCanvasDragEvents() {
+            const svg = document.getElementById('graph-svg');
+
+            svg.addEventListener('mousemove', (e) => {
+                if (draggingNodeId !== null) {
+                    const rect = svg.getBoundingClientRect();
+                    const targetNode = nodes.find(n => n.id === draggingNodeId);
+                    if (targetNode) {
+                        targetNode.x = Math.round(e.clientX - rect.left - dragOffset.x);
+                        targetNode.y = Math.round(e.clientY - rect.top - dragOffset.y);
+                        renderCanvas();
+                    }
+                }
+            });
+
+            window.addEventListener('mouseup', () => {
+                if (draggingNodeId !== null) {
+                    draggingNodeId = null;
+                    rebuildSimulation();
+                }
+            });
+        }
+
+        function onNodeMouseDown(e, nodeId) {
+            e.stopPropagation();
+
+            if (currentTool === 'select') {
+                draggingNodeId = nodeId;
+                const svg = document.getElementById('graph-svg');
+                const rect = svg.getBoundingClientRect();
+                const targetNode = nodes.find(n => n.id === nodeId);
+                dragOffset.x = (e.clientX - rect.left) - targetNode.x;
+                dragOffset.y = (e.clientY - rect.top) - targetNode.y;
+            } else if (currentTool === 'add-edge') {
+                if (selectedEdgeSource === null) {
+                    selectedEdgeSource = nodeId;
+                    showToast(`Selected source Node ${nodeId}. Click target node.`);
+                } else {
+                    if (selectedEdgeSource !== nodeId) {
+                        const exists = edges.some(e => e.u === selectedEdgeSource && e.v === nodeId);
+                        if (!exists) {
+                            edges.push({ u: selectedEdgeSource, v: nodeId });
+                            showToast(`Added directed edge (${selectedEdgeSource} → ${nodeId})`);
+                            rebuildSimulation();
+                        } else {
+                            showToast(`Edge (${selectedEdgeSource} → ${nodeId}) already exists.`);
+                        }
+                    }
+                    selectedEdgeSource = null;
+                }
+            }
+        }
+
+        function clearGraph() {
+            nodes = [];
+            edges = [];
+            startNodeId = 1;
+            rebuildSimulation();
+            showToast('Graph cleared');
+        }
+
+        function loadPreset(key) {
+            if (!PRESETS[key]) return;
+            const preset = PRESETS[key];
+            nodes = JSON.parse(JSON.stringify(preset.nodes));
+            edges = JSON.parse(JSON.stringify(preset.edges));
+            startNodeId = preset.startNodeId;
+            rebuildSimulation();
+        }
+
+        function generateRandomGraph() {
+            const numNodes = Math.floor(Math.random() * 3) + 5; // 5 to 7 nodes
+            const newNodes = [];
+            
+            // Layout in circular arrangement centered cleanly below top controls (y offset = 220)
+            const width = 500;
+            const centerX = width / 2;
+            const centerY = 220; // Keeps top nodes at y >= 110, away from top control bar
+            const radius = 110;
+
+            for (let i = 1; i <= numNodes; i++) {
+                const angle = ((i - 1) / numNodes) * 2 * Math.PI - Math.PI / 2;
+                newNodes.push({
+                    id: i,
+                    x: Math.round(centerX + radius * Math.cos(angle)),
+                    y: Math.round(centerY + radius * Math.sin(angle))
+                });
+            }
+
+            const newEdges = [];
+            for (let u = 1; u <= numNodes; u++) {
+                for (let v = 1; v <= numNodes; v++) {
+                    if (u !== v && Math.random() < 0.28) {
+                        newEdges.push({ u, v });
+                    }
+                }
+            }
+
+            nodes = newNodes;
+            edges = newEdges;
+            startNodeId = 1;
+            rebuildSimulation();
+            showToast('Generated new random graph!');
+        }
+
+        function renderAdjacencyList() {
+            const container = document.getElementById('adj-list-container');
+            if (nodes.length === 0) {
+                container.innerHTML = `<span class="text-slate-400 italic">No nodes in graph</span>`;
+                return;
+            }
+
+            const adjMap = new Map();
+            nodes.forEach(n => adjMap.set(n.id, []));
+            edges.forEach(e => {
+                if (adjMap.has(e.u)) adjMap.get(e.u).push(e.v);
+            });
+
+            const sortedNodeIds = nodes.map(n => n.id).sort((a, b) => a - b);
+            container.innerHTML = sortedNodeIds.map(u => {
+                const neighbors = (adjMap.get(u) || []).sort((a, b) => a - b);
+                return `
+                    <div class="flex items-center space-x-2 py-0.5 border-b border-slate-100 dark:border-slate-700/50">
+                        <span class="font-bold text-slate-800 dark:text-slate-200 min-w-[45px]">${u} &rarr;</span>
+                        <span class="text-slate-600 dark:text-slate-400">${neighbors.length > 0 ? `[ ${neighbors.join(', ')} ]` : '<span class="text-slate-400 font-sans italic text-[11px]">empty</span>'}</span>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function toggleTheme() {
+            const html = document.documentElement;
+            if (html.classList.contains('dark')) {
+                html.classList.remove('dark');
+            } else {
+                html.classList.add('dark');
+            }
+            renderCanvas();
+        }
+    </script>
+</body>
+</html>
