@@ -404,22 +404,22 @@
         const pseudocode01 = [
             { line: 1, text: `<span class="code-fn">Knapsack_01_Max_Val</span>(n, W, w, v)` },
             { line: 2, text: `  <span class="code-kw">for</span> w := <span class="code-num">0</span> <span class="code-kw">to</span> W <span class="code-kw">do</span> K[<span class="code-num">0</span>, w] := <span class="code-num">0</span>` },
-            { line: 3, text: `  <span class="code-kw">for</span> j := <span class="code-num">0</span> <span class="code-kw">to</span> n <span class="code-kw">do</span> K[j, <span class="code-num">0</span>] := <span class="code-num">0</span>` },
-            { line: 4, text: `  <span class="code-kw">for</span> j := <span class="code-num">1</span> <span class="code-kw">to</span> n <span class="code-kw">do</span>` },
+            { line: 3, text: `  <span class="code-kw">for</span> i := <span class="code-num">0</span> <span class="code-kw">to</span> n <span class="code-kw">do</span> K[i, <span class="code-num">0</span>] := <span class="code-num">0</span>` },
+            { line: 4, text: `  <span class="code-kw">for</span> i := <span class="code-num">1</span> <span class="code-kw">to</span> n <span class="code-kw">do</span>` },
             { line: 5, text: `    <span class="code-kw">for</span> w := <span class="code-num">1</span> <span class="code-kw">to</span> W <span class="code-kw">do</span>` },
             { line: 6, text: `      <span class="code-kw">if</span> w_j > w <span class="code-kw">then</span>` },
-            { line: 7, text: `        K[j, w] := K[j-<span class="code-num">1</span>, w]` },
+            { line: 7, text: `        K[i, w] := K[i-<span class="code-num">1</span>, w]` },
             { line: 8, text: `      <span class="code-kw">else</span>` },
-            { line: 9, text: `        K[j, w] := <span class="code-kw">max</span>(K[j-<span class="code-num">1</span>, w], v_j + K[j-<span class="code-num">1</span>, w - w_j])` },
+            { line: 9, text: `        K[i, w] := <span class="code-kw">max</span>(K[i-<span class="code-num">1</span>, w], v_i + K[i-<span class="code-num">1</span>, w - w_i])` },
             { line: 10, text: `  <span class="code-kw">return</span> K[n, W]` },
             { line: 11, text: `<span class="code-cm">// Backtracking solution (0/1)</span>` },
             { line: 12, text: `<span class="code-fn">Reconstruct_Solution_01</span>(n, W, K)` },
-            { line: 13, text: `  j := n; cap := W; solution := []` },
-            { line: 14, text: `  <span class="code-kw">while</span> j > <span class="code-num">0</span> <span class="code-kw">and</span> cap > <span class="code-num">0</span> <span class="code-kw">do</span>` },
-            { line: 15, text: `    <span class="code-kw">if</span> K[j, cap] != K[j-<span class="code-num">1</span>, cap] <span class="code-kw">then</span>` },
-            { line: 16, text: `      solution.add(j)` },
+            { line: 13, text: `  i := n; cap := W; solution := []` },
+            { line: 14, text: `  <span class="code-kw">while</span> i > <span class="code-num">0</span> <span class="code-kw">and</span> cap > <span class="code-num">0</span> <span class="code-kw">do</span>` },
+            { line: 15, text: `    <span class="code-kw">if</span> K[i, cap] != K[i-<span class="code-num">1</span>, cap] <span class="code-kw">then</span>` },
+            { line: 16, text: `      solution.add(i)` },
             { line: 17, text: `      cap := cap - w_j` },
-            { line: 18, text: `    j := j - <span class="code-num">1</span>` },
+            { line: 18, text: `    i := i - <span class="code-num">1</span>` },
             { line: 19, text: `  <span class="code-kw">return</span> solution` }
         ];
 
@@ -840,86 +840,86 @@
                 });
             }
 
-            for (let j = 1; j <= n; j++) {
-                K[j][0] = 0;
+            for (let i = 1; i <= n; i++) {
+                K[i][0] = 0;
                 executionSteps.push({
                     phase: "Initialize Column 0",
                     line: 3,
                     K2D: JSON.parse(JSON.stringify(K)),
-                    activeCell: { j, w: 0 },
+                    activeCell: { j: i, w: 0 },
                     deps: [],
                     optimalCell: null,
                     isBacktracking: false,
-                    mathHtml: `<b>Column 0 Base Case (0 capacity):</b><br>$K[${j}, 0] = 0$`
+                    mathHtml: `<b>Column 0 Base Case (0 capacity):</b><br>$K[${i}, 0] = 0$`
                 });
             }
 
-            for (let j = 1; j <= n; j++) {
-                const item = items[j - 1];
+            for (let i = 1; i <= n; i++) {
+                const item = items[i - 1];
                 for (let w = 1; w <= W; w++) {
 
                     if (item.w > w) {
-                        K[j][w] = K[j - 1][w];
+                        K[i][w] = K[i - 1][w];
                         executionSteps.push({
-                            phase: `Item ${j} too heavy for w=${w}`,
+                            phase: `Item ${i} too heavy for w=${w}`,
                             line: 7,
                             K2D: JSON.parse(JSON.stringify(K)),
-                            activeCell: { j, w },
-                            deps: [{ j: j - 1, w, type: 'dep-1' }],
+                            activeCell: { j: i, w },
+                            deps: [{ j: i - 1, w, type: 'dep-1' }],
                             optimalCell: null,
                             isBacktracking: false,
                             mathHtml: `
-                                <b>Item ${j} ($w_${j}=${item.w}$) > $w=${w}$:</b><br>
-                                Cannot include Item ${j}. Copy value from cell above:<br>
-                                $K[${j}, ${w}] = K[${j-1}, ${w}] = \\mathbf{${K[j][w]}}$
+                                <b>Item ${i} ($w_${i}=${item.w}$) > $w=${w}$:</b><br>
+                                Cannot include Item ${i}. Copy value from cell above:<br>
+                                $K[${i}, ${w}] = K[${i-1}, ${w}] = \\mathbf{${K[i][w]}}$
                             `
                         });
                     } else {
-                        const valExcl = K[j - 1][w];
-                        const valIncl = item.v + K[j - 1][w - item.w];
+                        const valExcl = K[i - 1][w];
+                        const valIncl = item.v + K[i - 1][w - item.w];
                         const maxVal = Math.max(valExcl, valIncl);
-                        K[j][w] = maxVal;
+                        K[i][w] = maxVal;
 
                         executionSteps.push({
-                            phase: `Evaluating Item ${j} for w=${w}`,
+                            phase: `Evaluating Item ${i} for w=${w}`,
                             line: 9,
                             K2D: JSON.parse(JSON.stringify(K)),
-                            activeCell: { j, w },
+                            activeCell: { j: i, w },
                             deps: [
-                                { j: j - 1, w, type: 'dep-1' },
-                                { j: j - 1, w: w - item.w, type: 'dep-2' }
+                                { j: i - 1, w, type: 'dep-1' },
+                                { j: i - 1, w: w - item.w, type: 'dep-2' }
                             ],
-                            optimalCell: (j === n && w === W) ? { j: n, w: W } : null,
+                            optimalCell: (i === n && w === W) ? { j: n, w: W } : null,
                             isBacktracking: false,
                             mathHtml: `
-                                <b>Evaluating Cell $K[${j}, ${w}]$ (Item ${j}: $w=${item.w}, v=${item.v}$):</b><br>
-                                $$K[${j}, ${w}] = \\max \\begin{cases} K[${j-1}, ${w}] = \\mathbf{${valExcl}} \\\\ v_${j} + K[${j-1}, ${w}-${item.w}] = ${item.v} + ${K[j-1][w - item.w]} = \\mathbf{${valIncl}} \\end{cases} = \\mathbf{${maxVal}}$$
+                                <b>Evaluating Cell $K[${i}, ${w}]$ (Item ${i}: $w=${item.w}, v=${item.v}$):</b><br>
+                                $$K[${i}, ${w}] = \\max \\begin{cases} K[${i-1}, ${w}] = \\mathbf{${valExcl}} \\\\ v_${i} + K[${i-1}, ${w}-${item.w}] = ${item.v} + ${K[i-1][w - item.w]} = \\mathbf{${valIncl}} \\end{cases} = \\mathbf{${maxVal}}$$
                             `
                         });
                     }
                 }
             }
 
-            let j = n;
+            let i = n;
             let cap = W;
             let path = [];
 
-            while (j > 0 && cap > 0) {
-                if (K[j][cap] !== K[j - 1][cap]) {
-                    const item = items[j - 1];
-                    path.push({ j, cap, item });
+            while (i > 0 && cap > 0) {
+                if (K[i][cap] !== K[i - 1][cap]) {
+                    const item = items[i - 1];
+                    path.push({ j: i, cap, item });
                     executionSteps.push({
                         phase: "Backtracking Solution",
                         line: 15,
                         K2D: JSON.parse(JSON.stringify(K)),
-                        activeCell: { j, w: cap },
+                        activeCell: { j: i, w: cap },
                         backtrackPath: [...path],
                         deps: [],
                         optimalCell: { j: n, w: W },
                         isBacktracking: true,
                         mathHtml: `
-                            <b>Backtracking at Item ${j}, Capacity $w = ${cap}$:</b><br>
-                            $K[${j}, ${cap}] (${K[j][cap]}) \\neq K[${j-1}, ${cap}] (${K[j-1][cap]}) \\implies \\text{Item } ${j}$ WAS included!<br>
+                            <b>Backtracking at Item ${i}, Capacity $w = ${cap}$:</b><br>
+                            $K[${i}, ${cap}] (${K[i][cap]}) \\neq K[${i-1}, ${cap}] (${K[i-1][cap]}) \\implies \\text{Item } ${i}$ WAS included!<br>
                             Residual capacity: $${cap} - ${item.w} = \\mathbf{${cap - item.w}}$
                         `
                     });
@@ -929,18 +929,18 @@
                         phase: "Backtracking Solution",
                         line: 18,
                         K2D: JSON.parse(JSON.stringify(K)),
-                        activeCell: { j, w: cap },
+                        activeCell: { j: i, w: cap },
                         backtrackPath: [...path],
                         deps: [],
                         optimalCell: { j: n, w: W },
                         isBacktracking: true,
                         mathHtml: `
-                            <b>Backtracking at Item ${j}, Capacity $w = ${cap}$:</b><br>
-                            $K[${j}, ${cap}] == K[${j-1}, ${cap}] \\implies \\text{Item } ${j}$ was NOT included. Move to $j - 1$.
+                            <b>Backtracking at Item ${i}, Capacity $w = ${cap}$:</b><br>
+                            $K[${i}, ${cap}] == K[${i-1}, ${cap}] \\implies \\text{Item } ${i}$ was NOT included. Move to $i - 1$.
                         `
                     });
                 }
-                j--;
+                i--;
             }
 
             executionSteps.push({
@@ -1057,8 +1057,8 @@
                 // 0/1 Knapsack 2D Table with Integrated Items
                 legend.innerHTML = `
                     <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded bg-blue-500/30 border border-blue-500 inline-block"></span> Current Cell</span>
-                    <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded bg-green-500/30 border border-green-500 inline-block"></span> K[j-1, w]</span>
-                    <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded bg-purple-500/30 border border-purple-500 inline-block"></span> K[j-1, w-w_j]</span>
+                    <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded bg-green-500/30 border border-green-500 inline-block"></span> K[i-1, w]</span>
+                    <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded bg-purple-500/30 border border-purple-500 inline-block"></span> K[i-1, w-w_i]</span>
                     <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded bg-orange-500/30 border border-orange-500 inline-block"></span> Backtrack Path</span>
                     <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded bg-amber-500/30 border border-amber-500 inline-block"></span> Optimal Max</span>
                 `;
@@ -1075,33 +1075,33 @@
                 }
                 html += `</tr></thead><tbody>`;
 
-                for (let j = 0; j <= items.length; j++) {
-                    const item = j > 0 ? items[j - 1] : { name: '-', v: 0, w: 0 };
+                for (let i = 0; i <= items.length; i++) {
+                    const item = i > 0 ? items[i - 1] : { name: '-', v: 0, w: 0 };
                     html += `<tr class="border-b border-slate-200 dark:border-slate-700">
-                        <td class="p-1.5 border-r border-slate-200 dark:border-slate-700 font-bold bg-slate-50 dark:bg-slate-800">${j}</td>
-                        <td class="p-1.5 border-r border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-blue-500 font-semibold">${j > 0 ? 'Item ' + j : '-'}</td>
-                        <td class="p-1.5 border-r border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-emerald-500">${j > 0 ? item.v : 0}</td>
-                        <td class="p-1.5 border-r border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-amber-500">${j > 0 ? item.w : 0}</td>`;
+                        <td class="p-1.5 border-r border-slate-200 dark:border-slate-700 font-bold bg-slate-50 dark:bg-slate-800">${i}</td>
+                        <td class="p-1.5 border-r border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-blue-500 font-semibold">${i > 0 ? 'Item ' + i : '-'}</td>
+                        <td class="p-1.5 border-r border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-emerald-500">${i > 0 ? item.v : 0}</td>
+                        <td class="p-1.5 border-r border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-amber-500">${i > 0 ? item.w : 0}</td>`;
 
                     for (let w = 0; w <= W; w++) {
                         let cellClass = "dp-cell";
-                        if (step.optimalCell && step.optimalCell.j === j && step.optimalCell.w === w) {
+                        if (step.optimalCell && step.optimalCell.j === i && step.optimalCell.w === w) {
                             cellClass += " cell-optimal";
-                        } else if (step.activeCell && step.activeCell.j === j && step.activeCell.w === w) {
+                        } else if (step.activeCell && step.activeCell.j === i && step.activeCell.w === w) {
                             cellClass += " cell-active";
                         }
                         if (step.deps) {
                             step.deps.forEach(d => {
-                                if (d.j === j && d.w === w) {
+                                if (d.j === i && d.w === w) {
                                     cellClass += d.type === 'dep-1' ? " cell-dep-1" : " cell-dep-2";
                                 }
                             });
                         }
-                        if (step.backtrackPath && step.backtrackPath.some(bp => bp.j === j && bp.cap === w)) {
+                        if (step.backtrackPath && step.backtrackPath.some(bp => bp.j === i && bp.cap === w)) {
                             cellClass += " cell-backtrack";
                         }
 
-                        const rawVal = step.K2D ? step.K2D[j][w] : null;
+                        const rawVal = step.K2D ? step.K2D[i][w] : null;
                         const val = (rawVal !== null && rawVal !== undefined) ? rawVal : "";
                         html += `<td class="p-1.5 border-r border-slate-200 dark:border-slate-700 ${cellClass}">${val}</td>`;
                     }
