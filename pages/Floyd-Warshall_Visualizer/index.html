@@ -670,7 +670,7 @@
             // Render Edges
             const processedPairs = new Set();
 
-            currentGraph.edges.forEach(edge => {
+            currentGraph.edges.forEach((edge, edgeIndex) => {
                 const u = edge.u;
                 const v = edge.v;
                 const p1 = nodePos[u];
@@ -731,6 +731,8 @@
                     if (isDirected) markerId = 'arrow-hover';
                 }
 
+                const isHighlighted = strokeWidth !== '2.5';
+
                 const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
                 path.setAttribute('d', pathData);
                 path.setAttribute('fill', 'none');
@@ -741,15 +743,20 @@
                 svg.appendChild(path);
 
                 // Edge Weight Label
-                const labelX = curveOffset === 0 ? (p1.x + p2.x) / 2 : (p1.x + p2.x) / 2 + nx * (curveOffset * 0.75);
-                const labelY = curveOffset === 0 ? (p1.y + p2.y) / 2 : (p1.y + p2.y) / 2 + ny * (curveOffset * 0.75);
+                const labelOffset = curveOffset === 0 ? (edgeIndex % 2 === 0 ? 10 : -10) : curveOffset * 0.75;
+                const labelX = (p1.x + p2.x) / 2 + nx * labelOffset;
+                const labelY = (p1.y + p2.y) / 2 + ny * labelOffset;
 
+                /*
                 const textBg = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
                 textBg.setAttribute('cx', labelX);
                 textBg.setAttribute('cy', labelY);
                 textBg.setAttribute('r', '13');
-                textBg.setAttribute('class', 'fill-white dark:fill-slate-900 stroke-slate-300 dark:stroke-slate-700 shadow-sm');
+                textBg.setAttribute('fill', isHighlighted ? strokeColor : (isDark ? '#0f172a' : '#ffffff'));
+                textBg.setAttribute('stroke', isHighlighted ? strokeColor : (isDark ? '#475569' : '#cbd5e1'));
+                textBg.setAttribute('stroke-width', isHighlighted ? '2' : '1');
                 svg.appendChild(textBg);
+                */
 
                 const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
                 text.setAttribute('x', labelX);
@@ -757,7 +764,7 @@
                 text.setAttribute('text-anchor', 'middle');
                 text.setAttribute('font-size', '13');
                 text.setAttribute('font-weight', 'bold');
-                text.setAttribute('fill', 'currentColor');
+                text.setAttribute('fill', isHighlighted ? strokeColor : (isDark ? '#f8fafc' : '#0f172a'));
                 text.textContent = edge.w;
                 svg.appendChild(text);
             });
